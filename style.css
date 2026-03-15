@@ -132,60 +132,165 @@ body {
 
 .portfolio-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
-    gap: 50px;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 60px 40px;
+    justify-items: center;
 }
 
-.media-container {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    overflow: hidden;
-    background: #111;
-    border: 2px solid var(--green); /* Green Stroke around images */
-}
-
-/* Behance Hover Overlay */
-.behance-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(14, 76, 11, 0.85); /* Green Overlay */
+/* --- FOLDER ICON STYLES --- */
+.folder-card {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: opacity 0.3s ease;
+    text-decoration: none;
+    cursor: pointer;
+    text-align: center;
 }
 
-.behance-overlay span {
-    border: 2px solid var(--yellow);
-    padding: 12px 24px;
+.folder-icon {
+    width: 120px;
+    height: 85px;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 3.5px solid var(--green);
+    border-radius: 4px 8px 8px 8px;
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    margin-bottom: 20px;
+}
+
+.folder-icon::before {
+    content: '';
+    position: absolute;
+    top: -16px;
+    left: -3.5px;
+    width: 45px;
+    height: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 3.5px solid var(--green);
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.folder-card:hover .folder-icon,
+.folder-card:hover .folder-icon::before {
+    border-color: var(--yellow);
+    box-shadow: 0 0 25px rgba(247, 213, 79, 0.3);
+    transform: translateY(-8px);
+}
+
+.folder-title {
+    color: #ffffff;
+    font-size: 1.1rem;
     font-weight: 900;
-    color: var(--yellow);
     text-transform: uppercase;
+    margin: 0 0 8px 0;
+    transition: color 0.3s ease;
 }
 
-.project-card:hover .behance-overlay {
-    opacity: 1;
+.folder-card:hover .folder-title {
+    color: var(--yellow);
 }
 
-.project-details h3 {
-    margin: 25px 0 8px 0;
-    font-size: 1.5rem;
+.folder-desc {
+    color: #ffffff;
+    font-size: 0.8rem;
+    opacity: 0.6;
+    margin: 0;
+    font-weight: 400;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 160px;
+}
+
+/* --- SUB-PAGE: BEHANCE STYLE --- */
+.sticky-back-nav {
+    position: fixed;
+    top: 30px;
+    left: 30px;
+    z-index: 1000;
+}
+
+.sticky-back-nav .btn {
+    margin-top: 0;
+    padding: 12px 24px;
+    font-size: 0.85rem;
+}
+
+.project-header {
+    text-align: center;
+    padding: 120px 20px 60px;
+}
+
+.project-header h1 {
+    color: var(--yellow);
+    font-size: clamp(2.5rem, 6vw, 5rem);
     font-weight: 900;
+    text-transform: uppercase;
+    margin: 0;
+    letter-spacing: -2px;
 }
 
-.project-details p {
-    color: #aaa;
-    font-size: 1rem;
+.image-stack {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin: 0 auto;
 }
 
-footer {
+.image-stack img {
+    width: 100%;
+    height: auto;
+    display: block;
+    margin: 0;
+    padding: 0;
+}
+
+.project-footer {
+    text-align: center;
     padding: 80px 20px;
+}
+
+/* --- JS TRANSITIONS --- */
+.page-transition {
+    animation: folderOpen 0.6s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+}
+
+@keyframes folderOpen {
+    0% { opacity: 0; transform: scale(0.95) translateY(20px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* --- FOOTER --- */
+.main-footer {
+    padding: 80px 20px 40px;
     text-align: center;
     border-top: 1px solid var(--green);
-    color: #444;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+    margin-top: 60px;
+}
+
+.social-links {
+    display: flex;
+    gap: 30px;
+}
+
+.social-links a {
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: color 0.3s ease;
+}
+
+.social-links a:hover {
+    color: var(--yellow);
 }
