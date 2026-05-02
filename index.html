@@ -8,65 +8,175 @@
 </head>
 <body>
 
+    <!-- Custom Cursor -->
+    <div class="cursor-dot"></div>
+    <div class="cursor-ring"></div>
+
+    <!-- Preloader -->
+    <div class="preloader">
+        <img src="assets/logo.png" alt="Control Tee" class="preloader-logo">
+        <div class="preloader-counter">0%</div>
+        <div class="preloader-bar-track">
+            <div class="preloader-bar-fill"></div>
+        </div>
+    </div>
+
+    <!-- Hero -->
     <header class="hero">
         <video autoplay muted loop playsinline class="hero-video">
             <source src="assets/hero-motion.mp4" type="video/mp4">
         </video>
-
         <div class="hero-content">
             <img src="assets/logo.png" alt="Control Tee Logo" class="hero-logo">
-            <h1>CONTROL TEE</h1>
-            <p>Marketing Campaigns • Brand Identity • Motion Design</p>
-            <a href="#work" class="btn">View Portfolio</a>
+            <h1 class="hero-title">
+                <span class="word">CONTROL</span>&nbsp;<span class="word">TEE</span>
+            </h1>
+            <p class="hero-subtitle">Marketing Campaigns &nbsp;·&nbsp; Brand Identity &nbsp;·&nbsp; Motion Design</p>
+            <a href="#work" class="btn">View Work</a>
         </div>
     </header>
 
+    <!-- Text Ticker -->
+    <div class="text-ticker">
+        <div class="text-ticker-track">
+            <span class="ticker-word">Transform</span><span class="ticker-sep">·</span>
+            <span class="ticker-word">Brand Identity</span><span class="ticker-sep">·</span>
+            <span class="ticker-word">Motion Design</span><span class="ticker-sep">·</span>
+            <span class="ticker-word">Visual Culture</span><span class="ticker-sep">·</span>
+            <span class="ticker-word">CTRL+T</span><span class="ticker-sep">·</span>
+            <span class="ticker-word">Campaign</span><span class="ticker-sep">·</span>
+            <span class="ticker-word">Event Branding</span><span class="ticker-sep">·</span>
+            <span class="ticker-word">Video Production</span><span class="ticker-sep">·</span>
+            <span class="ticker-word">Nairobi, Kenya</span><span class="ticker-sep">·</span>
+            <!-- duplicate set for seamless loop -->
+            <span class="ticker-word">Transform</span><span class="ticker-sep">·</span>
+            <span class="ticker-word">Brand Identity</span><span class="ticker-sep">·</span>
+            <span class="ticker-word">Motion Design</span><span class="ticker-sep">·</span>
+            <span class="ticker-word">Visual Culture</span><span class="ticker-sep">·</span>
+            <span class="ticker-word">CTRL+T</span><span class="ticker-sep">·</span>
+            <span class="ticker-word">Campaign</span><span class="ticker-sep">·</span>
+            <span class="ticker-word">Event Branding</span><span class="ticker-sep">·</span>
+            <span class="ticker-word">Video Production</span><span class="ticker-sep">·</span>
+            <span class="ticker-word">Nairobi, Kenya</span><span class="ticker-sep">·</span>
+        </div>
+    </div>
+
+    <!-- About / Studio -->
+    <section class="about-section">
+        <div class="container">
+            <div class="about-grid reveal">
+                <div class="about-tag">CTRL<br>+T</div>
+                <div>
+                    <h2 class="about-headline">Creativity<br>meets <em>transformation.</em></h2>
+                    <div class="about-body">
+                        <p>At Control Tee, we're inspired by the design shortcut CTRL+T — the command to transform. Our name reflects what we do best: turn ideas into impactful visual identities.</p>
+                        <p>We're a design studio built on design thinking and originality, specialising in shaping your image so you stand out in today's visual culture. From concept to execution, every project is crafted with precision, passion, and purpose.</p>
+                    </div>
+                    <div class="about-stats">
+                        <div class="stat-item">
+                            <span class="stat-number">22+</span>
+                            <span class="stat-label">Projects</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">4</span>
+                            <span class="stat-label">Disciplines</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">2026</span>
+                            <span class="stat-label">Est.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Selected Work -->
     <main id="work">
         <div class="container">
-            <h2 class="section-title">Selected Projects</h2>
+            <h2 class="section-title reveal">Selected Projects</h2>
             <div class="portfolio-grid">
-                
-                <!-- FOLDER 1: Motion Design -->
-                <a href="motion-design.html" class="folder-card">
-                    <div class="folder-icon"></div>
-                    <h3 class="folder-title">Motion Design</h3>
-                    <p class="folder-desc">Kinetic typography & animations</p>
+
+                <a href="motion-design.html" class="folder-card reveal" data-delay="0">
+                    <div class="folder-inner">
+                        <div class="folder-icon"></div>
+                        <h3 class="folder-title">Motion Design</h3>
+                        <p class="folder-desc">Kinetic typography & animation</p>
+                    </div>
                 </a>
 
-                <!-- FOLDER 2: Event Branding -->
-                <a href="event-branding.html" class="folder-card">
-                    <div class="folder-icon"></div>
-                    <h3 class="folder-title">Event Branding</h3>
-                    <p class="folder-desc">Visuals for forums & TEDx</p>
+                <a href="event-branding.html" class="folder-card reveal" data-delay="80">
+                    <div class="folder-inner">
+                        <div class="folder-icon"></div>
+                        <h3 class="folder-title">Event Branding</h3>
+                        <p class="folder-desc">Visuals for forums & TEDx</p>
+                    </div>
                 </a>
 
-                <!-- FOLDER 3: Brand Identity -->
-                <a href="brand-identity.html" class="folder-card">
-                    <div class="folder-icon"></div>
-                    <h3 class="folder-title">Brand Identity</h3>
-                    <p class="folder-desc">Core visual identities</p>
+                <a href="brand-identity.html" class="folder-card reveal" data-delay="160">
+                    <div class="folder-inner">
+                        <div class="folder-icon"></div>
+                        <h3 class="folder-title">Brand Identity</h3>
+                        <p class="folder-desc">Core visual identities</p>
+                    </div>
                 </a>
 
-                <!-- FOLDER 4: Video Production -->
-                <a href="video-production.html" class="folder-card">
-                    <div class="folder-icon"></div>
-                    <h3 class="folder-title">Video Production</h3>
-                    <p class="folder-desc">High-fidelity video content</p>
+                <a href="video-production.html" class="folder-card reveal" data-delay="240">
+                    <div class="folder-inner">
+                        <div class="folder-icon"></div>
+                        <h3 class="folder-title">Video Production</h3>
+                        <p class="folder-desc">High-fidelity video content</p>
+                    </div>
                 </a>
 
             </div>
         </div>
     </main>
 
+    <!-- Partners / Clients -->
+    <section class="partners-section">
+        <p class="partners-label reveal">Clients &amp; Collaborators</p>
+
+        <!--
+            HOW TO ADD LOGOS:
+            1. Drop files into assets/clients/ (SVG or transparent PNG)
+            2. Add an <img> for each logo in BOTH the "Set A" and "Set B" divs below
+               (both sets must be identical for the seamless loop to work)
+            Example line:
+            <img src="assets/clients/your-client.svg" alt="Client Name" class="partner-logo">
+        -->
+        <div class="partners-marquee">
+            <div class="partners-track">
+
+                <!-- ─ Set A ─────────────────────────────── -->
+                <img src="assets/clients/client-01.svg" alt="Client" class="partner-logo" onerror="this.style.display='none'">
+                <img src="assets/clients/client-02.svg" alt="Client" class="partner-logo" onerror="this.style.display='none'">
+                <img src="assets/clients/client-03.svg" alt="Client" class="partner-logo" onerror="this.style.display='none'">
+                <img src="assets/clients/client-04.svg" alt="Client" class="partner-logo" onerror="this.style.display='none'">
+                <img src="assets/clients/client-05.svg" alt="Client" class="partner-logo" onerror="this.style.display='none'">
+
+                <!-- ─ Set B (duplicate — do not remove) ─── -->
+                <img src="assets/clients/client-01.svg" alt="Client" class="partner-logo" onerror="this.style.display='none'">
+                <img src="assets/clients/client-02.svg" alt="Client" class="partner-logo" onerror="this.style.display='none'">
+                <img src="assets/clients/client-03.svg" alt="Client" class="partner-logo" onerror="this.style.display='none'">
+                <img src="assets/clients/client-04.svg" alt="Client" class="partner-logo" onerror="this.style.display='none'">
+                <img src="assets/clients/client-05.svg" alt="Client" class="partner-logo" onerror="this.style.display='none'">
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
     <footer class="main-footer container">
         <div class="social-links">
-            <a href="#">Instagram</a>
-            <a href="#">Behance</a>
-            <a href="#">LinkedIn</a>
+            <a href="https://www.instagram.com/control.tee/" target="_blank" rel="noopener">Instagram</a>
+            <a href="https://www.behance.net/controltee" target="_blank" rel="noopener">Behance</a>
+            <a href="https://www.linkedin.com/in/controltee/" target="_blank" rel="noopener">LinkedIn</a>
         </div>
         <a href="contact.html" class="btn">Work With Us</a>
-        <p style="margin-top: 20px; opacity: 0.5; font-size: 0.8rem; color: #fff;">&copy; 2026 Control Tee</p>
+        <p class="footer-copy">&copy; 2026 Control Tee</p>
     </footer>
 
+    <script src="animations.js"></script>
 </body>
 </html>

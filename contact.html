@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact — Control Tee</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="page-transition">
+
+    <div class="cursor-dot"></div>
+    <div class="cursor-ring"></div>
+
+    <nav class="sticky-back-nav">
+        <a href="index.html" class="btn">← Back</a>
+    </nav>
+
+    <!-- ── CONTACT FORM & INFO ── -->
+    <section class="contact-section">
+        <div class="contact-grid container">
+
+            <!-- Left: info -->
+            <div>
+                <h1 class="contact-headline">Let's<br>Work.</h1>
+                <p class="contact-body">
+                    Control Tee is a creative studio built for bold brands.
+                    If you have a project in mind — a campaign, an identity,
+                    or a story that needs to move — reach out and let's make it happen.
+                </p>
+                <div class="contact-links">
+
+                    <div class="contact-link-item">
+                        <span class="contact-link-label">Email</span>
+                        <a href="mailto:info@control-tee.com" class="contact-link-value">info@control-tee.com</a>
+                    </div>
+
+                    <div class="contact-link-item">
+                        <span class="contact-link-label">Instagram</span>
+                        <a href="https://www.instagram.com/control.tee/" class="contact-link-value" target="_blank" rel="noopener">@control.tee</a>
+                    </div>
+
+                    <div class="contact-link-item">
+                        <span class="contact-link-label">Behance</span>
+                        <a href="https://www.behance.net/controltee" class="contact-link-value" target="_blank" rel="noopener">behance.net/controltee</a>
+                    </div>
+
+                    <div class="contact-link-item">
+                        <span class="contact-link-label">LinkedIn</span>
+                        <a href="https://www.linkedin.com/in/controltee/" class="contact-link-value" target="_blank" rel="noopener">linkedin.com/in/controltee</a>
+                    </div>
+
+                    <div class="contact-link-item">
+                        <span class="contact-link-label">Based in</span>
+                        <span class="contact-link-value" style="cursor:default;">Nairobi, Kenya</span>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Right: form -->
+            <form class="contact-form" action="#" method="POST">
+                <div class="form-group">
+                    <label class="form-label" for="name">Name</label>
+                    <input class="form-input" type="text" id="name" name="name" placeholder="Your name" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="email">Email</label>
+                    <input class="form-input" type="email" id="email" name="email" placeholder="your@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="project">Project type</label>
+                    <input class="form-input" type="text" id="project" name="project" placeholder="Brand Identity, Motion, Campaign…">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="message">Message</label>
+                    <textarea class="form-textarea" id="message" name="message" placeholder="Tell us about your project…" required></textarea>
+                </div>
+                <button type="submit" class="btn form-submit">Send It</button>
+            </form>
+
+        </div>
+    </section>
+
+    <!-- ── BOOK A MEETING ── -->
+    <section class="calendar-section container">
+        <div class="calendar-header reveal">
+            <h2>Book a Meeting</h2>
+            <p>Check availability and schedule a call directly — no back-and-forth needed.</p>
+        </div>
+
+        <div class="calendar-embed-wrapper reveal" data-delay="100">
+
+            <!--
+            ══════════════════════════════════════════════════════
+            TO CONNECT YOUR GOOGLE CALENDAR:
+
+            1. Open Google Calendar → Settings → Settings for my calendars
+            2. Select your calendar → scroll to "Integrate calendar"
+            3. Copy the "Embed code" iframe src URL
+            4. Replace the placeholder src below with your URL
+            5. Delete the .calendar-placeholder block and uncomment the iframe
+
+            The URL looks like:
+            https://calendar.google.com/calendar/embed?src=YOUR_ID%40gmail.com&ctz=Africa%2FNairobi
+            ══════════════════════════════════════════════════════
+
+            UNCOMMENT when ready:
+            <iframe
+                src="https://calendar.google.com/calendar/embed?src=YOUR_CALENDAR_ID&ctz=Africa%2FNairobi&mode=WEEK&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=0&showCalendars=0"
+                height="640"
+                frameborder="0"
+                scrolling="no"
+                title="Book a meeting with Control Tee">
+            </iframe>
+            -->
+
+            <!-- Remove this block once the iframe above is active -->
+            <div class="calendar-placeholder">
+                <div class="calendar-placeholder-icon">📅</div>
+                <h3>Calendar Coming Soon</h3>
+                <p>Booking integration will be live shortly. In the meantime, reach out via email or Instagram above.</p>
+            </div>
+
+        </div>
+    </section>
+
+    <footer class="main-footer container">
+        <div class="social-links">
+            <a href="https://www.instagram.com/control.tee/" target="_blank" rel="noopener">Instagram</a>
+            <a href="https://www.behance.net/controltee" target="_blank" rel="noopener">Behance</a>
+            <a href="https://www.linkedin.com/in/controltee/" target="_blank" rel="noopener">LinkedIn</a>
+        </div>
+        <p class="footer-copy">&copy; 2026 Control Tee</p>
+    </footer>
+
+    <script src="animations.js"></script>
+</body>
+</html>

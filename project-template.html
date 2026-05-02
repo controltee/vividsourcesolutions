@@ -3,43 +3,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Brand Identity - Control-Tee</title>
+    <!--
+        PAGE TITLE: update per project
+        Format: "Client Name — Control Tee"
+    -->
+    <title>Client Name — Control Tee</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="page-transition">
-    
-    <!-- Sticky Navigation -->
+
+    <div class="cursor-dot"></div>
+    <div class="cursor-ring"></div>
+
+    <!-- Back nav: update href to the correct parent folder page -->
     <nav class="sticky-back-nav">
-        <a href="brand-identity.html" class="btn">← Back to Folder</a>
+        <a href="brand-identity.html" class="btn">← Back</a>
     </nav>
 
-    <!-- Project Title Header -->
-    <header class="project-header">
-        <div class="container">
-            <h1>Client Alpha</h1>
-            <p>Full Rebrand & Strategy Presentation</p>
-        </div>
-    </header>
+    <!--
+    ══════════════════════════════════════════════════════════════════
+    COVER IMAGE
+    File:   assets/projects/[category]/[client-slug]/cover.jpg
+    Size:   1920 × 1080 px  (16:9)
+    Export: JPG, quality 90, sRGB
+    ══════════════════════════════════════════════════════════════════
+    -->
+    <img
+        src="assets/projects/brand-identity/client-name/cover.jpg"
+        alt="Client Name — Cover"
+        class="case-cover">
 
-    <!-- Full-Width Image Stack -->
+    <!-- Project Metadata Bar -->
+    <div class="case-meta">
+        <div class="case-meta-item">
+            <span class="case-meta-label">Client</span>
+            <span class="case-meta-value">Client Name</span>
+        </div>
+        <div class="case-meta-item">
+            <span class="case-meta-label">Category</span>
+            <span class="case-meta-value">Brand Identity</span>
+        </div>
+        <div class="case-meta-item">
+            <span class="case-meta-label">Deliverables</span>
+            <span class="case-meta-value">Logo · Guidelines · Collateral</span>
+        </div>
+        <div class="case-meta-item">
+            <span class="case-meta-label">Year</span>
+            <span class="case-meta-value">2026</span>
+        </div>
+    </div>
+
+    <!-- Project Introduction -->
+    <div class="case-intro reveal">
+        <h2>Project Title</h2>
+        <p>
+            A short description of the project — what the brief was, the challenge,
+            and what Control Tee brought to it. 2–3 sentences is enough.
+            Focus on transformation: what changed, and why it matters.
+        </p>
+        <div class="case-tags">
+            <span class="case-tag">Branding</span>
+            <span class="case-tag">Logo Design</span>
+            <span class="case-tag">Visual Identity</span>
+            <!-- Add or remove tags as needed -->
+        </div>
+    </div>
+
+    <!--
+    ══════════════════════════════════════════════════════════════════
+    IMAGE STACK — Behance-style full-width slices
+    ──────────────────────────────────────────────────────────────────
+    FILE NAMING:   01.jpg, 02.jpg, 03.jpg … (zero-padded)
+    FOLDER:        assets/projects/[category]/[client-slug]/
+
+    SLICE DIMENSIONS (width always 1920px):
+    ┌─────────────────────────────┬────────────────────────────────┐
+    │ Slice type                  │ Height                         │
+    ├─────────────────────────────┼────────────────────────────────┤
+    │ Full-bleed hero/mockup      │ 1000 – 1200 px                 │
+    │ Wide presentation row       │ 600 – 800 px                   │
+    │ Detail / close-up           │ 800 – 1080 px                  │
+    │ Side-by-side pair*          │ 960 px each (exported separate)│
+    │ Typography / text slide     │ 500 – 700 px                   │
+    └─────────────────────────────┴────────────────────────────────┘
+    * Side-by-side: export as two 960 × height images, name them
+      04a.jpg and 04b.jpg, then place them in a .stack-pair div (see below)
+
+    EXPORT SETTINGS (Photoshop / Illustrator / Figma):
+    • Format:      JPG
+    • Quality:     90 (Photoshop) / "High" (Figma export)
+    • Color space: sRGB
+    • Resolution:  72 dpi (screen only)
+    • No padding:  slices must butt against each other with zero gap
+
+    LABEL GUIDE for file names:
+    cover.jpg   → hero/cover image shown at top of page
+    01.jpg      → first content slice (full-width)
+    02.jpg      → second slice, etc.
+    04a.jpg     → left half of a side-by-side pair
+    04b.jpg     → right half of a side-by-side pair
+    ══════════════════════════════════════════════════════════════════
+    -->
+
     <main class="image-stack">
-        <!-- Exported high-res Photoshop slices go here with zero margin -->
-        <!-- Example placeholders: -->
-        <!-- <img src="assets/projects/brand/slice-01.jpg" alt="Brand Presentation Part 1"> -->
-        <!-- <img src="assets/projects/brand/slice-02.jpg" alt="Brand Presentation Part 2"> -->
-        <!-- <img src="assets/projects/brand/slice-03.jpg" alt="Brand Presentation Part 3"> -->
+
+        <!-- Standard full-width slice -->
+        <img src="assets/projects/brand-identity/client-name/01.jpg" alt="Brand presentation slide 1">
+
+        <img src="assets/projects/brand-identity/client-name/02.jpg" alt="Brand presentation slide 2">
+
+        <!-- Optional: caption between slices — delete if not needed -->
+        <div class="stack-caption">
+            <h3>Section Heading</h3>
+            <p>Optional context about what's shown in the image above — e.g. "Logo construction grid and clear-space rules."</p>
+        </div>
+
+        <img src="assets/projects/brand-identity/client-name/03.jpg" alt="Brand presentation slide 3">
+
+        <!--
+        Side-by-side pair — two images at 960px wide each:
+        <div style="display:flex;">
+            <img src="assets/projects/brand-identity/client-name/04a.jpg" alt="Detail A" style="width:50%;">
+            <img src="assets/projects/brand-identity/client-name/04b.jpg" alt="Detail B" style="width:50%;">
+        </div>
+        -->
+
+        <img src="assets/projects/brand-identity/client-name/05.jpg" alt="Brand presentation slide 5">
+
     </main>
 
-    <!-- Next Project Footer Navigation -->
-    <footer class="main-footer container">
-        <a href="#" class="btn">Next Project →</a>
-        <div class="social-links" style="margin-top: 40px;">
-            <a href="#">Instagram</a>
-            <a href="#">Behance</a>
-            <a href="#">LinkedIn</a>
+    <!-- Next Project Navigation -->
+    <div class="case-next">
+        <div>
+            <!-- update href and title for the previous project, or remove this block -->
+            <a href="#">
+                <span class="case-next-label">← Previous</span>
+                <span class="case-next-title">Previous Project</span>
+            </a>
         </div>
-        <p style="margin-top: 20px; opacity: 0.5; font-size: 0.8rem; color: #fff;">&copy; 2026 Control Tee</p>
+        <div style="text-align:right;">
+            <!-- update href and title for the next project -->
+            <a href="#">
+                <span class="case-next-label">Next →</span>
+                <span class="case-next-title">Next Project</span>
+            </a>
+        </div>
+    </div>
+
+    <footer class="main-footer container">
+        <div class="social-links">
+            <a href="https://www.instagram.com/control.tee/" target="_blank" rel="noopener">Instagram</a>
+            <a href="https://www.behance.net/controltee" target="_blank" rel="noopener">Behance</a>
+            <a href="https://www.linkedin.com/in/controltee/" target="_blank" rel="noopener">LinkedIn</a>
+        </div>
+        <a href="contact.html" class="btn">Work With Us</a>
+        <p class="footer-copy">&copy; 2026 Control Tee</p>
     </footer>
 
+    <script src="animations.js"></script>
 </body>
 </html>
