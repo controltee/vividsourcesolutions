@@ -1,8 +1,65 @@
 /* ─────────────────────────────────────────────────────────
    CONTROL TEE — Animations
-   Preloader · Hero Reveal · Scroll Reveal · 3D Folders
+   Preloader · Scramble Text · Scroll Reveal · 3D Folders
    Custom Cursor · Page Exit Fade
 ───────────────────────────────────────────────────────── */
+
+/* ── TEXT SCRAMBLE ENGINE ─────────────────────────────── */
+const SCRAMBLE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#@!?&%$';
+
+function scrambleText(el, onComplete) {
+    const originalText = el.textContent.trim();
+    const length       = originalText.length;
+
+    el.style.opacity = '1';
+
+    /* Build per-character queue */
+    const queue = Array.from(originalText).map((char, i) => ({
+        char,
+        start:   Math.floor(i * 1.4),               /* stagger start per char  */
+        end:     Math.floor(i * 1.4) + 8,            /* resolve after N frames  */
+        current: '',
+    }));
+
+    let frame = 0;
+    let raf;
+
+    function tick() {
+        let html     = '';
+        let resolved = 0;
+
+        queue.forEach(item => {
+            if (item.char === ' ') {
+                html += '&nbsp;';
+                resolved++;
+                return;
+            }
+
+            if (frame >= item.end) {
+                html += `<span class="scramble-char">${item.char}</span>`;
+                resolved++;
+            } else if (frame >= item.start) {
+                const rand = SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
+                item.current = rand;
+                html += `<span class="scramble-char resolving">${rand}</span>`;
+            } else {
+                html += `<span class="scramble-char" style="opacity:0">${item.char}</span>`;
+            }
+        });
+
+        el.innerHTML = html;
+
+        if (resolved < length) {
+            frame++;
+            raf = requestAnimationFrame(tick);
+        } else {
+            if (onComplete) onComplete();
+        }
+    }
+
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf); /* returns cancel fn */
+}
 
 /* ── PRELOADER ────────────────────────────────────────── */
 (function () {
@@ -16,11 +73,8 @@
     const fill    = preloader.querySelector('.preloader-bar-fill');
     let count = 0;
 
-    /* Irregular cadence mimics real loading */
     function step() {
-        const increment = Math.floor(Math.random() * 6) + 2;
-        count = Math.min(count + increment, 100);
-
+        count = Math.min(count + Math.floor(Math.random() * 6) + 2, 100);
         if (counter) counter.textContent = count + '%';
         if (fill)    fill.style.width    = count + '%';
 
@@ -29,7 +83,7 @@
         } else {
             setTimeout(() => {
                 preloader.classList.add('done');
-                setTimeout(triggerHeroReveal, 200);
+                setTimeout(triggerHeroReveal, 180);
             }, 380);
         }
     }
@@ -40,20 +94,50 @@
 /* ── HERO REVEAL ──────────────────────────────────────── */
 function triggerHeroReveal() {
     const logo     = document.querySelector('.hero-logo');
-    const words    = document.querySelectorAll('.hero-title .word');
+    const title    = document.querySelector('.hero-title[data-scramble]');
     const subtitle = document.querySelector('.hero-subtitle');
     const btn      = document.querySelector('.hero-content .btn');
 
-    if (logo)     setTimeout(() => logo.classList.add('visible'), 80);
+    if (logo) {
+        setTimeout(() => logo.classList.add('visible'), 80);
+    }
 
-    words.forEach((w, i) => {
-        setTimeout(() => w.classList.add('visible'), 260 + i * 130);
-    });
-
-    const afterWords = 260 + words.length * 130;
-    if (subtitle) setTimeout(() => subtitle.classList.add('visible'), afterWords + 60);
-    if (btn)      setTimeout(() => btn.classList.add('visible'),      afterWords + 160);
+    if (title) {
+        setTimeout(() => {
+            scrambleText(title, () => {
+                if (subtitle) subtitle.classList.add('visible');
+                if (btn)      setTimeout(() => btn.classList.add('visible'), 100);
+            });
+        }, 300);
+    } else {
+        /* fallback if no scramble title on page */
+        if (subtitle) setTimeout(() => subtitle.classList.add('visible'), 400);
+        if (btn)      setTimeout(() => btn.classList.add('visible'), 550);
+    }
 }
+
+/* ── SCROLL-TRIGGERED SCRAMBLE ────────────────────────── */
+(function () {
+    const targets = document.querySelectorAll('[data-scramble]:not(.hero-title)');
+    if (!targets.length) return;
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            scrambleText(entry.target);
+            observer.unobserve(entry.target);
+        });
+    }, { threshold: 0.3 });
+
+    targets.forEach(el => observer.observe(el));
+})();
+
+/* Sub-page h1 on load (not in hero, not observed) */
+(function () {
+    const heading = document.querySelector('.project-header h1[data-scramble], .contact-headline[data-scramble]');
+    if (!heading) return;
+    setTimeout(() => scrambleText(heading), 400);
+})();
 
 /* ── SCROLL REVEAL ────────────────────────────────────── */
 (function () {
@@ -107,7 +191,6 @@ function triggerHeroReveal() {
         dot.style.top  = mouseY + 'px';
     });
 
-    /* Lerp ring for trailing lag effect */
     (function animateRing() {
         ringX += (mouseX - ringX) * 0.11;
         ringY += (mouseY - ringY) * 0.11;
@@ -116,19 +199,18 @@ function triggerHeroReveal() {
         requestAnimationFrame(animateRing);
     })();
 
-    /* Scale on interactive elements */
     const targets = document.querySelectorAll('a, button, .folder-card, input, textarea');
     targets.forEach(el => {
         el.addEventListener('mouseenter', () => {
-            dot.style.transform  = 'translate(-50%, -50%) scale(3)';
-            ring.style.width     = '58px';
-            ring.style.height    = '58px';
+            dot.style.transform    = 'translate(-50%, -50%) scale(3)';
+            ring.style.width       = '58px';
+            ring.style.height      = '58px';
             ring.style.borderColor = 'rgba(247, 213, 79, 0.45)';
         });
         el.addEventListener('mouseleave', () => {
-            dot.style.transform  = 'translate(-50%, -50%) scale(1)';
-            ring.style.width     = '36px';
-            ring.style.height    = '36px';
+            dot.style.transform    = 'translate(-50%, -50%) scale(1)';
+            ring.style.width       = '36px';
+            ring.style.height      = '36px';
             ring.style.borderColor = 'rgba(247, 213, 79, 0.7)';
         });
     });
@@ -136,8 +218,7 @@ function triggerHeroReveal() {
 
 /* ── PAGE EXIT FADE ───────────────────────────────────── */
 (function () {
-    const links = document.querySelectorAll('a[href]');
-    links.forEach(link => {
+    document.querySelectorAll('a[href]').forEach(link => {
         link.addEventListener('click', e => {
             const href = link.getAttribute('href');
             if (
