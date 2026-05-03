@@ -27,13 +27,14 @@ body {
     font-family: 'DM Sans', sans-serif;
     font-weight: 400;
     overflow-x: hidden;
-    cursor: none;
+    cursor: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path d='M3,2 L3,18 L8,14 L11,21 L14,20 L11,13 L17,13 Z' fill='%23f7d54f' stroke='%23000' stroke-width='1.5' stroke-linejoin='round'/></svg>") 3 2, auto;
 }
 
-/* restore cursor for inputs */
 input, textarea, select { cursor: text; }
 
-a { cursor: none; }
+a, button, .folder-card {
+    cursor: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path d='M3,2 L3,18 L8,14 L11,21 L14,20 L11,13 L17,13 Z' fill='%23f7d54f' stroke='%23000' stroke-width='1.5' stroke-linejoin='round'/></svg>") 3 2, pointer;
+}
 
 .container {
     max-width: 1200px;
@@ -41,34 +42,6 @@ a { cursor: none; }
     padding: 0 40px;
 }
 
-/* ── CUSTOM CURSOR ──────────────────────────────────── */
-.cursor-dot {
-    width: 8px;
-    height: 8px;
-    background: var(--yellow);
-    border-radius: 50%;
-    position: fixed;
-    top: 0; left: 0;
-    pointer-events: none;
-    z-index: 9999;
-    transform: translate(-50%, -50%);
-    transition: transform 0.15s ease, background 0.2s ease;
-    will-change: left, top;
-}
-
-.cursor-ring {
-    width: 36px;
-    height: 36px;
-    border: 1.5px solid rgba(247, 213, 79, 0.7);
-    border-radius: 50%;
-    position: fixed;
-    top: 0; left: 0;
-    pointer-events: none;
-    z-index: 9998;
-    transform: translate(-50%, -50%);
-    transition: width 0.3s ease, height 0.3s ease, border-color 0.3s ease;
-    will-change: left, top;
-}
 
 /* ── PRELOADER ──────────────────────────────────────── */
 .preloader {
@@ -1034,6 +1007,5 @@ a { cursor: none; }
     .hero-title { letter-spacing: -2px; }
 
     .sticky-back-nav { top: 20px; left: 20px; }
-    .cursor-dot, .cursor-ring { display: none; }
-    body, a { cursor: auto; }
+    body, a, button, .folder-card { cursor: auto; }
 }
