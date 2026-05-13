@@ -445,6 +445,70 @@ a, button, .folder-card {
     max-width: 160px;
 }
 
+/* ── PROJECT CARDS (service page thumbnails) ─────────── */
+.portfolio-grid--projects {
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 2px;
+    justify-items: stretch;
+}
+
+.project-card {
+    display: block;
+    text-decoration: none;
+    overflow: hidden;
+    position: relative;
+    aspect-ratio: 4/3;
+    background: var(--border);
+}
+
+.project-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.6s ease;
+}
+
+.project-card-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 24px 28px;
+    background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%);
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.project-card:hover img { transform: scale(1.04); }
+.project-card:hover .project-card-info { opacity: 1; transform: translateY(0); }
+
+.project-card-title {
+    font-family: 'Cabinet Grotesk', sans-serif;
+    color: var(--white);
+    font-size: 1.1rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0 0 4px;
+}
+
+.project-card-cat {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.68rem;
+    color: var(--yellow);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+/* video elements in image-stack */
+.image-stack video {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
 /* ── PARTNERS SECTION ───────────────────────────────── */
 .partners-section {
     padding: 100px 0;
@@ -936,6 +1000,34 @@ a, button, .folder-card {
     color: rgba(255, 255, 255, 0.3);
     max-width: 340px;
     line-height: 1.7;
+}
+
+/* Calendar booking CTA (replaces placeholder) */
+.calendar-booking-cta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    padding: 60px 40px;
+    text-align: center;
+}
+
+.calendar-booking-cta p {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1rem;
+    font-weight: 300;
+    color: rgba(255, 255, 255, 0.55);
+    max-width: 380px;
+    line-height: 1.7;
+}
+
+/* case-cover for video (same dimensions as the img version) */
+video.case-cover {
+    display: block;
+    width: 100%;
+    max-height: 80vh;
+    object-fit: cover;
 }
 
 /* ── SCROLL REVEAL ──────────────────────────────────── */
