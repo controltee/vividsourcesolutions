@@ -171,3 +171,35 @@ function triggerHeroReveal() {
         });
     });
 })();
+
+/* -- HORIZONTAL SCROLL SLIDER --------------------------- */
+(function() {
+    if (typeof gsap === 'undefined') return;
+    
+    const containers = document.querySelectorAll('.slider-container');
+    if (!containers.length) return;
+
+    gsap.registerPlugin(ScrollTrigger);
+
+    containers.forEach(container => {
+        const track = container.querySelector('.horizontal-track');
+        if (!track) return;
+        
+        const getScrollAmount = () => -(track.scrollWidth - window.innerWidth + 80); // 80px for padding
+        
+        const tween = gsap.to(track, {
+            x: getScrollAmount,
+            ease: "none"
+        });
+
+        ScrollTrigger.create({
+            trigger: container,
+            start: "top top",
+            end: () => "+=" + Math.abs(getScrollAmount()),
+            pin: true,
+            animation: tween,
+            scrub: 1,
+            invalidateOnRefresh: true
+        });
+    });
+})();

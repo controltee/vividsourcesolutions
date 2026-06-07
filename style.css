@@ -714,25 +714,46 @@ a, button, .folder-card {
     border-radius: 2px;
 }
 
-/* Seamless full-width image stack — zero gap, edge-to-edge */
-.image-stack {
-    display: flex;
-    flex-direction: column;
+/* ── HORIZONTAL POSTER SLIDER ───────────────────────── */
+.slider-container {
     width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    position: relative;
+    background: var(--black);
+    display: flex;
+    align-items: center;
 }
 
-.image-stack img {
-    width: 100%;
-    height: auto;
+.horizontal-track {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    width: max-content;
+    padding: 0 40px;
+}
+
+.horizontal-track img,
+.horizontal-track video {
+    height: 75vh;
+    width: auto;
     display: block;
+    box-shadow: 0 15px 45px rgba(0, 0, 0, 0.4);
+    margin-right: 60px;
+    border-radius: 4px;
+}
+
+.horizontal-track img:last-child,
+.horizontal-track video:last-child {
+    margin-right: 0;
 }
 
 /* Optional caption between image slices */
 .stack-caption {
-    padding: 50px 40px;
-    max-width: 900px;
-    margin: 0 auto;
-    text-align: center;
+    padding: 0 60px 0 20px;
+    max-width: 450px;
+    text-align: left;
+    flex-shrink: 0;
 }
 
 .stack-caption h3 {
