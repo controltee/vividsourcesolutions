@@ -5,143 +5,369 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Upload — Control Tee</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        #auth-overlay {
+            position: fixed;
+            inset: 0;
+            background: #000000;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+        #auth-overlay h2 {
+            font-family: 'Cabinet Grotesk', sans-serif;
+            color: #f7d54f;
+            font-size: 2rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: -1px;
+        }
+        #admin-pass {
+            background: rgba(255,255,255,0.05);
+            border: 1.5px solid #0e4c0b;
+            color: #ffffff;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 1rem;
+            padding: 15px 18px;
+            border-radius: 3px;
+            outline: none;
+            width: 300px;
+            text-align: center;
+        }
+        #admin-pass:focus { border-color: #f7d54f; }
+        #unlock-btn {
+            padding: 16px 40px;
+            background-color: #f7d54f;
+            border: 3px solid #0e4c0b;
+            color: #000000;
+            font-family: 'Cabinet Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 0.8rem;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            border-radius: 2px;
+            cursor: pointer;
+        }
+        #unlock-btn:hover {
+            background-color: #0e4c0b;
+            color: #f7d54f;
+            border-color: #f7d54f;
+        }
+        #auth-error {
+            color: #f7d54f;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.85rem;
+            display: none;
+            text-align: center;
+        }
+        .status-msg {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.85rem;
+            margin-top: 12px;
+            padding: 10px 16px;
+            border-radius: 3px;
+            display: none;
+        }
+        .status-msg.success {
+            background: rgba(14,76,11,0.3);
+            border: 1px solid #0e4c0b;
+            color: #f7d54f;
+            display: block;
+        }
+        .status-msg.error {
+            background: rgba(255,0,0,0.1);
+            border: 1px solid rgba(255,0,0,0.3);
+            color: #ff6b6b;
+            display: block;
+        }
+        .status-msg.loading {
+            background: rgba(247,213,79,0.1);
+            border: 1px solid rgba(247,213,79,0.3);
+            color: #f7d54f;
+            display: block;
+        }
+        .poster-thumb-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .poster-thumb {
+            position: relative;
+        }
+        .poster-thumb img {
+            width: 100%;
+            aspect-ratio: 4/5;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid rgba(14,76,11,0.55);
+            display: block;
+        }
+        .poster-thumb button {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: #000;
+            color: #f7d54f;
+            border: 1px solid #0e4c0b;
+            border-radius: 2px;
+            padding: 2px 7px;
+            font-size: 0.65rem;
+            cursor: pointer;
+        }
+        .video-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(14,76,11,0.55);
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        .video-row span {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.82rem;
+            color: rgba(255,255,255,0.55);
+            word-break: break-all;
+        }
+        .video-row button {
+            flex-shrink: 0;
+            margin-left: 16px;
+            background: #000;
+            color: #f7d54f;
+            border: 1px solid #0e4c0b;
+            border-radius: 2px;
+            padding: 4px 12px;
+            font-size: 0.7rem;
+            cursor: pointer;
+        }
+        .admin-block {
+            margin-bottom: 60px;
+        }
+        .admin-block-title {
+            font-family: 'Cabinet Grotesk', sans-serif;
+            color: #f7d54f;
+            font-size: 2rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: -1px;
+            margin-bottom: 8px;
+        }
+        .admin-block-desc {
+            font-family: 'DM Sans', sans-serif;
+            color: rgba(255,255,255,0.45);
+            font-size: 0.88rem;
+            margin-bottom: 24px;
+        }
+    </style>
 </head>
 <body>
 
-    <!-- Simple Password Protection Overlay -->
-    <div id="auth-overlay" class="preloader" style="z-index: 9999; display: flex; transform: none; pointer-events: all;">
-        <h2 class="about-headline" style="font-size: 2rem;">Admin Access</h2>
-     <input type="password" 
-       id="admin-pass" 
-       placeholder="Enter Password"
-       onkeydown="if(event.key==='Enter') checkAuth()"
-       style="
-           max-width: 300px; 
-           text-align: center;
-           background: rgba(255,255,255,0.05);
-           border: 1.5px solid #0e4c0b;
-           color: #ffffff;
-           font-size: 1rem;
-           padding: 15px 18px;
-           border-radius: 3px;
-           outline: none;
-           width: 300px;
-           display: block;
-           margin: 0 auto 16px;">
-<button 
-    onclick="checkAuth()" 
-    style="
-        display: block;
-        margin: 0 auto;
-        padding: 16px 40px;
-        background-color: #f7d54f;
-        border: 3px solid #0e4c0b;
-        color: #000000;
-        font-family: Cabinet Grotesk, sans-serif;
-        font-weight: 700;
-        font-size: 0.8rem;
-        letter-spacing: 2.5px;
-        text-transform: uppercase;
-        border-radius: 2px;
-        cursor: pointer;">Unlock</button>
-<p id="auth-error" style="color:#f7d54f; font-size:0.85rem; margin-top:12px; display:none; text-align:center;">
-    Incorrect password. Try again.
-</p>
+    <!-- Password Overlay -->
+    <div id="auth-overlay">
+        <h2>Admin Access</h2>
+        <input type="password" id="admin-pass" placeholder="Enter password" />
+        <button id="unlock-btn" onclick="checkAuth()">Unlock</button>
+        <p id="auth-error">Incorrect password. Try again.</p>
     </div>
 
-    <nav class="sticky-back-nav">
-        <a href="index.html" class="btn">← Back to Site</a>
-    </nav>
+    <!-- Admin Panel (revealed after unlock) -->
+    <div id="admin-content" style="display: none;">
 
-    <section class="contact-section">
-        <div class="contact-grid container">
-            
-            <!-- Poster Upload Form -->
-            <div>
-                <h2 class="contact-headline" style="font-size: 2.5rem; margin-bottom: 20px;">Upload Poster</h2>
-                <p class="contact-body" style="margin-bottom: 30px;">Format: 2160x2700px or 1:1 Square. JPEG/PNG.</p>
-                <form class="contact-form" id="poster-form">
-                    <div class="form-group">
-                        <label class="form-label" for="poster-file">Select Image</label>
-                        <input class="form-input" type="file" id="poster-file" accept="image/png, image/jpeg" required>
+        <nav class="sticky-back-nav">
+            <a href="index.html" class="btn">← Back to Site</a>
+        </nav>
+
+        <section class="contact-section">
+            <div class="container" style="max-width: 1000px;">
+
+                <h1 style="font-family:'Cabinet Grotesk',sans-serif; color:#f7d54f; font-size:clamp(2.5rem,6vw,4.5rem); font-weight:900; text-transform:uppercase; letter-spacing:-3px; margin-bottom:70px;">
+                    Control Tee<br>Admin Panel
+                </h1>
+
+                <!-- UPLOAD POSTER -->
+                <div class="admin-block">
+                    <h2 class="admin-block-title">Upload Poster</h2>
+                    <p class="admin-block-desc">Format: 2160×2700px portrait or 1:1 square. JPEG/PNG. Auto-compressed before upload.</p>
+                    <div class="contact-form">
+                        <div class="form-group">
+                            <label class="form-label">Select Poster Image</label>
+                            <input class="form-input" type="file" id="poster-file" accept="image/png,image/jpeg,image/webp">
+                        </div>
+                        <button class="btn form-submit" style="opacity:1;transform:none;" onclick="uploadPoster()">
+                            Add to Marquee
+                        </button>
+                        <div class="status-msg" id="poster-status"></div>
                     </div>
-                    <button type="submit" class="btn form-submit">Add to Marquee</button>
-                </form>
-            </div>
+                    <div class="poster-thumb-grid" id="poster-list"></div>
+                </div>
 
-            <!-- YouTube Link Form -->
-            <div>
-                <h2 class="contact-headline" style="font-size: 2.5rem; margin-bottom: 20px;">Add Video</h2>
-                <p class="contact-body" style="margin-bottom: 30px;">Paste a standard YouTube link.</p>
-                <form class="contact-form" id="video-form">
-                    <div class="form-group">
-                        <label class="form-label" for="yt-link">YouTube URL</label>
-                        <input class="form-input" type="url" id="yt-link" placeholder="https://www.youtube.com/watch?v=..." required>
+                <!-- ADD VIDEO -->
+                <div class="admin-block">
+                    <h2 class="admin-block-title">Add Video</h2>
+                    <p class="admin-block-desc">Paste a standard YouTube link. It will appear in the Video Work grid on the homepage.</p>
+                    <div class="contact-form">
+                        <div class="form-group">
+                            <label class="form-label">YouTube URL</label>
+                            <input class="form-input" type="url" id="yt-link" placeholder="https://www.youtube.com/watch?v=...">
+                        </div>
+                        <button class="btn form-submit" style="opacity:1;transform:none;" onclick="addVideo()">
+                            Add to Video Grid
+                        </button>
+                        <div class="status-msg" id="video-status"></div>
                     </div>
-                    <button type="submit" class="btn form-submit">Add to Video Grid</button>
-                </form>
-            </div>
+                    <div id="video-list" style="margin-top:20px;"></div>
+                </div>
 
-        </div>
-    </section>
+            </div>
+        </section>
+
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // NOTE: Replace these with your actual Supabase URL and Anon Key
-        const SUPABASE_URL = 'https://ccaggjhyeygyosbdnxmq.supabase.co';
+        const SUPABASE_URL      = 'https://ccaggjhyeygyosbdnxmq.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjYWdnamh5ZXlneW9zYmRueG1xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNjMzNzksImV4cCI6MjA5NjgzOTM3OX0.Z2NJXnSNoJtugQ0Co-R_SMH3dXbErVcCcItgxj_PQxs';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // Simple UI lock
-     function checkAuth() {
-    const pass = document.getElementById('admin-pass').value;
-    if (pass === 'controltee2026') { 
-        document.getElementById('auth-overlay').style.display = 'none';
-    } else {
-        document.getElementById('auth-error').style.display = 'block';
-    }
-}
+        // ── AUTH ───────────────────────────────────────────────
+        function checkAuth() {
+            const pass = document.getElementById('admin-pass').value;
+            if (pass === 'controltee2026') {
+                document.getElementById('auth-overlay').style.display = 'none';
+                document.getElementById('admin-content').style.display = 'block';
+                loadPosters();
+                loadVideos();
+            } else {
+                document.getElementById('auth-error').style.display = 'block';
+            }
+        }
 
-        // Handle Poster Uploads
-        document.getElementById('poster-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
+        document.getElementById('admin-pass').addEventListener('keydown', e => {
+            if (e.key === 'Enter') checkAuth();
+        });
+
+        // ── STATUS ─────────────────────────────────────────────
+        function setStatus(id, msg, type) {
+            const el = document.getElementById(id);
+            el.textContent = msg;
+            el.className = 'status-msg ' + type;
+            if (type === 'success') setTimeout(() => { el.className = 'status-msg'; }, 4000);
+        }
+
+        // ── COMPRESS IMAGE ─────────────────────────────────────
+        function compressImage(file, maxPx = 2160, quality = 0.85) {
+            return new Promise(resolve => {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    const img = new Image();
+                    img.onload = () => {
+                        let w = img.width, h = img.height;
+                        if (w > maxPx || h > maxPx) {
+                            if (w > h) { h = Math.round(h * maxPx / w); w = maxPx; }
+                            else       { w = Math.round(w * maxPx / h); h = maxPx; }
+                        }
+                        const canvas = document.createElement('canvas');
+                        canvas.width = w; canvas.height = h;
+                        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                        canvas.toBlob(resolve, 'image/jpeg', quality);
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // ── UPLOAD POSTER ──────────────────────────────────────
+        async function uploadPoster() {
             const fileInput = document.getElementById('poster-file');
             const file = fileInput.files[0];
-            if (!file) return;
+            if (!file) return setStatus('poster-status', 'Please select a file first.', 'error');
 
-            const fileName = `${Date.now()}_${file.name.replace(/\s+/g, '-')}`;
-            const btn = e.target.querySelector('.btn');
-            btn.textContent = "Uploading...";
+            setStatus('poster-status', '⏳ Compressing image...', 'loading');
+            const compressed = await compressImage(file);
 
-            // 1. Upload to Supabase Storage Bucket
-            const { error: uploadError } = await supabase.storage.from('portfolio_assets').upload(fileName, file);
-            if (uploadError) { btn.textContent = "Add to Marquee"; return alert('Upload Failed: ' + uploadError.message); }
+            setStatus('poster-status', '⏳ Uploading to Supabase...', 'loading');
+            const fileName = `posters/${Date.now()}_${file.name.replace(/\s+/g, '-')}`;
 
-            // 2. Get Public URL
-            const { data: publicUrlData } = supabase.storage.from('portfolio_assets').getPublicUrl(fileName);
+            const { error: uploadError } = await supabase.storage
+                .from('portfolio_assets')
+                .upload(fileName, compressed, { contentType: 'image/jpeg' });
 
-            // 3. Write to Database
-            const { error: dbError } = await supabase.from('posters').insert({ image_url: publicUrlData.publicUrl });
-            
-            btn.textContent = "Add to Marquee";
-            if (dbError) return alert('Database Insert Failed: ' + dbError.message);
-            
-            alert('Poster successfully uploaded to Marquee!');
-            e.target.reset();
-        });
+            if (uploadError) return setStatus('poster-status', '❌ Upload failed: ' + uploadError.message, 'error');
 
-        // Handle YouTube Video Addition
-        document.getElementById('video-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const url = document.getElementById('yt-link').value;
-            
+            const { data: urlData } = supabase.storage.from('portfolio_assets').getPublicUrl(fileName);
+
+            const { error: dbError } = await supabase.from('posters').insert({ image_url: urlData.publicUrl });
+            if (dbError) return setStatus('poster-status', '❌ Database error: ' + dbError.message, 'error');
+
+            setStatus('poster-status', '✅ Poster added to marquee!', 'success');
+            fileInput.value = '';
+            loadPosters();
+        }
+
+        // ── ADD VIDEO ──────────────────────────────────────────
+        async function addVideo() {
+            const url = document.getElementById('yt-link').value.trim();
+            if (!url) return setStatus('video-status', 'Please enter a YouTube URL.', 'error');
+            if (!url.includes('youtube.com') && !url.includes('youtu.be')) {
+                return setStatus('video-status', '❌ Please enter a valid YouTube URL.', 'error');
+            }
             const { error } = await supabase.from('videos').insert({ youtube_url: url });
-            
-            if (error) return alert('Failed to add video: ' + error.message);
-            
-            alert('Video successfully added to grid!');
-            e.target.reset();
-        });
+            if (error) return setStatus('video-status', '❌ Failed: ' + error.message, 'error');
+            setStatus('video-status', '✅ Video added to grid!', 'success');
+            document.getElementById('yt-link').value = '';
+            loadVideos();
+        }
+
+        // ── LOAD POSTERS ───────────────────────────────────────
+        async function loadPosters() {
+            const { data } = await supabase.from('posters').select('*').order('created_at', { ascending: false });
+            const list = document.getElementById('poster-list');
+            if (!data || data.length === 0) {
+                list.innerHTML = '<p style="color:rgba(255,255,255,0.3);font-size:0.85rem;font-family:DM Sans,sans-serif;margin-top:10px;">No posters uploaded yet.</p>';
+                return;
+            }
+            list.innerHTML = data.map(p => `
+                <div class="poster-thumb">
+                    <img src="${p.image_url}" alt="Poster">
+                    <button onclick="deletePoster('${p.id}')">✕</button>
+                </div>
+            `).join('');
+        }
+
+        // ── LOAD VIDEOS ────────────────────────────────────────
+        async function loadVideos() {
+            const { data } = await supabase.from('videos').select('*').order('created_at', { ascending: false });
+            const list = document.getElementById('video-list');
+            if (!data || data.length === 0) {
+                list.innerHTML = '<p style="color:rgba(255,255,255,0.3);font-size:0.85rem;font-family:DM Sans,sans-serif;">No videos added yet.</p>';
+                return;
+            }
+            list.innerHTML = data.map(v => `
+                <div class="video-row">
+                    <span>${v.youtube_url}</span>
+                    <button onclick="deleteVideo('${v.id}')">✕ Remove</button>
+                </div>
+            `).join('');
+        }
+
+        // ── DELETE ─────────────────────────────────────────────
+        async function deletePoster(id) {
+            if (!confirm('Remove this poster from the marquee?')) return;
+            await supabase.from('posters').delete().eq('id', id);
+            loadPosters();
+        }
+
+        async function deleteVideo(id) {
+            if (!confirm('Remove this video?')) return;
+            await supabase.from('videos').delete().eq('id', id);
+            loadVideos();
+        }
     </script>
 </body>
 </html>
