@@ -371,10 +371,11 @@
 
         <div class="admin-body">
 
-            <div class="admin-tabs">
-                <button class="admin-tab active" onclick="switchTab('posters', this)">Posters</button>
-                <button class="admin-tab" onclick="switchTab('videos', this)">Videos</button>
-            </div>
+          <div class="admin-tabs">
+    <button class="admin-tab active" onclick="switchTab('posters', this)">Posters</button>
+    <button class="admin-tab" onclick="switchTab('videos', this)">Videos</button>
+    <button class="admin-tab" onclick="switchTab('video-hero', this)">Hero Video</button>
+</div>
 
             <!-- ── POSTERS TAB ─────────────────────────── -->
             <div class="tab-panel active" id="tab-posters">
@@ -411,30 +412,36 @@
                 </div>
             </div>
 
-            <!-- ── VIDEOS TAB ──────────────────────────── -->
-            <div class="tab-panel" id="tab-videos">
+          <!-- ── HERO VIDEO TAB ──────────────────────── -->
+<div class="tab-panel" id="tab-video-hero">
 
-                <div class="admin-section-title">Add Video</div>
-                <div class="admin-section-desc">Paste a standard YouTube watch URL · Videos appear in the grid on the homepage</div>
+    <div class="admin-section-title">Hero Video</div>
+    <div class="admin-section-desc">Upload the background video for the homepage hero. MP4 recommended · Max 80MB · Will overwrite the current hero video.</div>
 
-                <div class="url-input-row">
-                    <div class="form-group">
-                        <label class="form-label" for="yt-link">YouTube URL</label>
-                        <input class="form-input" type="url" id="yt-link"
-                               placeholder="https://www.youtube.com/watch?v=..."
-                               onkeydown="if(event.key==='Enter') addVideo()">
-                    </div>
-                    <button class="btn" onclick="addVideo()">Add to Grid</button>
-                </div>
-                <div class="status-msg" id="video-status" style="margin-top:16px;"></div>
+    <div class="upload-zone" id="hero-drop-zone">
+        <input type="file" id="hero-file" accept="video/mp4,video/webm">
+        <div class="upload-icon">
+            <svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+        </div>
+        <div class="upload-label">Drop video here or click to browse</div>
+        <div class="upload-hint">MP4 · WEBM · Max 80MB</div>
+        <div class="compress-info" id="hero-file-info"></div>
+    </div>
 
-                <!-- Existing Videos -->
-                <div style="margin-top: 60px; padding-top: 40px; border-top: 1px solid var(--border);">
-                    <p class="existing-label">Existing Videos</p>
-                    <div id="video-list">
-                        <div class="empty-state">Loading…</div>
-                    </div>
-                </div>
+    <div class="action-row">
+        <button class="btn" id="hero-upload-btn" onclick="uploadHeroVideo()" disabled>Upload Hero Video</button>
+        <div class="status-msg" id="hero-status"></div>
+    </div>
+
+    <div class="progress-wrap" id="hero-progress-wrap">
+        <div class="progress-bar" id="hero-progress-bar"></div>
+    </div>
+
+    <div style="margin-top: 40px; padding: 20px; border: 1px solid var(--border); border-radius: 4px; background: rgba(255,255,255,0.02);">
+        <p class="existing-label" style="margin-bottom: 12px;">After uploading, copy this URL into index.html:</p>
+        <code id="hero-url-display" style="font-family: monospace; font-size: 0.82rem; color: var(--yellow); word-break: break-all;">—</code>
+    </div>
+</div>
             </div>
 
         </div><!-- /admin-body -->
@@ -773,5 +780,72 @@
         return url.split('/').pop().split('?')[0];
     }
     </script>
+    /* ── HERO VIDEO UPLOAD ──────────────────────────────── */
+const heroFileInput = document.getElementById('hero-file');
+const heroUploadBtn = document.getElementById('hero-upload-btn');
+
+heroFileInput.addEventListener('change', () => {
+    const file = heroFileInput.files[0];
+    if (!file) return;
+    const mb = (file.size / (1024 * 1024)).toFixed(1);
+    document.getElementById('hero-file-info').textContent = file.name + ' · ' + mb + ' MB';
+    document.getElementById('hero-file-info').style.display = 'block';
+    heroUploadBtn.disabled = false;
+});
+
+// Drag & drop for hero
+const heroZone = document.getElementById('hero-drop-zone');
+heroZone.addEventListener('dragover', (e) => { e.preventDefault(); heroZone.classList.add('drag-over'); });
+heroZone.addEventListener('dragleave', () => heroZone.classList.remove('drag-over'));
+heroZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    heroZone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (!file || !file.type.startsWith('video/')) return;
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    heroFileInput.files = dt.files;
+    heroFileInput.dispatchEvent(new Event('change'));
+});
+
+async function uploadHeroVideo() {
+    const file = heroFileInput.files[0];
+    if (!file) return;
+
+    heroUploadBtn.disabled = true;
+    setStatus('hero-status', 'loading', 'Uploading video — this may take a moment…');
+
+    const progressWrap = document.getElementById('hero-progress-wrap');
+    const progressBar  = document.getElementById('hero-progress-bar');
+    progressWrap.style.display = 'block';
+    progressBar.style.width    = '15%';
+
+    const fileName = 'hero-video.' + file.name.split('.').pop();
+
+    // Remove old hero video first (ignore error if not found)
+    await db.storage.from(BUCKET).remove([fileName]);
+
+    progressBar.style.width = '35%';
+
+    const { error: uploadErr } = await db.storage
+        .from(BUCKET)
+        .upload(fileName, file, { contentType: file.type, upsert: true });
+
+    if (uploadErr) {
+        setStatus('hero-status', 'error', 'Upload failed: ' + uploadErr.message);
+        progressWrap.style.display = 'none';
+        heroUploadBtn.disabled = false;
+        return;
+    }
+
+    progressBar.style.width = '100%';
+    setTimeout(() => { progressWrap.style.display = 'none'; progressBar.style.width = '0%'; }, 600);
+
+    const { data: urlData } = db.storage.from(BUCKET).getPublicUrl(fileName);
+
+    setStatus('hero-status', 'success', 'Hero video uploaded! Copy the URL below into index.html.');
+    document.getElementById('hero-url-display').textContent = urlData.publicUrl;
+    heroUploadBtn.disabled = false;
+}
 </body>
 </html>
