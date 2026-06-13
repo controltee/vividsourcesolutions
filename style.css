@@ -793,6 +793,105 @@ a, button, .folder-card {
 .social-links a { font-family: 'Cabinet Grotesk', sans-serif; color: var(--white); text-decoration: none; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; transition: color 0.3s ease; }
 .social-links a:hover { color: var(--yellow); }
 .footer-copy { font-family: 'DM Sans', sans-serif; font-size: 0.72rem; font-weight: 300; color: rgba(255, 255, 255, 0.28); }
+/* ── FOLDER ICON LABEL ──────────────────────────────── */
+.folder-icon-label {
+    position: absolute;
+    bottom: 10px;
+    left: 0; right: 0;
+    text-align: center;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.6rem;
+    font-weight: 400;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(247, 213, 79, 0.4);
+    transition: color 0.35s ease;
+}
+.folder-card:hover .folder-icon-label { color: rgba(247, 213, 79, 0.85); }
+
+/* ── DESKTOP TASKBAR ────────────────────────────────── */
+.desktop-taskbar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 44px;
+    background: rgba(0, 0, 0, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    z-index: 500;
+}
+.taskbar-left, .taskbar-right, .taskbar-center {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+.taskbar-item {
+    font-family: 'Cabinet Grotesk', sans-serif;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.45);
+    text-decoration: none;
+    transition: color 0.25s ease;
+    white-space: nowrap;
+}
+.taskbar-item:hover { color: var(--yellow); }
+.taskbar-logo {
+    color: var(--yellow);
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 3px;
+}
+.taskbar-divider {
+    width: 1px;
+    height: 18px;
+    background: var(--border);
+}
+.taskbar-cta {
+    color: var(--yellow) !important;
+    border: 1px solid var(--border);
+    padding: 5px 14px;
+    border-radius: 2px;
+    transition: background 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+}
+.taskbar-cta:hover {
+    background: var(--yellow);
+    color: var(--black) !important;
+    border-color: var(--yellow);
+}
+
+/* Add bottom padding to body so taskbar doesn't cover footer */
+body { padding-bottom: 44px; }
+
+/* ── SCROLL PROGRESS BAR ────────────────────────────── */
+.scroll-progress {
+    position: fixed;
+    top: 0; left: 0;
+    height: 2px;
+    width: 0%;
+    background: var(--yellow);
+    z-index: 9001;
+    transition: width 0.05s linear;
+}
+
+/* ── CURSOR TRAIL DOT (optional desktop feel) ────────── */
+.cursor-dot {
+    position: fixed;
+    width: 6px;
+    height: 6px;
+    background: var(--yellow);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+    transition: opacity 0.3s ease;
+    opacity: 0;
+}
 
 /* ── RESPONSIVE ─────────────────────────────────────── */
 @media (max-width: 900px) {
