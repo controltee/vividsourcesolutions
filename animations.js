@@ -81,19 +81,17 @@ function typeWriter(el, text, speed, onComplete) {
         }
 
         if (count < 100) {
-            setTimeout(step, Math.random() * 40 + 18);
-        } else {
-            // Animate folder icon to open
-            preloader.classList.add('complete');
+           // BEFORE:
+setTimeout(() => {
+    preloader.classList.add('done');
+    setTimeout(triggerHeroReveal, 180);
+}, 500);
 
-            setTimeout(() => {
-                preloader.classList.add('done');
-                setTimeout(triggerHeroReveal, 180);
-            }, 500);
-        }
-    }
-
-    setTimeout(step, 300);
+// AFTER — gives tagline more time to finish:
+setTimeout(() => {
+    preloader.classList.add('done');
+    setTimeout(triggerHeroReveal, 200);
+}, 900);
 })();
 
 /* ── HERO REVEAL ────────────────────────────────────── */
@@ -250,5 +248,36 @@ function triggerHeroReveal() {
             scrub: 1,
             invalidateOnRefresh: true
         });
+    });
+})();
+/* ── SCROLL PROGRESS BAR ────────────────────────────── */
+(function () {
+    const bar = document.createElement('div');
+    bar.className = 'scroll-progress';
+    document.body.appendChild(bar);
+
+    window.addEventListener('scroll', () => {
+        const scrolled = window.scrollY;
+        const total    = document.body.scrollHeight - window.innerHeight;
+        bar.style.width = (total > 0 ? (scrolled / total) * 100 : 0) + '%';
+    }, { passive: true });
+})();
+
+/* ── CURSOR DOT (desktop only) ──────────────────────── */
+(function () {
+    if (window.matchMedia('(pointer: coarse)').matches) return; // skip on touch
+    const dot = document.createElement('div');
+    dot.className = 'cursor-dot';
+    document.body.appendChild(dot);
+
+    let visible = false;
+    document.addEventListener('mousemove', e => {
+        dot.style.left = e.clientX + 'px';
+        dot.style.top  = e.clientY + 'px';
+        if (!visible) { dot.style.opacity = '1'; visible = true; }
+    });
+    document.addEventListener('mouseleave', () => {
+        dot.style.opacity = '0';
+        visible = false;
     });
 })();
