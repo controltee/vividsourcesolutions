@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin — Control Tee</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* ── ADMIN-SPECIFIC EXTRAS ─────────────────────── */
+        .admin-shell {
+            display: none; /* shown after auth */
+            min-height: 100vh;
+            padding-top: 100px;
+            padding-bottom: 120px;
+        }
+        .admin-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 32px 40px;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            background: var(--black);
+            z-index: 100;
+        }
+        .admin-header-logo {
+            font-family: 'Cabinet Grotesk', sans-serif;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 3.5px;
+            text-transform: uppercase;
+            color: var(--yellow);
+        }
+        .admin-header-logo span {
+            color: rgba(255,255,255,0.3);
+            margin-left: 10px;
+        }
+        .admin-header-right {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+        .admin-body {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 40px;
+        }
+        .admin-tabs {
+            display: flex;
+            gap: 2px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 60px;
+            margin-top: 60px;
+        }
+        .admin-tab {
+            font-family: 'Cabinet Grotesk', sans-serif;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.35);
+            padding: 14px 28px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: color 0.25s ease, border-color 0.25s ease;
+            margin-bottom: -1px;
+        }
+        .admin-tab:hover { color: rgba(255,255,255,0.7); }
+        .admin-tab.active { color: var(--yellow); border-bottom-color: var(--yellow); }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        /* ── UPLOAD ZONE ───────────────────────────────── */
+        .upload-zone {
+            border: 1.5px dashed var(--border);
+            border-radius: 6px;
+            padding: 52px 40px;
+            text-align: center;
+            transition: border-color 0.3s ease, background 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+        .upload-zone:hover, .upload-zone.drag-over {
+            border-color: var(--yellow);
+            background: rgba(247,213,79,0.03);
+        }
+        .upload-zone input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+        .upload-icon {
+            width: 44px;
+            height: 44px;
+            border: 2px solid var(--green);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 18px;
+        }
+        .upload-icon svg { width: 20px; height: 20px; stroke: var(--yellow); fill: none; stroke-width: 1.8; }
+        .upload-label {
+            font-family: 'Cabinet Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 0.9rem;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--white);
+            margin-bottom: 8px;
+        }
+        .upload-hint {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.35);
+        }
+        .upload-preview {
+            width: 110px;
+            height: 138px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1.5px solid var(--green);
+            display: none;
+            margin: 16px auto 0;
+        }
+        .compress-info {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.75rem;
+            color: rgba(247,213,79,0.6);
+            margin-top: 10px;
+            display: none;
+        }
+
+        /* ── ACTION ROW ────────────────────────────────── */
+        .action-row {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-top: 24px;
+            flex-wrap: wrap;
+        }
+        .action-row .btn {
+            margin-top: 0;
+            opacity: 1;
+            transform: none;
+        }
+        .action-row .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* ── POSTER GRID ───────────────────────────────── */
+        .poster-thumb-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+            gap: 12px;
+            margin-top: 40px;
+        }
+        .poster-thumb {
+            position: relative;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .poster-thumb img {
+            width: 100%;
+            aspect-ratio: 4/5;
+            object-fit: cover;
+            display: block;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            transition: opacity 0.3s ease;
+        }
+        .poster-thumb:hover img { opacity: 0.6; }
+        .del-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(0,0,0,0.85);
+            color: var(--yellow);
+            border: 1px solid var(--green);
+            border-radius: 2px;
+            padding: 3px 8px;
+            font-family: 'Cabinet Grotesk', sans-serif;
+            font-size: 0.6rem;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+        .del-btn:hover { background: var(--yellow); color: var(--black); }
+
+        /* ── VIDEO LIST ────────────────────────────────── */
+        .video-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            margin-top: 10px;
+            gap: 16px;
+        }
+        .video-row-info { display: flex; align-items: center; gap: 14px; min-width: 0; }
+        .video-row-thumb {
+            width: 60px;
+            height: 38px;
+            object-fit: cover;
+            border-radius: 3px;
+            border: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        .video-row-url {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.5);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .video-row .del-btn { position: static; flex-shrink: 0; }
+
+        /* ── URL INPUT ROW ─────────────────────────────── */
+        .url-input-row {
+            display: flex;
+            gap: 14px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+        .url-input-row .form-group { flex: 1; min-width: 240px; margin: 0; }
+        .url-input-row .btn { margin-top: 0; opacity: 1; transform: none; flex-shrink: 0; align-self: flex-end; }
+
+        /* ── SECTION DIVIDER ───────────────────────────── */
+        .admin-section-title {
+            font-family: 'Cabinet Grotesk', sans-serif;
+            font-weight: 900;
+            font-size: clamp(1.6rem, 3vw, 2.2rem);
+            color: var(--yellow);
+            text-transform: uppercase;
+            letter-spacing: -1.5px;
+            margin-bottom: 6px;
+        }
+        .admin-section-desc {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.4);
+            margin-bottom: 36px;
+        }
+        .existing-label {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.65rem;
+            font-weight: 500;
+            letter-spacing: 3.5px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.28);
+            margin-bottom: 0;
+        }
+
+        /* ── STATUS ────────────────────────────────────── */
+        .status-msg {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.82rem;
+            padding: 10px 16px;
+            border-radius: 3px;
+            display: none;
+        }
+        .status-msg.success { background: rgba(14,76,11,0.3); border: 1px solid var(--green); color: var(--yellow); display: block; }
+        .status-msg.error   { background: rgba(255,0,0,0.08); border: 1px solid rgba(255,60,60,0.35); color: #ff6b6b; display: block; }
+        .status-msg.loading { background: rgba(247,213,79,0.06); border: 1px solid rgba(247,213,79,0.2); color: var(--yellow); display: block; }
+
+        /* ── EMPTY STATE ───────────────────────────────── */
+        .empty-state {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.25);
+            padding: 32px 0;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        /* ── PROGRESS BAR ──────────────────────────────── */
+        .progress-wrap {
+            height: 2px;
+            background: var(--border-dim);
+            border-radius: 2px;
+            overflow: hidden;
+            display: none;
+            margin-top: 16px;
+        }
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: var(--yellow);
+            transition: width 0.15s linear;
+        }
+
+        /* ── LOCK SCREEN OVERRIDE ──────────────────────── */
+        #auth-overlay {
+            cursor: auto;
+        }
+        #auth-overlay * {
+            cursor: auto;
+        }
+        #auth-overlay button,
+        #auth-overlay input {
+            cursor: pointer;
+        }
+        #auth-overlay input {
+            cursor: text;
+        }
+
+        /* ── MOBILE ────────────────────────────────────── */
+        @media (max-width: 640px) {
+            .admin-header { padding: 24px 20px; }
+            .admin-body { padding: 0 20px; }
+            .admin-tabs { overflow-x: auto; gap: 0; }
+            .admin-tab { padding: 12px 18px; white-space: nowrap; }
+            .url-input-row { flex-direction: column; }
+            .url-input-row .btn { width: 100%; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ── AUTH OVERLAY ─────────────────────────────────── -->
+    <div id="auth-overlay">
+        <div class="preloader-folder">
+            <div class="folder-tab"></div>
+            <div class="folder-body"></div>
+        </div>
+        <h2 id="auth-heading" style="
+            font-family: 'Cabinet Grotesk', sans-serif;
+            color: var(--yellow);
+            font-size: 2rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: -1px;
+        ">Admin Access</h2>
+
+        <input
+            type="password"
+            id="admin-pass"
+            placeholder="Enter password"
+            autocomplete="current-password"
+            onkeydown="if(event.key==='Enter') checkAuth()"
+        >
+        <button id="unlock-btn" onclick="checkAuth()">Unlock</button>
+        <p id="auth-error">Incorrect password. Try again.</p>
+    </div>
+
+    <!-- ── ADMIN SHELL (revealed after auth) ────────────── -->
+    <div class="admin-shell" id="admin-shell">
+
+        <header class="admin-header">
+            <div class="admin-header-logo">
+                Control Tee <span>/ Admin</span>
+            </div>
+            <div class="admin-header-right">
+                <a href="index.html" class="btn" style="margin-top:0; opacity:1; transform:none; padding:10px 24px; font-size:0.7rem;">
+                    ← Back to Site
+                </a>
+            </div>
+        </header>
+
+        <div class="admin-body">
+
+            <div class="admin-tabs">
+                <button class="admin-tab active" onclick="switchTab('posters', this)">Posters</button>
+                <button class="admin-tab" onclick="switchTab('videos', this)">Videos</button>
+            </div>
+
+            <!-- ── POSTERS TAB ─────────────────────────── -->
+            <div class="tab-panel active" id="tab-posters">
+
+                <div class="admin-section-title">Upload Poster</div>
+                <div class="admin-section-desc">Recommended: 2160 × 2700 px (4:5) or 1:1 square · JPEG / PNG · Auto-compressed before upload</div>
+
+                <div class="upload-zone" id="poster-drop-zone">
+                    <input type="file" id="poster-file" accept="image/jpeg,image/png,image/webp">
+                    <div class="upload-icon">
+                        <svg viewBox="0 0 24 24"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+                    </div>
+                    <div class="upload-label">Drop image here or click to browse</div>
+                    <div class="upload-hint">JPEG · PNG · WEBP</div>
+                    <img id="poster-preview" class="upload-preview" alt="Preview">
+                    <div class="compress-info" id="compress-info"></div>
+                </div>
+
+                <div class="action-row">
+                    <button class="btn" id="poster-upload-btn" onclick="uploadPoster()" disabled>Add to Marquee</button>
+                    <div class="status-msg" id="poster-status"></div>
+                </div>
+
+                <div class="progress-wrap" id="poster-progress-wrap">
+                    <div class="progress-bar" id="poster-progress-bar"></div>
+                </div>
+
+                <!-- Existing Posters -->
+                <div style="margin-top: 60px; padding-top: 40px; border-top: 1px solid var(--border);">
+                    <p class="existing-label">Existing Posters</p>
+                    <div class="poster-thumb-grid" id="poster-thumb-grid">
+                        <div class="empty-state" style="grid-column:1/-1;">Loading…</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── VIDEOS TAB ──────────────────────────── -->
+            <div class="tab-panel" id="tab-videos">
+
+                <div class="admin-section-title">Add Video</div>
+                <div class="admin-section-desc">Paste a standard YouTube watch URL · Videos appear in the grid on the homepage</div>
+
+                <div class="url-input-row">
+                    <div class="form-group">
+                        <label class="form-label" for="yt-link">YouTube URL</label>
+                        <input class="form-input" type="url" id="yt-link"
+                               placeholder="https://www.youtube.com/watch?v=..."
+                               onkeydown="if(event.key==='Enter') addVideo()">
+                    </div>
+                    <button class="btn" onclick="addVideo()">Add to Grid</button>
+                </div>
+                <div class="status-msg" id="video-status" style="margin-top:16px;"></div>
+
+                <!-- Existing Videos -->
+                <div style="margin-top: 60px; padding-top: 40px; border-top: 1px solid var(--border);">
+                    <p class="existing-label">Existing Videos</p>
+                    <div id="video-list">
+                        <div class="empty-state">Loading…</div>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /admin-body -->
+    </div><!-- /admin-shell -->
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+    /* ── CONFIG ─────────────────────────────────────────── */
+    const SUPABASE_URL      = 'https://ccaggjhyeygyosbdnxmq.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjYWdnamh5ZXlneW9zYmRueG1xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNjMzNzksImV4cCI6MjA5NjgzOTM3OX0.Z2NJXnSNoJtugQ0Co-R_SMH3dXbErVcCcItgxj_PQxs';
+    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const ADMIN_PASSWORD  = 'controltee2026';
+    const BUCKET          = 'portfolio_assets';
+    const MAX_COMPRESS_PX = 1800;   // longest edge after compression
+    const COMPRESS_QUALITY = 0.82;  // JPEG quality (0–1)
+
+    /* ── AUTH ───────────────────────────────────────────── */
+    function checkAuth() {
+        const val = document.getElementById('admin-pass').value;
+        if (val === ADMIN_PASSWORD) {
+            document.getElementById('auth-overlay').style.display = 'none';
+            const shell = document.getElementById('admin-shell');
+            shell.style.display = 'block';
+            loadPosters();
+            loadVideos();
+        } else {
+            document.getElementById('auth-error').style.display = 'block';
+            document.getElementById('admin-pass').focus();
+        }
+    }
+
+    /* ── TABS ───────────────────────────────────────────── */
+    function switchTab(name, btn) {
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.admin-tab').forEach(b => b.classList.remove('active'));
+        document.getElementById('tab-' + name).classList.add('active');
+        btn.classList.add('active');
+    }
+
+    /* ── STATUS HELPERS ─────────────────────────────────── */
+    function setStatus(id, type, msg) {
+        const el = document.getElementById(id);
+        el.className = 'status-msg ' + type;
+        el.textContent = msg;
+    }
+    function clearStatus(id) {
+        const el = document.getElementById(id);
+        el.className = 'status-msg';
+        el.textContent = '';
+    }
+
+    /* ── IMAGE COMPRESSION ──────────────────────────────── */
+    function compressImage(file) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const maxPx = MAX_COMPRESS_PX;
+                    let { width, height } = img;
+                    if (width > maxPx || height > maxPx) {
+                        const ratio = Math.min(maxPx / width, maxPx / height);
+                        width  = Math.round(width  * ratio);
+                        height = Math.round(height * ratio);
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width  = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    canvas.toBlob(resolve, 'image/jpeg', COMPRESS_QUALITY);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    /* ── POSTER UPLOAD ──────────────────────────────────── */
+    let compressedBlob = null;
+
+    const posterFileInput = document.getElementById('poster-file');
+    const posterPreview   = document.getElementById('poster-preview');
+    const compressInfo    = document.getElementById('compress-info');
+    const uploadBtn       = document.getElementById('poster-upload-btn');
+
+    posterFileInput.addEventListener('change', async () => {
+        const file = posterFileInput.files[0];
+        if (!file) return;
+
+        uploadBtn.disabled = true;
+        setStatus('poster-status', 'loading', 'Compressing image…');
+
+        // Show original preview immediately
+        const tempUrl = URL.createObjectURL(file);
+        posterPreview.src  = tempUrl;
+        posterPreview.style.display = 'block';
+
+        compressedBlob = await compressImage(file);
+
+        const origKB   = Math.round(file.size          / 1024);
+        const compKB   = Math.round(compressedBlob.size / 1024);
+        const saving   = Math.round((1 - compressedBlob.size / file.size) * 100);
+
+        compressInfo.textContent = `Original: ${origKB} KB → Compressed: ${compKB} KB (${saving}% smaller)`;
+        compressInfo.style.display = 'block';
+
+        clearStatus('poster-status');
+        uploadBtn.disabled = false;
+    });
+
+    // Drag & drop
+    const dropZone = document.getElementById('poster-drop-zone');
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        const file = e.dataTransfer.files[0];
+        if (!file || !file.type.startsWith('image/')) return;
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        posterFileInput.files = dt.files;
+        posterFileInput.dispatchEvent(new Event('change'));
+    });
+
+    async function uploadPoster() {
+        if (!compressedBlob) return;
+
+        uploadBtn.disabled = true;
+        setStatus('poster-status', 'loading', 'Uploading…');
+
+        // Show progress bar
+        const progressWrap = document.getElementById('poster-progress-wrap');
+        const progressBar  = document.getElementById('poster-progress-bar');
+        progressWrap.style.display = 'block';
+        progressBar.style.width    = '20%';
+
+        const fileName = `poster_${Date.now()}.jpg`;
+
+        // 1. Upload to Storage
+        const { error: uploadErr } = await db.storage
+            .from(BUCKET)
+            .upload(fileName, compressedBlob, { contentType: 'image/jpeg' });
+
+        if (uploadErr) {
+            setStatus('poster-status', 'error', 'Upload failed: ' + uploadErr.message);
+            progressWrap.style.display = 'none';
+            uploadBtn.disabled = false;
+            return;
+        }
+
+        progressBar.style.width = '65%';
+
+        // 2. Get public URL
+        const { data: urlData } = db.storage.from(BUCKET).getPublicUrl(fileName);
+
+        // 3. Write to DB
+        const { error: dbErr } = await db.from('posters').insert({ image_url: urlData.publicUrl });
+
+        progressBar.style.width = '100%';
+
+        setTimeout(() => {
+            progressWrap.style.display = 'none';
+            progressBar.style.width    = '0%';
+        }, 600);
+
+        if (dbErr) {
+            setStatus('poster-status', 'error', 'Database error: ' + dbErr.message);
+            uploadBtn.disabled = false;
+            return;
+        }
+
+        setStatus('poster-status', 'success', 'Poster added to marquee!');
+        uploadBtn.disabled = false;
+        compressedBlob     = null;
+        posterPreview.style.display  = 'none';
+        compressInfo.style.display   = 'none';
+        posterFileInput.value        = '';
+
+        loadPosters();
+    }
+
+    async function loadPosters() {
+        const grid = document.getElementById('poster-thumb-grid');
+        grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;">Loading…</div>';
+
+        const { data, error } = await db.from('posters')
+            .select('id, image_url')
+            .order('created_at', { ascending: false });
+
+        if (error || !data) {
+            grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;">Failed to load.</div>';
+            return;
+        }
+        if (!data.length) {
+            grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;">No posters yet.</div>';
+            return;
+        }
+
+        grid.innerHTML = data.map(p => `
+            <div class="poster-thumb" id="pt-${p.id}">
+                <img src="${p.image_url}" alt="Poster" loading="lazy">
+                <button class="del-btn" onclick="deletePoster(${p.id}, '${urlToFilename(p.image_url)}')">✕</button>
+            </div>
+        `).join('');
+    }
+
+    async function deletePoster(id, fileName) {
+        if (!confirm('Remove this poster from the marquee?')) return;
+
+        const el = document.getElementById('pt-' + id);
+        if (el) el.style.opacity = '0.3';
+
+        // Delete from storage
+        await db.storage.from(BUCKET).remove([fileName]);
+
+        // Delete from DB
+        const { error } = await db.from('posters').delete().eq('id', id);
+
+        if (error) {
+            alert('Delete failed: ' + error.message);
+            if (el) el.style.opacity = '1';
+            return;
+        }
+
+        if (el) el.remove();
+
+        // Check if grid is now empty
+        const grid = document.getElementById('poster-thumb-grid');
+        if (!grid.querySelector('.poster-thumb')) {
+            grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;">No posters yet.</div>';
+        }
+    }
+
+    /* ── VIDEO ──────────────────────────────────────────── */
+    async function addVideo() {
+        const input = document.getElementById('yt-link');
+        const url   = input.value.trim();
+        if (!url) return;
+
+        if (!isValidYouTubeUrl(url)) {
+            setStatus('video-status', 'error', 'Please enter a valid YouTube URL.');
+            return;
+        }
+
+        setStatus('video-status', 'loading', 'Adding video…');
+
+        const { error } = await db.from('videos').insert({ youtube_url: url });
+
+        if (error) {
+            setStatus('video-status', 'error', 'Failed to add video: ' + error.message);
+            return;
+        }
+
+        setStatus('video-status', 'success', 'Video added to the grid!');
+        input.value = '';
+        loadVideos();
+    }
+
+    async function loadVideos() {
+        const list = document.getElementById('video-list');
+        list.innerHTML = '<div class="empty-state">Loading…</div>';
+
+        const { data, error } = await db.from('videos')
+            .select('id, youtube_url, created_at')
+            .order('created_at', { ascending: false });
+
+        if (error || !data) {
+            list.innerHTML = '<div class="empty-state">Failed to load.</div>';
+            return;
+        }
+        if (!data.length) {
+            list.innerHTML = '<div class="empty-state">No videos yet.</div>';
+            return;
+        }
+
+        list.innerHTML = data.map(v => {
+            const vid = extractYouTubeId(v.youtube_url);
+            const thumb = vid ? `https://img.youtube.com/vi/${vid}/mqdefault.jpg` : '';
+            return `
+                <div class="video-row" id="vr-${v.id}">
+                    <div class="video-row-info">
+                        ${thumb ? `<img class="video-row-thumb" src="${thumb}" alt="">` : ''}
+                        <span class="video-row-url">${v.youtube_url}</span>
+                    </div>
+                    <button class="del-btn" onclick="deleteVideo(${v.id})">✕ Remove</button>
+                </div>
+            `;
+        }).join('');
+    }
+
+    async function deleteVideo(id) {
+        if (!confirm('Remove this video from the grid?')) return;
+
+        const el = document.getElementById('vr-' + id);
+        if (el) el.style.opacity = '0.3';
+
+        const { error } = await db.from('videos').delete().eq('id', id);
+
+        if (error) {
+            alert('Delete failed: ' + error.message);
+            if (el) el.style.opacity = '1';
+            return;
+        }
+
+        if (el) el.remove();
+
+        const list = document.getElementById('video-list');
+        if (!list.querySelector('.video-row')) {
+            list.innerHTML = '<div class="empty-state">No videos yet.</div>';
+        }
+    }
+
+    /* ── UTILS ──────────────────────────────────────────── */
+    function extractYouTubeId(url) {
+        const patterns = [
+            /[?&]v=([^&]+)/,
+            /youtu\.be\/([^?]+)/,
+            /embed\/([^?]+)/,
+            /shorts\/([^?]+)/
+        ];
+        for (const re of patterns) {
+            const m = url.match(re);
+            if (m) return m[1];
+        }
+        return null;
+    }
+
+    function isValidYouTubeUrl(url) {
+        return /youtube\.com|youtu\.be/.test(url);
+    }
+
+    function urlToFilename(url) {
+        return url.split('/').pop().split('?')[0];
+    }
+    </script>
+</body>
+</html>
