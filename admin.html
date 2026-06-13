@@ -11,8 +11,42 @@
     <!-- Simple Password Protection Overlay -->
     <div id="auth-overlay" class="preloader" style="z-index: 9999; display: flex; transform: none; pointer-events: all;">
         <h2 class="about-headline" style="font-size: 2rem;">Admin Access</h2>
-        <input type="password" id="admin-pass" class="form-input" placeholder="Enter Password" style="max-width: 300px; text-align: center;">
-        <button onclick="checkAuth()" class="btn" style="margin-top: 10px;">Unlock</button>
+     <input type="password" 
+       id="admin-pass" 
+       placeholder="Enter Password"
+       onkeydown="if(event.key==='Enter') checkAuth()"
+       style="
+           max-width: 300px; 
+           text-align: center;
+           background: rgba(255,255,255,0.05);
+           border: 1.5px solid #0e4c0b;
+           color: #ffffff;
+           font-size: 1rem;
+           padding: 15px 18px;
+           border-radius: 3px;
+           outline: none;
+           width: 300px;
+           display: block;
+           margin: 0 auto 16px;">
+<button 
+    onclick="checkAuth()" 
+    style="
+        display: block;
+        margin: 0 auto;
+        padding: 16px 40px;
+        background-color: #f7d54f;
+        border: 3px solid #0e4c0b;
+        color: #000000;
+        font-family: Cabinet Grotesk, sans-serif;
+        font-weight: 700;
+        font-size: 0.8rem;
+        letter-spacing: 2.5px;
+        text-transform: uppercase;
+        border-radius: 2px;
+        cursor: pointer;">Unlock</button>
+<p id="auth-error" style="color:#f7d54f; font-size:0.85rem; margin-top:12px; display:none; text-align:center;">
+    Incorrect password. Try again.
+</p>
     </div>
 
     <nav class="sticky-back-nav">
@@ -59,15 +93,14 @@
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // Simple UI lock
-        function checkAuth() {
-            const pass = document.getElementById('admin-pass').value;
-            // Change 'controltee2026' to your preferred simple password
-            if(pass === 'controltee2026') { 
-                document.getElementById('auth-overlay').style.display = 'none';
-            } else {
-                alert('Incorrect password');
-            }
-        }
+     function checkAuth() {
+    const pass = document.getElementById('admin-pass').value;
+    if (pass === 'controltee2026') { 
+        document.getElementById('auth-overlay').style.display = 'none';
+    } else {
+        document.getElementById('auth-error').style.display = 'block';
+    }
+}
 
         // Handle Poster Uploads
         document.getElementById('poster-form').addEventListener('submit', async (e) => {
