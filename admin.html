@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Upload — Control Tee</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- Simple Password Protection Overlay -->
+    <div id="auth-overlay" class="preloader" style="z-index: 9999; display: flex; transform: none; pointer-events: all;">
+        <h2 class="about-headline" style="font-size: 2rem;">Admin Access</h2>
+        <input type="password" id="admin-pass" class="form-input" placeholder="Enter Password" style="max-width: 300px; text-align: center;">
+        <button onclick="checkAuth()" class="btn" style="margin-top: 10px;">Unlock</button>
+    </div>
+
+    <nav class="sticky-back-nav">
+        <a href="index.html" class="btn">← Back to Site</a>
+    </nav>
+
+    <section class="contact-section">
+        <div class="contact-grid container">
+            
+            <!-- Poster Upload Form -->
+            <div>
+                <h2 class="contact-headline" style="font-size: 2.5rem; margin-bottom: 20px;">Upload Poster</h2>
+                <p class="contact-body" style="margin-bottom: 30px;">Format: 2160x2700px or 1:1 Square. JPEG/PNG.</p>
+                <form class="contact-form" id="poster-form">
+                    <div class="form-group">
+                        <label class="form-label" for="poster-file">Select Image</label>
+                        <input class="form-input" type="file" id="poster-file" accept="image/png, image/jpeg" required>
+                    </div>
+                    <button type="submit" class="btn form-submit">Add to Marquee</button>
+                </form>
+            </div>
+
+            <!-- YouTube Link Form -->
+            <div>
+                <h2 class="contact-headline" style="font-size: 2.5rem; margin-bottom: 20px;">Add Video</h2>
+                <p class="contact-body" style="margin-bottom: 30px;">Paste a standard YouTube link.</p>
+                <form class="contact-form" id="video-form">
+                    <div class="form-group">
+                        <label class="form-label" for="yt-link">YouTube URL</label>
+                        <input class="form-input" type="url" id="yt-link" placeholder="https://www.youtube.com/watch?v=..." required>
+                    </div>
+                    <button type="submit" class="btn form-submit">Add to Video Grid</button>
+                </form>
+            </div>
+
+        </div>
+    </section>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // NOTE: Replace these with your actual Supabase URL and Anon Key
+        const SUPABASE_URL = 'https://ccaggjhyeygyosbdnxmq.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjYWdnamh5ZXlneW9zYmRueG1xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNjMzNzksImV4cCI6MjA5NjgzOTM3OX0.Z2NJXnSNoJtugQ0Co-R_SMH3dXbErVcCcItgxj_PQxs';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Simple UI lock
+        function checkAuth() {
+            const pass = document.getElementById('admin-pass').value;
+            // Change 'controltee2026' to your preferred simple password
+            if(pass === 'controltee2026') { 
+                document.getElementById('auth-overlay').style.display = 'none';
+            } else {
+                alert('Incorrect password');
+            }
+        }
+
+        // Handle Poster Uploads
+        document.getElementById('poster-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fileInput = document.getElementById('poster-file');
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            const fileName = `${Date.now()}_${file.name.replace(/\s+/g, '-')}`;
+            const btn = e.target.querySelector('.btn');
+            btn.textContent = "Uploading...";
+
+            // 1. Upload to Supabase Storage Bucket
+            const { error: uploadError } = await supabase.storage.from('portfolio_assets').upload(fileName, file);
+            if (uploadError) { btn.textContent = "Add to Marquee"; return alert('Upload Failed: ' + uploadError.message); }
+
+            // 2. Get Public URL
+            const { data: publicUrlData } = supabase.storage.from('portfolio_assets').getPublicUrl(fileName);
+
+            // 3. Write to Database
+            const { error: dbError } = await supabase.from('posters').insert({ image_url: publicUrlData.publicUrl });
+            
+            btn.textContent = "Add to Marquee";
+            if (dbError) return alert('Database Insert Failed: ' + dbError.message);
+            
+            alert('Poster successfully uploaded to Marquee!');
+            e.target.reset();
+        });
+
+        // Handle YouTube Video Addition
+        document.getElementById('video-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const url = document.getElementById('yt-link').value;
+            
+            const { error } = await supabase.from('videos').insert({ youtube_url: url });
+            
+            if (error) return alert('Failed to add video: ' + error.message);
+            
+            alert('Video successfully added to grid!');
+            e.target.reset();
+        });
+    </script>
+</body>
+</html>

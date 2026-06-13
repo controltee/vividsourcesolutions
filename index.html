@@ -129,6 +129,24 @@
         </div>
     </main>
 
+    <!-- Dynamic Poster Marquee -->
+    <section id="dynamic-posters" style="padding-top: 120px;">
+        <div class="container"><h2 class="section-title reveal" data-scramble>Studio Posters</h2></div>
+        <div class="poster-marquee-container">
+            <div class="poster-marquee" id="poster-track">
+                <!-- Fetched dynamically from Supabase -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Dynamic Video Grid -->
+    <section id="dynamic-videos" class="container" style="padding: 100px 40px;">
+        <h2 class="section-title reveal" data-scramble>Video Work</h2>
+        <div class="video-grid" id="video-grid">
+            <!-- Fetched dynamically from Supabase -->
+        </div>
+    </section>
+
     <!-- Partners / Clients -->
     <section class="partners-section">
         <p class="partners-label reveal">Clients &amp; Collaborators</p>
@@ -172,5 +190,57 @@
     </footer>
 
     <script src="animations.js"></script>
+    
+    <!-- Supabase Wiring -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // NOTE: Replace these with your actual Supabase URL and Anon Key
+        const SUPABASE_URL = 'https://ccaggjhyeygyosbdnxmq.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjYWdnamh5ZXlneW9zYmRueG1xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNjMzNzksImV4cCI6MjA5NjgzOTM3OX0.Z2NJXnSNoJtugQ0Co-R_SMH3dXbErVcCcItgxj_PQxs';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // 1. Fetch & Render Posters
+        async function loadPosters() {
+            const { data, error } = await supabase.from('posters').select('image_url').order('created_at', { ascending: false });
+            if (error) return console.error('Error fetching posters:', error);
+            
+            const track = document.getElementById('poster-track');
+            if (data && data.length > 0) {
+                let html = '';
+                data.forEach(poster => {
+                    html += `<img src="${poster.image_url}" alt="Control Tee Poster" class="poster-item">`;
+                });
+                // Duplicate content to create the seamless infinite scroll effect
+                track.innerHTML = html + html; 
+            } else {
+                document.getElementById('dynamic-posters').style.display = 'none';
+            }
+        }
+
+        // 2. Fetch & Render YouTube Videos
+        async function loadVideos() {
+            const { data, error } = await supabase.from('videos').select('youtube_url').order('created_at', { ascending: false });
+            if (error) return console.error('Error fetching videos:', error);
+            
+            const grid = document.getElementById('video-grid');
+            if (data && data.length > 0) {
+                let html = '';
+                data.forEach(video => {
+                    // Safely extract YouTube Video ID from standard and short URLs
+                    const videoId = video.youtube_url.split('v=')[1]?.split('&')[0] || video.youtube_url.split('/').pop();
+                    html += `
+                        <div class="video-wrapper">
+                            <iframe src="https://www.youtube.com/embed/${videoId}" allowfullscreen></iframe>
+                        </div>`;
+                });
+                grid.innerHTML = html;
+            } else {
+                document.getElementById('dynamic-videos').style.display = 'none';
+            }
+        }
+
+        loadPosters();
+        loadVideos();
+    </script>
 </body>
 </html>
