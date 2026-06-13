@@ -91,41 +91,49 @@
     </section>
 
     <!-- Selected Work -->
-    <main id="work">
-        <div class="container">
-            <h2 class="section-title reveal" data-scramble>Selected Projects</h2>
-            <div class="portfolio-grid">
-                <a href="motion-design.html" class="folder-card reveal" data-delay="0">
-                    <div class="folder-inner">
-                        <div class="folder-icon"></div>
-                        <h3 class="folder-title">Motion Design</h3>
-                        <p class="folder-desc">Kinetic typography & animation</p>
+<main id="work">
+    <div class="container">
+        <h2 class="section-title reveal" data-scramble>Selected Projects</h2>
+        <div class="portfolio-grid">
+            <a href="motion-design.html" class="folder-card reveal" data-delay="0">
+                <div class="folder-inner">
+                    <div class="folder-icon">
+                        <span class="folder-icon-label">04 files</span>
                     </div>
-                </a>
-                <a href="event-branding.html" class="folder-card reveal" data-delay="80">
-                    <div class="folder-inner">
-                        <div class="folder-icon"></div>
-                        <h3 class="folder-title">Event Branding</h3>
-                        <p class="folder-desc">Visuals for forums & TEDx</p>
+                    <h3 class="folder-title">Motion Design</h3>
+                    <p class="folder-desc">Kinetic typography & animation</p>
+                </div>
+            </a>
+            <a href="event-branding.html" class="folder-card reveal" data-delay="80">
+                <div class="folder-inner">
+                    <div class="folder-icon">
+                        <span class="folder-icon-label">06 files</span>
                     </div>
-                </a>
-                <a href="brand-identity.html" class="folder-card reveal" data-delay="160">
-                    <div class="folder-inner">
-                        <div class="folder-icon"></div>
-                        <h3 class="folder-title">Brand Identity</h3>
-                        <p class="folder-desc">Core visual identities</p>
+                    <h3 class="folder-title">Event Branding</h3>
+                    <p class="folder-desc">Visuals for forums & TEDx</p>
+                </div>
+            </a>
+            <a href="brand-identity.html" class="folder-card reveal" data-delay="160">
+                <div class="folder-inner">
+                    <div class="folder-icon">
+                        <span class="folder-icon-label">08 files</span>
                     </div>
-                </a>
-                <a href="video-production.html" class="folder-card reveal" data-delay="240">
-                    <div class="folder-inner">
-                        <div class="folder-icon"></div>
-                        <h3 class="folder-title">Video Production</h3>
-                        <p class="folder-desc">High-fidelity video content</p>
+                    <h3 class="folder-title">Brand Identity</h3>
+                    <p class="folder-desc">Core visual identities</p>
+                </div>
+            </a>
+            <a href="video-production.html" class="folder-card reveal" data-delay="240">
+                <div class="folder-inner">
+                    <div class="folder-icon">
+                        <span class="folder-icon-label">05 files</span>
                     </div>
-                </a>
-            </div>
+                    <h3 class="folder-title">Video Production</h3>
+                    <p class="folder-desc">High-fidelity video content</p>
+                </div>
+            </a>
         </div>
-    </main>
+    </div>
+</main>
 
     <!-- Studio Posters Marquee -->
     <section id="dynamic-posters" style="padding-top: 120px;">
@@ -163,6 +171,22 @@
             </div>
         </div>
     </section>
+    <!-- Desktop Taskbar -->
+<div class="desktop-taskbar">
+    <div class="taskbar-left">
+        <span class="taskbar-item taskbar-logo">CT</span>
+        <span class="taskbar-divider"></span>
+        <span class="taskbar-item" id="taskbar-time"></span>
+    </div>
+    <div class="taskbar-center">
+        <span class="taskbar-item">4 folders open</span>
+    </div>
+    <div class="taskbar-right">
+        <a href="https://www.instagram.com/control.tee/" target="_blank" class="taskbar-item">IG</a>
+        <a href="https://www.behance.net/controltee" target="_blank" class="taskbar-item">BE</a>
+        <a href="contact.html" class="taskbar-item taskbar-cta">Work With Us ↗</a>
+    </div>
+</div>
 
     <!-- Footer -->
     <footer class="main-footer container">
@@ -209,5 +233,17 @@
         loadPosters();
         loadVideos();
     </script>
+    <script>
+    // Taskbar clock
+    function updateClock() {
+        const now = new Date();
+        const h = String(now.getHours()).padStart(2, '0');
+        const m = String(now.getMinutes()).padStart(2, '0');
+        const el = document.getElementById('taskbar-time');
+        if (el) el.textContent = h + ':' + m;
+    }
+    updateClock();
+    setInterval(updateClock, 10000);
+</script>
 </body>
 </html>
