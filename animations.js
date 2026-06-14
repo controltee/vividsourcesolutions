@@ -60,38 +60,53 @@ function typeWriter(el, text, speed, onComplete) {
 
 /* ── PRELOADER ──────────────────────────────────────── */
 (function () {
-    const preloader = document.querySelector('.preloader');
-    if (!preloader) { triggerHeroReveal(); return; }
+    function initPreloader() {
+        const preloader = document.querySelector('.preloader');
+        if (!preloader) { triggerHeroReveal(); return; }
 
-    const counter  = preloader.querySelector('.preloader-counter');
-    const fill     = preloader.querySelector('.preloader-bar-fill');
-    const tagline  = preloader.querySelector('.preloader-tagline');
-    let count = 0;
-    let taglineStarted = false;
+        const counter  = preloader.querySelector('.preloader-counter');
+        const fill     = preloader.querySelector('.preloader-bar-fill');
+        const tagline  = preloader.querySelector('.preloader-tagline');
+        let count = 0;
+        let taglineStarted = false;
 
-    function step() {
-        count = Math.min(count + Math.floor(Math.random() * 6) + 2, 100);
-        if (counter) counter.textContent = count + '%';
-        if (fill)    fill.style.width    = count + '%';
+        const preloaderFailsafe = setTimeout(() => {
+            if (!preloader.classList.contains('done')) {
+                preloader.classList.add('done');
+                triggerHeroReveal();
+            }
+        }, 6000);
 
-        // Start tagline typewriter at 40%
-        if (count >= 40 && !taglineStarted && tagline) {
-            taglineStarted = true;
-            typeWriter(tagline, 'Entering the creative space...', 55);
+        function step() {
+            count = Math.min(count + Math.floor(Math.random() * 6) + 2, 100);
+            if (counter) counter.textContent = count + '%';
+            if (fill)    fill.style.width    = count + '%';
+
+            if (count >= 40 && !taglineStarted && tagline) {
+                taglineStarted = true;
+                typeWriter(tagline, 'Entering the creative space...', 55);
+            }
+
+            if (count < 100) {
+                setTimeout(step, Math.random() * 40 + 18);
+            } else {
+                clearTimeout(preloaderFailsafe);
+                preloader.classList.add('complete');
+                setTimeout(() => {
+                    preloader.classList.add('done');
+                    setTimeout(triggerHeroReveal, 200);
+                }, 900);
+            }
         }
 
-        if (count < 100) {
-           // BEFORE:
-setTimeout(() => {
-    preloader.classList.add('done');
-    setTimeout(triggerHeroReveal, 180);
-}, 500);
+        setTimeout(step, 300);
+    }
 
-// AFTER — gives tagline more time to finish:
-setTimeout(() => {
-    preloader.classList.add('done');
-    setTimeout(triggerHeroReveal, 200);
-}, 900);
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initPreloader);
+    } else {
+        initPreloader();
+    }
 })();
 
 /* ── HERO REVEAL ────────────────────────────────────── */
