@@ -1,53 +1,57 @@
-// shell.js — renders the persistent rail nav, keeps disclosure state across
-// navigation, and drives the mobile drawer.
-//
-// PHASE 1: the nav payload is hardcoded below. In Phase 2 this is replaced by a
-// fetch from Supabase (categories + published projects), cached in sessionStorage
-// under `ct:nav`. Everything else here is final.
+// shell.js — renders the persistent rail nav from live data, keeps disclosure
+// state across navigation, and drives the mobile drawer.
 
 import { qs, qsa, el } from './util.js';
+import { supabase } from './supabase.js';
 
 const OPEN_KEY = 'ct:rail:open';
+const NAV_KEY = 'ct:nav';
+const NAV_TTL = 5 * 60 * 1000; // 5 minutes
 const DESKTOP = window.matchMedia('(min-width: 900px)');
 
-// --- Fake nav data (Phase 1 only) ------------------------------------------
-const NAV = [
-  {
-    slug: 'brand-identity',
-    name: 'Brand identity',
-    projects: [
-      { slug: 'control-tee-portfolio', title: 'Control Tee Portfolio' },
-      { slug: 'futta', title: 'Futta' },
-      { slug: 'kijana-initiative', title: 'Kijana Initiative' },
-      { slug: 'oa-social', title: 'OA Social' },
-      { slug: 'rakwifi', title: 'RakWiFi' },
-      { slug: 'ruso-sports', title: 'Ruso Sports' },
-    ],
-  },
-  {
-    slug: 'event-branding',
-    name: 'Event branding',
-    projects: [
-      { slug: 'muze-club', title: 'Muze Club' },
-      { slug: 'rusa-2025', title: 'RUSA 2025' },
-      { slug: 'tedx-riara', title: 'TEDx Riara' },
-    ],
-  },
-  {
-    slug: 'motion-design',
-    name: 'Motion design',
-    projects: [
-      { slug: 'january-2026', title: 'January 2026' },
-      { slug: 'mg-motion', title: 'MG Motion' },
-      { slug: 'portfolio-banner', title: 'Portfolio Banner' },
-    ],
-  },
-  {
-    slug: 'video-production',
-    name: 'Video production',
-    projects: [{ slug: 'riara-university', title: 'Riara University' }],
-  },
-];
+// --- Nav data --------------------------------------------------------------
+// Categories + published projects, grouped, ordered, empty categories dropped.
+// Cached in sessionStorage so moving between pages doesn't re-hit the network.
+async function loadNav() {
+  try {
+    const cached = JSON.parse(sessionStorage.getItem(NAV_KEY));
+    if (cached && Array.isArray(cached.groups) && Date.now() - cached.t < NAV_TTL) {
+      return cached.groups;
+    }
+  } catch {
+    /* corrupt cache — refetch */
+  }
+
+  const [cats, projs] = await Promise.all([
+    supabase.from('categories').select('id, name, slug, sort_order').order('sort_order'),
+    supabase
+      .from('projects')
+      .select('id, title, slug, category_id, sort_order')
+      .eq('is_published', true)
+      .order('sort_order')
+      .order('title'),
+  ]);
+  if (cats.error) throw cats.error;
+  if (projs.error) throw projs.error;
+
+  const byCategory = new Map();
+  for (const p of projs.data) {
+    if (!p.slug) continue; // never link a project with no slug
+    if (!byCategory.has(p.category_id)) byCategory.set(p.category_id, []);
+    byCategory.get(p.category_id).push(p);
+  }
+
+  const groups = cats.data
+    .filter((c) => byCategory.has(c.id)) // hide categories with no published work
+    .map((c) => ({
+      slug: c.slug,
+      name: c.name,
+      projects: byCategory.get(c.id).map((p) => ({ slug: p.slug, title: p.title })),
+    }));
+
+  sessionStorage.setItem(NAV_KEY, JSON.stringify({ t: Date.now(), groups }));
+  return groups;
+}
 
 // --- Disclosure open-state persistence -------------------------------------
 function readOpenState(groups) {
@@ -57,8 +61,7 @@ function readOpenState(groups) {
   } catch {
     /* corrupt value — fall through to default */
   }
-  // First visit: everything open.
-  const all = new Set(groups.map((g) => g.slug));
+  const all = new Set(groups.map((g) => g.slug)); // first visit: everything open
   persistOpenState(all);
   return all;
 }
@@ -98,21 +101,22 @@ function renderNav(groups, activeSlug) {
       })
     );
 
-    const group_el = el(
+    const groupEl = el(
       'details',
-      {
-        class: 'rail__group',
-        'data-slug': group.slug,
-        open: openSlugs.has(group.slug),
-      },
+      { class: 'rail__group', 'data-slug': group.slug, open: openSlugs.has(group.slug) },
       summary,
       list
     );
-    group_el.addEventListener('toggle', () => persistOpenState());
-    return group_el;
+    groupEl.addEventListener('toggle', () => persistOpenState());
+    return groupEl;
   });
 
   nav.replaceChildren(...details);
+}
+
+function renderNavMessage(text) {
+  const nav = qs('#rail-nav');
+  if (nav) nav.replaceChildren(el('p', { class: 'rail__msg' }, text));
 }
 
 // --- Mobile drawer ---------------------------------------------------------
@@ -167,17 +171,29 @@ function initDrawer() {
 
   toggle.addEventListener('click', () => (isOpen() ? close() : open()));
   scrim.addEventListener('click', () => close());
-  // A tapped project link both navigates and dismisses the drawer.
   rail.addEventListener('click', (event) => {
     if (event.target.closest('a')) close({ restoreFocus: false });
   });
-  // Crossing into desktop layout must not leave a stuck locked body.
   DESKTOP.addEventListener('change', (event) => {
     if (event.matches) close({ restoreFocus: false });
   });
 }
 
 // --- Boot ------------------------------------------------------------------
-const activeSlug = new URLSearchParams(location.search).get('p');
-renderNav(NAV, activeSlug);
-initDrawer();
+async function init() {
+  initDrawer(); // independent of nav data
+  const activeSlug = new URLSearchParams(location.search).get('p');
+  try {
+    const groups = await loadNav();
+    if (!groups.length) {
+      renderNavMessage('No published work yet.');
+      return;
+    }
+    renderNav(groups, activeSlug);
+  } catch (err) {
+    console.error('[shell] could not load the project nav:', err);
+    renderNavMessage('Work couldn’t load — please refresh.');
+  }
+}
+
+init();

@@ -132,6 +132,12 @@ summary:focus-visible,
   font-weight: 500;
 }
 
+/* Empty / error state for the nav (graceful degradation). */
+.rail__msg {
+  font-size: var(--step--1);
+  color: var(--chalk-40);
+}
+
 /* Height animation for the disclosure. Progressive enhancement: browsers
    without ::details-content simply open instantly. No JS height hack. */
 .rail__group::details-content {
