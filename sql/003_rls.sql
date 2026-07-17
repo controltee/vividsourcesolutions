@@ -1,43 +1,28 @@
--- 003 · Row Level Security
+-- 003 · Row Level Security — the publish gate
 --
--- ⚠ DO NOT RUN THIS BLIND. RLS is the real security boundary and this DB is
--- shared with the live site. First run the inspection query at the bottom of
--- this file and share the result, so we can confirm no pre-existing "read all"
--- policy is left in place that would defeat the publish gate on `projects`.
+-- Inspection (pg_policies) confirmed the live DB already implements the model we
+-- want on EVERY table: public read + authenticated full access, plus correct
+-- storage policies on portfolio_assets (public read; authenticated
+-- insert/update/delete). Nothing there needs changing.
 --
--- Model: the public (anon) may READ published content only; an authenticated
--- admin may do everything (including reading unpublished drafts). Every policy
--- is dropped-if-exists first, so this script is safe to re-run.
+-- The ONLY problem: `projects` and `project_media` each have a
+--   "Allow public read on X"  {public} SELECT USING (true)
+-- policy, which lets anyone read UNPUBLISHED drafts. RLS policies are OR'd, so
+-- adding a gate is not enough — we replace those two policies with a
+-- published-only gate. The authenticated admin keeps full read/write (incl.
+-- drafts) through the existing "Allow auth all projects" and
+-- "Allow all with all project_media" policies, so the CMS is unaffected.
+--
+-- Requires 001 (adds projects.is_published). Idempotent: drop-then-create.
 
--- ── categories ── public reads all; admin full access ──────────────────────
-alter table public.categories enable row level security;
-drop policy if exists "anon read categories" on public.categories;
-create policy "anon read categories" on public.categories
-  for select to anon using (true);
-drop policy if exists "auth all categories" on public.categories;
-create policy "auth all categories" on public.categories
-  for all to authenticated using (true) with check (true);
-
--- ── clients ── public reads all (needed to show client names on projects) ──
-alter table public.clients enable row level security;
-drop policy if exists "anon read clients" on public.clients;
-create policy "anon read clients" on public.clients
-  for select to anon using (true);
-drop policy if exists "auth all clients" on public.clients;
-create policy "auth all clients" on public.clients
-  for all to authenticated using (true) with check (true);
-
--- ── projects ── public reads PUBLISHED only; admin sees everything ─────────
-alter table public.projects enable row level security;
+-- projects: the public sees published projects only.
+drop policy if exists "Allow public read on projects" on public.projects;
 drop policy if exists "anon read published projects" on public.projects;
 create policy "anon read published projects" on public.projects
   for select to anon using (is_published = true);
-drop policy if exists "auth all projects" on public.projects;
-create policy "auth all projects" on public.projects
-  for all to authenticated using (true) with check (true);
 
--- ── project_media ── public reads media of PUBLISHED projects only ─────────
-alter table public.project_media enable row level security;
+-- project_media: the public sees gallery images of published projects only.
+drop policy if exists "Allow public read on project_media" on public.project_media;
 drop policy if exists "anon read media of published projects" on public.project_media;
 create policy "anon read media of published projects" on public.project_media
   for select to anon using (
@@ -46,53 +31,11 @@ create policy "anon read media of published projects" on public.project_media
        where p.id = project_media.project_id and p.is_published = true
     )
   );
-drop policy if exists "auth all project_media" on public.project_media;
-create policy "auth all project_media" on public.project_media
-  for all to authenticated using (true) with check (true);
 
--- ── posters / videos / site_content ── live-site public content ────────────
--- The new site does not render these, but the DEPLOYED site still does, so they
--- stay publicly readable. Admin keeps full access.
-alter table public.posters enable row level security;
-drop policy if exists "anon read posters" on public.posters;
-create policy "anon read posters" on public.posters for select to anon using (true);
-drop policy if exists "auth all posters" on public.posters;
-create policy "auth all posters" on public.posters for all to authenticated using (true) with check (true);
-
-alter table public.videos enable row level security;
-drop policy if exists "anon read videos" on public.videos;
-create policy "anon read videos" on public.videos for select to anon using (true);
-drop policy if exists "auth all videos" on public.videos;
-create policy "auth all videos" on public.videos for all to authenticated using (true) with check (true);
-
-alter table public.site_content enable row level security;
-drop policy if exists "anon read site_content" on public.site_content;
-create policy "anon read site_content" on public.site_content for select to anon using (true);
-drop policy if exists "auth all site_content" on public.site_content;
-create policy "auth all site_content" on public.site_content for all to authenticated using (true) with check (true);
-
--- ── Storage: portfolio_assets bucket ──────────────────────────────────────
--- VERIFY FIRST in Storage -> Policies. The bucket is already public-read in
--- production; only add these if equivalents are not already present, to avoid
--- duplicating or fighting existing storage policies.
+-- Everything else (categories, clients, posters, videos, site_content,
+-- partner_logos, project_images, storage.objects) already has correct
+-- public-read + authenticated-write policies — deliberately left untouched.
 --
--- drop policy if exists "public read portfolio_assets" on storage.objects;
--- create policy "public read portfolio_assets" on storage.objects
---   for select to anon, authenticated using (bucket_id = 'portfolio_assets');
--- drop policy if exists "auth write portfolio_assets" on storage.objects;
--- create policy "auth write portfolio_assets" on storage.objects
---   for insert to authenticated with check (bucket_id = 'portfolio_assets');
--- drop policy if exists "auth update portfolio_assets" on storage.objects;
--- create policy "auth update portfolio_assets" on storage.objects
---   for update to authenticated using (bucket_id = 'portfolio_assets');
--- drop policy if exists "auth delete portfolio_assets" on storage.objects;
--- create policy "auth delete portfolio_assets" on storage.objects
---   for delete to authenticated using (bucket_id = 'portfolio_assets');
-
--- ── INSPECTION (run this FIRST, paste the result back) ─────────────────────
--- Shows every existing policy so we can spot a pre-existing permissive read
--- policy that would defeat the publish gate above.
---   select schemaname, tablename, policyname, roles, cmd, qual, with_check
---     from pg_policies
---    where schemaname in ('public','storage')
---    order by tablename, policyname;
+-- Verify the gate after running (should return the count of published rows,
+-- not all rows), from an anon context:
+--   -- with the anon key, GET /rest/v1/projects should now omit is_published=false rows.
