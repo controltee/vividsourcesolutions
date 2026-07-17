@@ -1,0 +1,19 @@
+/* home.css — the project grid and its cards.
+   Phase 1: intro block only. The grid, cards and <picture> land in Phase 3. */
+
+.pane__intro {
+  max-width: 62ch;
+  margin-block-end: var(--space-l);
+}
+.pane__title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--step-3);
+  letter-spacing: -0.02em;
+  color: var(--chalk);
+}
+.pane__lede {
+  margin-block-start: var(--space-s);
+  color: var(--chalk-60);
+  font-size: var(--step-1);
+}

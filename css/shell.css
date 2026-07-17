@@ -1,0 +1,267 @@
+/* shell.css — the persistent layout: rail + pane, and the mobile drawer.
+   This is identical on every page. Only the pane changes. */
+
+/* ---- Base --------------------------------------------------------------- */
+body {
+  background: var(--ink);
+  color: var(--chalk);
+  font-family: var(--font-body);
+  font-size: var(--step-0);
+  font-weight: 400;
+}
+
+/* Global focus ring — clearly visible on black, never removed. */
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--paper);
+  outline-offset: 2px;
+  border-radius: 1px;
+}
+
+/* Keyboard-only skip link. */
+.skip-link {
+  position: absolute;
+  left: var(--space-2xs);
+  top: -5rem;
+  z-index: 100;
+  background: var(--paper);
+  color: var(--ink);
+  padding: var(--space-2xs) var(--space-s);
+  font-family: var(--font-display);
+  font-weight: 500;
+  transition: top var(--dur-fast) var(--ease-out);
+}
+.skip-link:focus {
+  top: var(--space-2xs);
+}
+
+/* ---- Shell grid --------------------------------------------------------- */
+.shell {
+  display: grid;
+  grid-template-columns: var(--rail-width) 1fr;
+  min-height: 100dvh;
+}
+
+.rail {
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-right: 1px solid var(--moss);
+  padding: var(--space-m);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-l);
+}
+
+.pane {
+  padding: var(--space-m);
+  min-width: 0; /* load-bearing: lets grid children shrink. Do not remove. */
+}
+
+/* ---- Brand -------------------------------------------------------------- */
+.rail__brand {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--step-1);
+  letter-spacing: -0.01em;
+  line-height: 1;
+  color: var(--chalk);
+}
+
+/* ---- Nav ---------------------------------------------------------------- */
+.rail__nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  flex: 1 1 auto;
+}
+
+.rail__group {
+  border-block-end: 1px solid var(--ink-80);
+  padding-block-end: var(--space-2xs);
+}
+
+.rail__group-label {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2xs);
+  padding-block: var(--space-2xs);
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--step-0);
+  color: var(--chalk);
+}
+.rail__group-label::-webkit-details-marker {
+  display: none;
+}
+.rail__group-label::after {
+  content: "\25BE"; /* ▾ */
+  font-size: 0.7em;
+  color: var(--chalk-60);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.rail__group[open] > .rail__group-label::after {
+  transform: rotate(180deg);
+}
+
+.rail__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3xs);
+  padding-block: var(--space-2xs) var(--space-xs);
+}
+.rail__list a {
+  display: block;
+  padding: var(--space-3xs) 0;
+  font-size: var(--step--1);
+  color: var(--chalk-60);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.rail__list a:hover {
+  color: var(--chalk);
+}
+.rail__list a.is-active {
+  color: var(--paper);
+  font-weight: 500;
+}
+
+/* Height animation for the disclosure. Progressive enhancement: browsers
+   without ::details-content simply open instantly. No JS height hack. */
+.rail__group::details-content {
+  block-size: 0;
+  overflow: hidden;
+  transition: block-size var(--dur-base) var(--ease-out),
+              content-visibility var(--dur-base) allow-discrete;
+}
+.rail__group[open]::details-content {
+  block-size: auto;
+}
+
+/* ---- Foot --------------------------------------------------------------- */
+.rail__foot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  font-size: var(--step--1);
+}
+.rail__foot a {
+  color: var(--chalk-60);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.rail__foot a:hover {
+  color: var(--chalk);
+}
+.rail__social {
+  display: flex;
+  gap: var(--space-s);
+}
+
+/* ---- Mobile top bar + scrim (hidden on desktop) ------------------------- */
+.topbar {
+  display: none;
+}
+.scrim {
+  display: none;
+}
+
+/* ---- Mobile: the rail becomes a drawer ---------------------------------- */
+@media (max-width: 899.98px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-s);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    padding: var(--space-xs) var(--space-m);
+    background: var(--ink);
+    border-block-end: 1px solid var(--moss);
+  }
+  .topbar__brand {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: var(--step-1);
+    line-height: 1;
+    color: var(--chalk);
+  }
+  .topbar__toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    margin-inline-end: calc(var(--space-2xs) * -1);
+    color: var(--chalk);
+  }
+  .topbar__toggle svg {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  .rail {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 40;
+    width: min(82vw, 320px);
+    height: 100dvh;
+    background: var(--ink);
+    transform: translateX(-100%);
+    transition: transform var(--dur-base) var(--ease-out);
+  }
+  body.rail-open .rail {
+    transform: none;
+  }
+
+  .scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background: rgba(0, 0, 0, 0.6);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--dur-base) var(--ease-out);
+  }
+  body.rail-open .scrim {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Lock background scroll while the drawer is open. */
+  body.rail-open {
+    overflow: hidden;
+  }
+}
+
+/* Reduced motion: the drawer appears, it does not slide; the marker does not
+   rotate. */
+@media (prefers-reduced-motion: reduce) {
+  .rail,
+  .scrim,
+  .skip-link,
+  .rail__list a,
+  .rail__foot a {
+    transition: none;
+  }
+  .rail__group::details-content {
+    transition: none;
+  }
+  .rail__group-label::after {
+    transition: none;
+  }
+  .rail__group[open] > .rail__group-label::after {
+    transform: none;
+  }
+}

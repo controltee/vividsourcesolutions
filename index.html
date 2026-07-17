@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Control Tee — Nairobi design studio</title>
+    <meta
+      name="description"
+      content="Control Tee is a design studio in Nairobi. Brand identity, event branding, motion and video."
+    />
+    <link
+      rel="preload"
+      href="/fonts/CabinetGrotesk-Extrabold.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="stylesheet" href="/css/tokens.css" />
+    <link rel="stylesheet" href="/css/reset.css" />
+    <link rel="stylesheet" href="/css/shell.css" />
+    <link rel="stylesheet" href="/css/home.css" />
+    <script type="module" src="/js/shell.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#pane">Skip to content</a>
+
+    <!-- Mobile only (hidden on desktop by shell.css) -->
+    <header class="topbar">
+      <a class="topbar__brand" href="/">Control Tee</a>
+      <button
+        class="topbar__toggle"
+        id="rail-toggle"
+        type="button"
+        aria-expanded="false"
+        aria-controls="rail"
+        aria-label="Open menu"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          aria-hidden="true"
+        >
+          <path d="M3 6h18M3 12h18M3 18h18" />
+        </svg>
+      </button>
+    </header>
+
+    <div class="scrim" id="scrim"></div>
+
+    <div class="shell">
+      <aside class="rail" id="rail">
+        <a class="rail__brand" href="/">Control Tee</a>
+
+        <nav class="rail__nav" id="rail-nav" aria-label="Projects">
+          <!-- rendered by shell.js -->
+        </nav>
+
+        <footer class="rail__foot">
+          <a href="/about.html">About</a>
+          <!-- TODO: replace with mailto: real address once Jesse confirms it -->
+          <a href="/about.html">Contact</a>
+          <ul class="rail__social">
+            <li>
+              <a
+                href="https://www.instagram.com/control.tee/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Control Tee on Instagram"
+                >Instagram</a
+              >
+            </li>
+            <li>
+              <a
+                href="https://www.behance.net/controltee"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Control Tee on Behance"
+                >Behance</a
+              >
+            </li>
+            <li>
+              <a
+                href="https://www.linkedin.com/in/controltee/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Control Tee on LinkedIn"
+                >LinkedIn</a
+              >
+            </li>
+          </ul>
+        </footer>
+      </aside>
+
+      <main class="pane" id="pane" tabindex="-1">
+        <section class="pane__intro">
+          <h1 class="pane__title">Control Tee</h1>
+          <p class="pane__lede">
+            A design studio in Nairobi. Brand identity, event branding, motion
+            and video.
+          </p>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
