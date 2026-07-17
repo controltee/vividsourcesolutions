@@ -1,0 +1,17 @@
+# Dependencies (image pipeline only — never runs on the server)
+node_modules/
+
+# Secrets — never commit
+.env
+.env.*
+
+# Image pipeline working dirs
+scripts/out/
+scripts/raw/
+
+# Vercel
+.vercel/
+
+# OS cruft
+.DS_Store
+Thumbs.db
