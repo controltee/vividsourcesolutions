@@ -5,14 +5,16 @@ import { qs, qsa, el } from './util.js';
 import { supabase } from './supabase.js';
 
 const OPEN_KEY = 'ct:rail:open';
-const NAV_KEY = 'ct:nav';
+const NAV_KEY = 'ct:nav:v2'; // v2: now includes empty categories — bump invalidates old caches
 const NAV_TTL = 5 * 60 * 1000; // 5 minutes
 const SITE_KEY = 'ct:site';
 const SITE_TTL = 5 * 60 * 1000;
 const DESKTOP = window.matchMedia('(min-width: 900px)');
 
 // --- Nav data --------------------------------------------------------------
-// Categories + published projects, grouped, ordered, empty categories dropped.
+// All categories (ordered) + their published projects. Empty categories are
+// kept so the menu reflects the studio's full range of work; they render with
+// a muted "no work yet" note and start collapsed.
 // Cached in sessionStorage so moving between pages doesn't re-hit the network.
 async function loadNav() {
   try {
@@ -43,13 +45,11 @@ async function loadNav() {
     byCategory.get(p.category_id).push(p);
   }
 
-  const groups = cats.data
-    .filter((c) => byCategory.has(c.id)) // hide categories with no published work
-    .map((c) => ({
-      slug: c.slug,
-      name: c.name,
-      projects: byCategory.get(c.id).map((p) => ({ slug: p.slug, title: p.title })),
-    }));
+  const groups = cats.data.map((c) => ({
+    slug: c.slug,
+    name: c.name,
+    projects: (byCategory.get(c.id) || []).map((p) => ({ slug: p.slug, title: p.title })),
+  }));
 
   sessionStorage.setItem(NAV_KEY, JSON.stringify({ t: Date.now(), groups }));
   return groups;
@@ -63,9 +63,10 @@ function readOpenState(groups) {
   } catch {
     /* corrupt value — fall through to default */
   }
-  const all = new Set(groups.map((g) => g.slug)); // first visit: everything open
-  persistOpenState(all);
-  return all;
+  // First visit: open categories that have work; leave empty ones collapsed.
+  const populated = new Set(groups.filter((g) => g.projects.length).map((g) => g.slug));
+  persistOpenState(populated);
+  return populated;
 }
 
 function persistOpenState(set) {
@@ -83,29 +84,36 @@ function renderNav(groups, activeSlug) {
   if (activeGroup) openSlugs.add(activeGroup.slug); // auto-open the active project's group
 
   const details = groups.map((group) => {
+    const empty = group.projects.length === 0;
     const summary = el('summary', { class: 'rail__group-label' }, group.name);
 
-    const list = el(
-      'ul',
-      { class: 'rail__list' },
-      ...group.projects.map((project) => {
-        const active = project.slug === activeSlug;
-        const link = el(
-          'a',
-          {
-            href: `/project.html?p=${encodeURIComponent(project.slug)}`,
-            class: active ? 'is-active' : false,
-            'aria-current': active ? 'page' : false,
-          },
-          project.title
+    const list = empty
+      ? el('p', { class: 'rail__empty' }, 'No published work yet.')
+      : el(
+          'ul',
+          { class: 'rail__list' },
+          ...group.projects.map((project) => {
+            const active = project.slug === activeSlug;
+            const link = el(
+              'a',
+              {
+                href: `/project.html?p=${encodeURIComponent(project.slug)}`,
+                class: active ? 'is-active' : false,
+                'aria-current': active ? 'page' : false,
+              },
+              project.title
+            );
+            return el('li', {}, link);
+          })
         );
-        return el('li', {}, link);
-      })
-    );
 
     const groupEl = el(
       'details',
-      { class: 'rail__group', 'data-slug': group.slug, open: openSlugs.has(group.slug) },
+      {
+        class: empty ? 'rail__group rail__group--empty' : 'rail__group',
+        'data-slug': group.slug,
+        open: openSlugs.has(group.slug),
+      },
       summary,
       list
     );
