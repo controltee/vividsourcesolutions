@@ -62,9 +62,9 @@
   font-size: var(--step--1);
 }
 
-/* Focus ring on the whole card, clearly visible on black. */
+/* Focus ring on the whole card, clearly visible in both themes. */
 .project-card:focus-visible {
-  outline: 2px solid var(--paper);
+  outline: 2px solid var(--accent-ink);
   outline-offset: 2px;
 }
 

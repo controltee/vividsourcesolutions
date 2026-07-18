@@ -188,6 +188,39 @@ function applySiteSettings(settings) {
   }
 }
 
+// --- Theme toggle (light / dark) --------------------------------------------
+const THEME_KEY = 'ct:theme';
+
+function currentTheme() {
+  const forced = document.documentElement.dataset.theme;
+  if (forced === 'light' || forced === 'dark') return forced;
+  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+}
+
+function initThemeToggle() {
+  const btn = qs('#theme-toggle');
+  if (!btn) return;
+  const labelEl = btn.querySelector('.theme-toggle__label');
+
+  const sync = () => {
+    const isLight = currentTheme() === 'light';
+    btn.setAttribute('aria-pressed', String(isLight));
+    if (labelEl) labelEl.textContent = isLight ? 'Dark mode' : 'Light mode';
+  };
+  sync();
+
+  btn.addEventListener('click', () => {
+    const next = currentTheme() === 'light' ? 'dark' : 'light';
+    document.documentElement.dataset.theme = next;
+    try {
+      localStorage.setItem(THEME_KEY, next);
+    } catch {
+      /* storage blocked — theme still applies for this page load */
+    }
+    sync();
+  });
+}
+
 // --- Clock: the studio's local (Nairobi) time, bottom of the rail ------------
 function initClock() {
   const clock = qs('#rail-clock');
@@ -269,6 +302,7 @@ function initDrawer() {
 // --- Boot ------------------------------------------------------------------
 async function init() {
   initDrawer(); // independent of nav data
+  initThemeToggle();
   initClock();
   const activeSlug = new URLSearchParams(location.search).get('p');
   try {

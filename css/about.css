@@ -35,6 +35,6 @@
 .about__contact-email {
   display: inline-block;
   margin-block-start: var(--space-s);
-  color: var(--paper);
+  color: var(--accent-ink);
   font-size: var(--step-1);
 }

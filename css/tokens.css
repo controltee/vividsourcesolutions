@@ -44,6 +44,12 @@
   --chalk-60:     rgba(255, 255, 255, 0.6);
   --chalk-40:     rgba(255, 255, 255, 0.4);
 
+  /* Accent used as TEXT or an OUTLINE (active link, focus ring, links). On the
+     dark ground the signature yellow has strong contrast; the light theme
+     swaps it for the moss green, which stays legible on a pale ground. Fill
+     uses of --paper (buttons, skip link) keep the yellow in both themes. */
+  --accent-ink:   var(--paper);
+
   /* PROPOSED, admin panel only — not yet confirmed with Jesse (spec §15: any
      new token needs sign-off). Danger/error states have no color in the core
      palette to draw from. Used by delete buttons and error text in admin.css. */
@@ -82,4 +88,35 @@
 
   /* Enable keyword height interpolation (progressive enhancement) */
   interpolate-size: allow-keywords;
+}
+
+/* ---- Light theme -------------------------------------------------------- */
+/* The neutrals flip (dark ground -> pale ground, light text -> dark text) so
+   every component that reads --ink as a surface and --chalk as text just works.
+   --paper / --moss (brand accents) stay; --accent-ink moves to moss for legible
+   accent text/outlines on the pale ground.
+
+   Applied when the OS prefers light AND the visitor hasn't forced dark, or when
+   the visitor explicitly chooses light. The theme toggle stamps data-theme on
+   <html>, which wins over the OS preference in both directions. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --ink:      #f7f5ee; /* warm off-white ground */
+    --ink-80:   #ece9df; /* raised surfaces (cards, inputs, skeletons) */
+    --ink-60:   #e0ddd1;
+    --chalk:    #141414; /* primary text */
+    --chalk-60: rgba(0, 0, 0, 0.62);
+    --chalk-40: rgba(0, 0, 0, 0.42);
+    --accent-ink: var(--moss);
+  }
+}
+
+:root[data-theme="light"] {
+  --ink:      #f7f5ee;
+  --ink-80:   #ece9df;
+  --ink-60:   #e0ddd1;
+  --chalk:    #141414;
+  --chalk-60: rgba(0, 0, 0, 0.62);
+  --chalk-40: rgba(0, 0, 0, 0.42);
+  --accent-ink: var(--moss);
 }

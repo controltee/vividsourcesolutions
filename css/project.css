@@ -103,7 +103,7 @@
   margin-block-end: var(--space-m);
 }
 .project__empty a {
-  color: var(--paper);
+  color: var(--accent-ink);
   text-decoration: underline;
   text-underline-offset: 0.2em;
 }
@@ -130,7 +130,7 @@
   transform: scale(1.02);
 }
 .gallery__item:focus-visible {
-  outline: 2px solid var(--paper);
+  outline: 2px solid var(--accent-ink);
   outline-offset: 2px;
 }
 
