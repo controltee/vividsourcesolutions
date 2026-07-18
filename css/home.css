@@ -1,19 +1,78 @@
-/* home.css — the project grid and its cards.
-   Phase 1: intro block only. The grid, cards and <picture> land in Phase 3. */
+/* home.css — the project grid and its banner cards. */
 
-.pane__intro {
-  max-width: 62ch;
-  margin-block-end: var(--space-l);
-}
 .pane__title {
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: var(--step-3);
-  letter-spacing: -0.02em;
+  font-size: var(--step-2);
+  letter-spacing: -0.01em;
+  color: var(--chalk);
+  margin-block-end: var(--space-l);
+}
+
+/* Empty / error state inside the pane. */
+.pane__msg {
+  color: var(--chalk-40);
+  font-size: var(--step-0);
+}
+
+/* ---- Grid --------------------------------------------------------------- */
+.project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-m);
+}
+
+/* ---- Card --------------------------------------------------------------- */
+.project-card {
+  display: block;
   color: var(--chalk);
 }
-.pane__lede {
-  margin-block-start: var(--space-s);
-  color: var(--chalk-60);
+
+.project-card__picture {
+  display: block;
+  overflow: hidden; /* clips the hover scale */
+  background: var(--ink-80); /* holds the space while the image loads */
+}
+
+.project-card__img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  transition: transform var(--dur-base) var(--ease-out);
+}
+
+/* The entire hover treatment: the image scales, nothing else moves. */
+.project-card:hover .project-card__img {
+  transform: scale(1.02);
+}
+
+.project-card__text {
+  margin-block-start: var(--space-xs);
+}
+.project-card__title {
+  font-family: var(--font-display);
+  font-weight: 500;
   font-size: var(--step-1);
+  line-height: 1.15;
+}
+.project-card__summary {
+  margin-block-start: var(--space-3xs);
+  color: var(--chalk-60);
+  font-size: var(--step--1);
+}
+
+/* Focus ring on the whole card, clearly visible on black. */
+.project-card:focus-visible {
+  outline: 2px solid var(--paper);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .project-card__img {
+    transition: none;
+  }
+  .project-card:hover .project-card__img {
+    transform: none;
+  }
 }

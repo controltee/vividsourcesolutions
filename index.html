@@ -20,6 +20,7 @@
     <link rel="stylesheet" href="/css/shell.css" />
     <link rel="stylesheet" href="/css/home.css" />
     <script type="module" src="/js/shell.js"></script>
+    <script type="module" src="/js/home.js"></script>
   </head>
   <body>
     <a class="skip-link" href="#pane">Skip to content</a>
@@ -95,13 +96,10 @@
       </aside>
 
       <main class="pane" id="pane" tabindex="-1">
-        <section class="pane__intro">
-          <h1 class="pane__title">Control Tee</h1>
-          <p class="pane__lede">
-            A design studio in Nairobi. Brand identity, event branding, motion
-            and video.
-          </p>
-        </section>
+        <h1 class="pane__title">Selected work</h1>
+        <div class="project-grid" id="project-grid" aria-busy="true">
+          <!-- rendered by home.js -->
+        </div>
       </main>
     </div>
   </body>
