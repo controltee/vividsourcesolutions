@@ -117,18 +117,18 @@ a {
   background: var(--chalk);
 }
 .admin-btn--danger {
-  border-color: #7a2020;
-  color: #ff8a8a;
+  border-color: var(--danger-border);
+  color: var(--danger);
 }
 .admin-btn--danger:hover {
-  background: #2a1010;
+  background: var(--danger-bg);
 }
 .admin-btn--icon {
   padding: var(--space-3xs) var(--space-2xs);
 }
 
 .admin-error {
-  color: #ff8a8a;
+  color: var(--danger);
   font-size: var(--step--1);
 }
 .admin-hint-block {
@@ -171,7 +171,7 @@ a {
   color: var(--paper);
 }
 .admin-save-state[data-state="error"] {
-  color: #ff8a8a;
+  color: var(--danger);
 }
 
 .admin-tabs {
@@ -187,7 +187,7 @@ a {
   border-bottom: 2px solid transparent;
   font-size: var(--step--1);
 }
-.admin-tab[aria-selected="true"] {
+.admin-tab[aria-current="page"] {
   color: var(--chalk);
   border-color: var(--paper);
 }
@@ -309,6 +309,11 @@ a {
   display: flex;
   gap: var(--space-3xs);
   justify-content: space-between;
+}
+
+.admin-cover-preview {
+  max-width: 160px;
+  display: block;
 }
 
 .admin-dropzone {

@@ -44,6 +44,18 @@ button {
   cursor: pointer;
 }
 
+/* Global focus ring — clearly visible on black, never removed. Lives here
+   (not shell.css) so every page gets it, including admin/, which doesn't
+   load the rail's shell.css. */
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--paper);
+  outline-offset: 2px;
+  border-radius: 1px;
+}
+
 ul[class],
 ol[class] {
   list-style: none;

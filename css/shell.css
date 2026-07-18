@@ -10,16 +10,6 @@ body {
   font-weight: 400;
 }
 
-/* Global focus ring — clearly visible on black, never removed. */
-a:focus-visible,
-button:focus-visible,
-summary:focus-visible,
-[tabindex]:focus-visible {
-  outline: 2px solid var(--paper);
-  outline-offset: 2px;
-  border-radius: 1px;
-}
-
 /* Keyboard-only skip link. */
 .skip-link {
   position: absolute;

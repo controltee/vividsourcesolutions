@@ -189,20 +189,24 @@ function renderApp() {
     )
   );
 
+  // Plain buttons in a nav, not ARIA role="tablist"/"tab": that pattern
+  // requires arrow-key navigation and a roving tabindex, which isn't
+  // implemented here — announcing "tab" semantics without matching behavior
+  // would be worse than not using them. aria-current mirrors how the rail
+  // marks its active project link.
   const tabButtons = TABS.map((t) =>
     el(
       'button',
       {
         class: 'admin-tab',
         type: 'button',
-        role: 'tab',
-        'aria-selected': String(t.id === activeTabId),
+        'aria-current': t.id === activeTabId ? 'page' : false,
         'data-tab': t.id,
       },
       t.label
     )
   );
-  const tabsNav = el('nav', { class: 'admin-tabs', role: 'tablist', 'aria-label': 'Admin sections' }, ...tabButtons);
+  const tabsNav = el('nav', { class: 'admin-tabs', 'aria-label': 'Admin sections' }, ...tabButtons);
   const panel = el('div', { class: 'admin-panel', id: 'admin-panel' });
 
   root.replaceChildren(el('div', { class: 'admin-app' }, topbar, tabsNav, panel));
@@ -426,7 +430,7 @@ function projectForm(project, categories, clients, onSaved) {
   const coverPreview = el(
     'div',
     {},
-    project?.cover_url ? el('img', { src: project.cover_url, alt: '', style: 'max-width:160px;display:block' }) : null
+    project?.cover_url ? el('img', { src: project.cover_url, alt: '', class: 'admin-cover-preview' }) : null
   );
   let pendingCover = null;
   const coverWarning = el('div');
@@ -436,7 +440,7 @@ function projectForm(project, categories, clients, onSaved) {
     coverWarning.replaceChildren(el('p', { class: 'admin-field__hint' }, 'Compressing…'));
     pendingCover = await compressImage(file);
     coverWarning.replaceChildren(fieldSizeWarning(pendingCover.blob.size));
-    coverPreview.replaceChildren(el('img', { src: URL.createObjectURL(pendingCover.blob), alt: '', style: 'max-width:160px;display:block' }));
+    coverPreview.replaceChildren(el('img', { src: URL.createObjectURL(pendingCover.blob), alt: '', class: 'admin-cover-preview' }));
   });
 
   const errorEl = el('p', { class: 'admin-error', 'aria-live': 'polite' });

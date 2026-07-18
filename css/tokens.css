@@ -44,6 +44,13 @@
   --chalk-60:     rgba(255, 255, 255, 0.6);
   --chalk-40:     rgba(255, 255, 255, 0.4);
 
+  /* PROPOSED, admin panel only — not yet confirmed with Jesse (spec §15: any
+     new token needs sign-off). Danger/error states have no color in the core
+     palette to draw from. Used by delete buttons and error text in admin.css. */
+  --danger:       #ff8a8a;
+  --danger-border:#7a2020;
+  --danger-bg:    #2a1010;
+
   /* Type */
   --font-display: "Cabinet Grotesk", system-ui, sans-serif;
   --font-body:    "DM Sans", system-ui, sans-serif;
