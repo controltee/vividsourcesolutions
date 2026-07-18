@@ -3,11 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Control Tee — Nairobi design studio</title>
-    <meta
-      name="description"
-      content="Control Tee is a design studio in Nairobi. Brand identity, event branding, motion and video."
-    />
+    <title>Project — Control Tee</title>
+    <meta name="description" content="A case study from Control Tee, a Nairobi design studio." />
     <link
       rel="preload"
       href="/fonts/CabinetGrotesk-Extrabold.woff2"
@@ -18,14 +15,14 @@
     <link rel="stylesheet" href="/css/tokens.css" />
     <link rel="stylesheet" href="/css/reset.css" />
     <link rel="stylesheet" href="/css/shell.css" />
-    <link rel="stylesheet" href="/css/home.css" />
+    <link rel="stylesheet" href="/css/project.css" />
+    <link rel="stylesheet" href="/css/lightbox.css" />
     <script type="module" src="/js/shell.js"></script>
-    <script type="module" src="/js/home.js"></script>
+    <script type="module" src="/js/project.js"></script>
   </head>
   <body>
     <a class="skip-link" href="#pane">Skip to content</a>
 
-    <!-- Mobile only (hidden on desktop by shell.css) -->
     <header class="topbar">
       <a class="topbar__brand" href="/">Control Tee</a>
       <button
@@ -61,7 +58,6 @@
 
         <footer class="rail__foot">
           <a href="/about.html">About</a>
-          <!-- becomes a real mailto: once contact_email is set in the admin's Site Settings tab -->
           <a href="/about.html" id="contact-link">Contact</a>
           <ul class="rail__social">
             <li>
@@ -99,10 +95,7 @@
       </aside>
 
       <main class="pane" id="pane" tabindex="-1">
-        <h1 class="pane__title">Selected work</h1>
-        <div class="project-grid" id="project-grid" aria-busy="true">
-          <!-- rendered by home.js -->
-        </div>
+        <p class="pane__msg" aria-busy="true">Loading project…</p>
       </main>
     </div>
   </body>

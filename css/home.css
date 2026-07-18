@@ -34,7 +34,7 @@
   background: var(--ink-80); /* holds the space while the image loads */
 }
 
-.project-card__img {
+.project-card__picture img {
   display: block;
   width: 100%;
   height: auto;
@@ -43,7 +43,7 @@
 }
 
 /* The entire hover treatment: the image scales, nothing else moves. */
-.project-card:hover .project-card__img {
+.project-card:hover .project-card__picture img {
   transform: scale(1.02);
 }
 
@@ -69,10 +69,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .project-card__img {
+  .project-card__picture img {
     transition: none;
   }
-  .project-card:hover .project-card__img {
+  .project-card:hover .project-card__picture img {
     transform: none;
   }
 }

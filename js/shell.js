@@ -7,6 +7,8 @@ import { supabase } from './supabase.js';
 const OPEN_KEY = 'ct:rail:open';
 const NAV_KEY = 'ct:nav';
 const NAV_TTL = 5 * 60 * 1000; // 5 minutes
+const SITE_KEY = 'ct:site';
+const SITE_TTL = 5 * 60 * 1000;
 const DESKTOP = window.matchMedia('(min-width: 900px)');
 
 // --- Nav data --------------------------------------------------------------
@@ -119,6 +121,48 @@ function renderNavMessage(text) {
   if (nav) nav.replaceChildren(el('p', { class: 'rail__msg' }, text));
 }
 
+// --- Footer: contact + socials, editable from the admin's Site Settings tab -
+// Reuses site_content (id/content key-value rows). The static HTML already
+// has real fallback links, so a fetch failure or missing row changes nothing.
+const SITE_CONTENT_IDS = [
+  'contact_email',
+  'social_instagram_url',
+  'social_behance_url',
+  'social_linkedin_url',
+];
+
+async function loadSiteSettings() {
+  try {
+    const cached = JSON.parse(sessionStorage.getItem(SITE_KEY));
+    if (cached && Date.now() - cached.t < SITE_TTL) return cached.settings;
+  } catch {
+    /* corrupt cache — refetch */
+  }
+
+  const { data, error } = await supabase
+    .from('site_content')
+    .select('id, content')
+    .in('id', SITE_CONTENT_IDS);
+  if (error) throw error;
+
+  const settings = Object.fromEntries(data.map((row) => [row.id, row.content]));
+  sessionStorage.setItem(SITE_KEY, JSON.stringify({ t: Date.now(), settings }));
+  return settings;
+}
+
+function applySiteSettings(settings) {
+  const contactLink = qs('#contact-link');
+  if (settings.contact_email && contactLink) {
+    contactLink.href = `mailto:${settings.contact_email}`;
+  }
+
+  const socialSettingKey = { instagram: 'social_instagram_url', behance: 'social_behance_url', linkedin: 'social_linkedin_url' };
+  for (const link of qsa('.rail__social a[data-social]')) {
+    const url = settings[socialSettingKey[link.dataset.social]];
+    if (url) link.href = url;
+  }
+}
+
 // --- Mobile drawer ---------------------------------------------------------
 function focusables(container) {
   return qsa(
@@ -187,12 +231,18 @@ async function init() {
     const groups = await loadNav();
     if (!groups.length) {
       renderNavMessage('No published work yet.');
-      return;
+    } else {
+      renderNav(groups, activeSlug);
     }
-    renderNav(groups, activeSlug);
   } catch (err) {
     console.error('[shell] could not load the project nav:', err);
     renderNavMessage('Work couldn’t load — please refresh.');
+  }
+
+  try {
+    applySiteSettings(await loadSiteSettings());
+  } catch (err) {
+    console.error('[shell] could not load site settings — keeping static footer links:', err);
   }
 }
 

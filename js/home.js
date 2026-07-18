@@ -3,9 +3,8 @@
 
 import { qs, el } from './util.js';
 import { supabase } from './supabase.js';
-import { SUPABASE_URL } from './config.js';
+import { pictureFor } from './image.js';
 
-const WIDTHS = [640, 1280, 1920];
 const SIZES = '(max-width: 700px) 90vw, (max-width: 1100px) 45vw, 30vw';
 
 // --- Data ------------------------------------------------------------------
@@ -31,60 +30,20 @@ async function loadProjects() {
     );
 }
 
-// --- Image URLs ------------------------------------------------------------
-// Single source of truth for banner image URLs. Today: Supabase on-the-fly
-// transforms (WebP via content negotiation, same host as the raw object).
-// When the offline pipeline (Phase 5) produces stored AVIF/WebP variants,
-// swap the body of `transformUrl` / add an AVIF <source> — nothing else changes.
-//
-// The transform endpoint does NOT infer height from width — passing width
-// alone stretches the image to the source's full height (verified against the
-// live endpoint). Height must always be computed from the known aspect ratio
-// and passed explicitly.
-function transformUrl(coverUrl, width, bannerW, bannerH) {
-  if (!coverUrl || !coverUrl.includes('/object/public/')) return null;
-  if (!bannerW || !bannerH) return null; // no known aspect ratio — do not risk a distorted crop
-  const path = coverUrl.split('/object/public/')[1];
-  const height = Math.round((width * bannerH) / bannerW);
-  return `${SUPABASE_URL}/storage/v1/render/image/public/${path}?width=${width}&height=${height}&quality=75`;
-}
-
-function pictureFor(project, { eager, priority }) {
-  const { cover_url: coverUrl, banner_w: bw, banner_h: bh } = project;
-  const srcset = transformUrl(coverUrl, 1280, bw, bh)
-    ? WIDTHS.map((w) => `${transformUrl(coverUrl, w, bw, bh)} ${w}w`).join(', ')
-    : false;
-
-  const img = el('img', {
-    class: 'project-card__img',
-    src: transformUrl(coverUrl, 1280, bw, bh) || coverUrl,
-    srcset,
-    sizes: srcset ? SIZES : false,
-    width: bw || false,
-    height: bh || false,
-    alt: '', // decorative: the visible card title is the link's accessible name
-    loading: eager ? 'eager' : 'lazy',
-    decoding: 'async',
-    fetchpriority: priority ? 'high' : false,
-  });
-  if (bw && bh) {
-    // Dynamic value from asset dimensions — set via CSSOM (CSP-safe), the one
-    // sanctioned use of inline style per the spec.
-    img.style.aspectRatio = `${bw} / ${bh}`;
-  }
-
-  const picture = el('picture', { class: 'project-card__picture' });
-  if (srcset) picture.append(el('source', { type: 'image/webp', srcset, sizes: SIZES }));
-  picture.append(img);
-  return picture;
-}
-
 // --- Render ----------------------------------------------------------------
-function card(project, opts) {
+function card(project, { eager, priority }) {
+  const picture = pictureFor(project.cover_url, project.banner_w, project.banner_h, {
+    alt: '', // decorative: the visible card title is the link's accessible name
+    sizes: SIZES,
+    loading: eager ? 'eager' : 'lazy',
+    priority,
+  });
+  picture.classList.add('project-card__picture');
+
   return el(
     'a',
     { class: 'project-card', href: `/project.html?p=${encodeURIComponent(project.slug)}` },
-    pictureFor(project, opts),
+    picture,
     el(
       'div',
       { class: 'project-card__text' },
@@ -102,12 +61,10 @@ function render(projects) {
     grid.replaceChildren(el('p', { class: 'pane__msg' }, 'No published work yet.'));
     return;
   }
-  grid.replaceChildren(
-    ...projects.map((p, i) => card(p, { eager: i < 4, priority: i === 0 }))
-  );
+  grid.replaceChildren(...projects.map((p, i) => card(p, { eager: i < 4, priority: i === 0 })));
 }
 
-// --- Boot ------------------------------------------------------------------
+// --- Boot ----------------------------------------------------------------
 (async () => {
   try {
     render(await loadProjects());

@@ -1,0 +1,175 @@
+/* project.css — sticky meta column + the three media renderers.
+   One template, three modes (gallery | deck | reel). Never fork this file
+   per mode; branch inside the same structure instead. */
+
+.project {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) 1fr;
+  gap: var(--space-xl);
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .project {
+    grid-template-columns: 1fr;
+    gap: var(--space-l);
+  }
+  .project__meta {
+    position: static;
+  }
+}
+
+/* ---- Meta column ---------------------------------------------------------- */
+.project__meta {
+  position: sticky;
+  top: var(--space-m);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-m);
+}
+
+.project__back {
+  color: var(--chalk-60);
+  font-size: var(--step--1);
+  align-self: flex-start;
+}
+.project__back:hover {
+  color: var(--chalk);
+}
+
+.project__client {
+  color: var(--chalk-60);
+  font-size: var(--step--1);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.project__title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--step-2);
+  letter-spacing: -0.01em;
+}
+
+.project__facts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  font-size: var(--step--1);
+}
+.project__facts dt {
+  color: var(--chalk-40);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: var(--step--1);
+}
+.project__facts dd {
+  color: var(--chalk-60);
+  margin-inline-start: 0;
+}
+.project__services {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3xs) var(--space-2xs);
+}
+.project__services li {
+  border: 1px solid var(--moss);
+  padding: 0.15em var(--space-2xs);
+  border-radius: 2px;
+}
+
+.project__description {
+  color: var(--chalk-60);
+  font-size: var(--step-0);
+  line-height: 1.6;
+}
+.project__description p + p {
+  margin-block-start: var(--space-s);
+}
+
+/* ---- Empty / error state --------------------------------------------------- */
+.project__empty {
+  max-width: 50ch;
+  padding-block: var(--space-xl);
+}
+.project__empty h1 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--step-2);
+  margin-block-end: var(--space-s);
+}
+.project__empty p {
+  color: var(--chalk-60);
+  margin-block-end: var(--space-m);
+}
+.project__empty a {
+  color: var(--paper);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+/* ---- Mode: gallery --------------------------------------------------------- */
+.gallery {
+  column-count: 2;
+  column-gap: var(--space-m);
+}
+.gallery__item {
+  display: block;
+  width: 100%;
+  break-inside: avoid;
+  margin-bottom: var(--space-m);
+  overflow: hidden;
+}
+.gallery__item img {
+  display: block;
+  width: 100%;
+  height: auto;
+  transition: transform var(--dur-base) var(--ease-out);
+}
+.gallery__item:hover img {
+  transform: scale(1.02);
+}
+.gallery__item:focus-visible {
+  outline: 2px solid var(--paper);
+  outline-offset: 2px;
+}
+
+@media (max-width: 700px) {
+  .gallery {
+    column-count: 1;
+  }
+}
+
+/* ---- Mode: deck ------------------------------------------------------------- */
+.deck__item {
+  width: 100%;
+  margin-bottom: var(--space-m);
+}
+.deck__item img,
+.deck__item video {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.deck__caption {
+  margin-block-start: var(--space-2xs);
+  color: var(--chalk-60);
+  font-size: var(--step--1);
+}
+
+/* ---- Mode: reel -------------------------------------------------------------- */
+.reel video {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: var(--ink-80);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gallery__item img {
+    transition: none;
+  }
+  .gallery__item:hover img {
+    transform: none;
+  }
+}
