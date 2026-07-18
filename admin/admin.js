@@ -68,6 +68,15 @@ async function uniqueSlug(table, base, excludeId) {
   }
 }
 
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
 /** Resizes/re-encodes an image file to WebP via canvas, capping the long edge
  * at MAX_UPLOAD_DIMENSION. Returns { blob, width, height }. This is the
  * client-side compression the spec's admin panel is expected to do. */
@@ -440,7 +449,10 @@ function projectForm(project, categories, clients, onSaved) {
     coverWarning.replaceChildren(el('p', { class: 'admin-field__hint' }, 'Compressing…'));
     pendingCover = await compressImage(file);
     coverWarning.replaceChildren(fieldSizeWarning(pendingCover.blob.size));
-    coverPreview.replaceChildren(el('img', { src: URL.createObjectURL(pendingCover.blob), alt: '', class: 'admin-cover-preview' }));
+    // data: URL, not URL.createObjectURL — the CSP's img-src allows data: but
+    // not blob:, and we keep the CSP strict rather than widen it for a preview.
+    const previewSrc = await blobToDataUrl(pendingCover.blob);
+    coverPreview.replaceChildren(el('img', { src: previewSrc, alt: '', class: 'admin-cover-preview' }));
   });
 
   const errorEl = el('p', { class: 'admin-error', 'aria-live': 'polite' });
