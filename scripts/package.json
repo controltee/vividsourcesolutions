@@ -1,0 +1,12 @@
+{
+  "name": "control-tee-image-pipeline",
+  "private": true,
+  "type": "module",
+  "description": "Offline image optimization for control-tee-site. Dev-only — never runs on the server.",
+  "scripts": {
+    "img": "node optimize-images.mjs"
+  },
+  "dependencies": {
+    "sharp": "^0.33.5"
+  }
+}
