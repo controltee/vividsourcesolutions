@@ -810,6 +810,7 @@ async function renderGalleryManager(container, project) {
 
 // --- Site & Contact settings tab ------------------------------------------------
 const SETTINGS_FIELDS = [
+  { id: 'brand_tagline', label: 'Tagline (shown under the logo/name)', type: 'input' },
   { id: 'contact_email', label: 'Contact email', hint: 'Used for the rail’s Contact link (mailto:).', type: 'input' },
   { id: 'social_instagram_url', label: 'Instagram URL', type: 'input' },
   { id: 'social_behance_url', label: 'Behance URL', type: 'input' },
@@ -819,9 +820,53 @@ const SETTINGS_FIELDS = [
   { id: 'contact_body', label: 'Contact: intro (HTML)', type: 'textarea' },
 ];
 
+// Logo uploads immediately (like gallery images) and stores its URL in
+// site_content.logo_url. Separate from the text-field "Save settings" button.
+function logoUploader(currentUrl, onChange) {
+  const preview = el('div', { class: 'admin-logo-preview' });
+  if (currentUrl) preview.append(el('img', { src: currentUrl, alt: 'Current logo', class: 'admin-cover-preview' }));
+  else preview.append(el('p', { class: 'admin-field__hint' }, 'No logo set — the “Control Tee” wordmark is shown.'));
+
+  const fileInput = el('input', { type: 'file', accept: 'image/*', 'aria-label': 'Upload a logo' });
+  const status = el('p', { class: 'admin-field__hint', 'aria-live': 'polite' });
+  const removeBtn = el('button', { class: 'admin-btn admin-btn--danger', type: 'button' }, 'Remove logo');
+
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    status.textContent = 'Uploading…';
+    try {
+      const uploaded = await uploadImage(file, 'branding', 'logo');
+      await withSaveState(
+        supabase.from('site_content').upsert({ id: 'logo_url', content: uploaded.url }, { onConflict: 'id' }).throwOnError()
+      );
+      onChange();
+    } catch (err) {
+      status.textContent = `Error: ${err.message}`;
+    }
+  });
+  removeBtn.addEventListener('click', async () => {
+    if (!confirm('Remove the logo and go back to the text wordmark?')) return;
+    await withSaveState(
+      supabase.from('site_content').upsert({ id: 'logo_url', content: '' }, { onConflict: 'id' }).throwOnError()
+    );
+    onChange();
+  });
+
+  return el(
+    'section',
+    {},
+    el('h2', { class: 'admin-section__title' }, 'Logo'),
+    preview,
+    field('Upload a logo (PNG/SVG with transparency works best)', fileInput),
+    status,
+    currentUrl ? el('div', { class: 'admin-form__actions' }, removeBtn) : null
+  );
+}
+
 async function renderSettingsTab(panel) {
   panel.replaceChildren(el('p', {}, 'Loading…'));
-  const ids = SETTINGS_FIELDS.map((f) => f.id);
+  const ids = [...SETTINGS_FIELDS.map((f) => f.id), 'logo_url'];
   const { data, error } = await supabase.from('site_content').select('id, content').in('id', ids);
   if (error) {
     panel.replaceChildren(el('p', { class: 'admin-error', 'aria-live': 'polite' }, `Failed to load settings: ${error.message}`));
@@ -854,7 +899,10 @@ async function renderSettingsTab(panel) {
     }
   });
 
-  panel.replaceChildren(el('section', {}, el('h2', { class: 'admin-section__title' }, 'Site & Contact'), form));
+  panel.replaceChildren(
+    logoUploader(values.logo_url, () => renderSettingsTab(panel)),
+    el('section', {}, el('h2', { class: 'admin-section__title' }, 'Site & Contact'), form)
+  );
 }
 
 // --- Boot ------------------------------------------------------------------------

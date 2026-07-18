@@ -137,6 +137,8 @@ const SITE_CONTENT_IDS = [
   'social_instagram_url',
   'social_behance_url',
   'social_linkedin_url',
+  'logo_url',
+  'brand_tagline',
 ];
 
 async function loadSiteSettings() {
@@ -169,6 +171,39 @@ function applySiteSettings(settings) {
     const url = settings[socialSettingKey[link.dataset.social]];
     if (url) link.href = url;
   }
+
+  // Logo: if uploaded via the admin, replace the wordmark with the image in
+  // both the rail brand and the mobile top bar. Falls back to the wordmark.
+  if (settings.logo_url) {
+    for (const brand of qsa('.rail__brand, .topbar__brand')) {
+      brand.replaceChildren(el('img', { class: 'brand-logo', src: settings.logo_url, alt: 'Control Tee' }));
+    }
+  }
+
+  // Optional short tagline under the rail brand.
+  const tagline = qs('#brand-tagline');
+  if (tagline && settings.brand_tagline) {
+    tagline.textContent = settings.brand_tagline;
+    tagline.hidden = false;
+  }
+}
+
+// --- Clock: the studio's local (Nairobi) time, bottom of the rail ------------
+function initClock() {
+  const clock = qs('#rail-clock');
+  if (!clock) return;
+  const tick = () => {
+    const time = new Date().toLocaleTimeString('en-GB', {
+      timeZone: 'Africa/Nairobi',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+    clock.textContent = `Nairobi · ${time}`;
+    clock.dateTime = new Date().toISOString();
+  };
+  tick();
+  setInterval(tick, 1000);
 }
 
 // --- Mobile drawer ---------------------------------------------------------
@@ -234,6 +269,7 @@ function initDrawer() {
 // --- Boot ------------------------------------------------------------------
 async function init() {
   initDrawer(); // independent of nav data
+  initClock();
   const activeSlug = new URLSearchParams(location.search).get('p');
   try {
     const groups = await loadNav();

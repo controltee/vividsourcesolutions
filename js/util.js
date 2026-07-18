@@ -22,3 +22,36 @@ export function el(tag, attrs = {}, ...children) {
   }
   return node;
 }
+
+const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/**
+ * Fade + short-translate elements into view as they're scrolled to. Elements
+ * should carry the `.reveal` class (styled in shell.css). Under reduced-motion,
+ * everything is shown immediately with no animation — honouring the spec's
+ * "fades and short translations only, respect prefers-reduced-motion" rule.
+ */
+export function revealOnScroll(elements) {
+  const list = [...elements];
+  const revealAll = () => list.forEach((node) => node.classList.add('is-visible'));
+
+  if (prefersReducedMotion() || !('IntersectionObserver' in window)) {
+    revealAll();
+    return;
+  }
+  const io = new IntersectionObserver(
+    (entries, observer) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        entry.target.classList.add('is-visible');
+        observer.unobserve(entry.target);
+      }
+    },
+    { threshold: 0.08, rootMargin: '0px 0px -40px 0px' }
+  );
+  list.forEach((node) => io.observe(node));
+
+  // Safety net: content must never stay invisible. If the observer never fires
+  // (a stalled rendering pipeline, an unusual browser), reveal everything.
+  setTimeout(revealAll, 1500);
+}

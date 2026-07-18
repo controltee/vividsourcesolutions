@@ -1,12 +1,34 @@
 // project.js — one template, three renderers (gallery | deck | reel), switched
 // on project.layout. Never fork this into per-layout HTML files.
 
-import { qs, el } from './util.js';
+import { qs, qsa, el, revealOnScroll } from './util.js';
 import { supabase } from './supabase.js';
 import { pictureFor } from './image.js';
 import { openLightbox } from './lightbox.js';
 
 const pane = qs('#pane');
+
+// Skeleton shown while the project + its media load.
+function projectSkeleton() {
+  pane.replaceChildren(
+    el(
+      'div',
+      { class: 'project', 'aria-busy': 'true' },
+      el(
+        'div',
+        { class: 'project__meta' },
+        el('div', { class: 'skeleton skeleton--line', 'aria-hidden': 'true' }),
+        el('div', { class: 'skeleton skeleton--title', 'aria-hidden': 'true' }),
+        el('div', { class: 'skeleton skeleton--line', 'aria-hidden': 'true' })
+      ),
+      el(
+        'div',
+        { class: 'project__media' },
+        el('div', { class: 'skeleton skeleton--banner', 'aria-hidden': 'true' })
+      )
+    )
+  );
+}
 
 function notFound(heading, message) {
   pane.replaceChildren(
@@ -72,7 +94,7 @@ function renderGallery(media, title) {
       sizes: '(max-width: 700px) 90vw, 45vw',
       loading: i < 2 ? 'eager' : 'lazy',
     });
-    const button = el('button', { class: 'gallery__item', type: 'button' }, picture);
+    const button = el('button', { class: 'gallery__item reveal', type: 'button' }, picture);
     button.addEventListener('click', () => openLightbox(lightboxItems, i, button));
     container.append(button);
   });
@@ -94,7 +116,7 @@ function renderDeck(media, title) {
           });
     const figure = el(
       'figure',
-      { class: 'deck__item' },
+      { class: 'deck__item reveal' },
       media_el,
       m.caption ? el('figcaption', { class: 'deck__caption' }, m.caption) : null
     );
@@ -166,8 +188,10 @@ async function loadProject() {
   mediaEl.classList.add('project__media');
 
   pane.replaceChildren(el('div', { class: 'project' }, renderMeta(project), mediaEl));
+  revealOnScroll(qsa('.reveal', pane));
 }
 
+projectSkeleton();
 loadProject().catch((err) => {
   console.error('[project] failed to load:', err);
   notFound('Something went wrong', 'This project didn’t load properly. Please refresh, or head back to the work.');

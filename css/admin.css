@@ -315,6 +315,20 @@ a {
   max-width: 160px;
   display: block;
 }
+.admin-logo-preview {
+  display: inline-block;
+  padding: var(--space-s);
+  background: var(--ink); /* previews on black to match the real rail */
+  border: 1px solid var(--ink-80);
+  border-radius: 2px;
+}
+.admin-logo-preview img {
+  max-width: 200px;
+  max-height: 60px;
+  width: auto;
+  height: auto;
+  display: block;
+}
 
 .admin-dropzone {
   border: 1px dashed var(--moss);

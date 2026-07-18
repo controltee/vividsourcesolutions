@@ -1,7 +1,7 @@
 // home.js — the project grid. Fetches published projects, orders them by
 // category then project sort order, and renders banner cards.
 
-import { qs, el } from './util.js';
+import { qs, qsa, el, revealOnScroll } from './util.js';
 import { supabase } from './supabase.js';
 import { pictureFor } from './image.js';
 
@@ -42,13 +42,28 @@ function card(project, { eager, priority }) {
 
   return el(
     'a',
-    { class: 'project-card', href: `/project.html?p=${encodeURIComponent(project.slug)}` },
+    { class: 'project-card reveal', href: `/project.html?p=${encodeURIComponent(project.slug)}` },
     picture,
     el(
       'div',
       { class: 'project-card__text' },
       el('h2', { class: 'project-card__title' }, project.title),
       project.summary ? el('p', { class: 'project-card__summary' }, project.summary) : null
+    )
+  );
+}
+
+// Placeholder cards shown while the real projects load — keeps the grid from
+// flashing empty and reserves layout.
+function skeletons(grid, count = 6) {
+  grid.replaceChildren(
+    ...Array.from({ length: count }, () =>
+      el(
+        'div',
+        { class: 'project-card project-card--skeleton', 'aria-hidden': 'true' },
+        el('div', { class: 'skeleton skeleton--banner' }),
+        el('div', { class: 'skeleton skeleton--line' })
+      )
     )
   );
 }
@@ -62,15 +77,17 @@ function render(projects) {
     return;
   }
   grid.replaceChildren(...projects.map((p, i) => card(p, { eager: i < 4, priority: i === 0 })));
+  revealOnScroll(qsa('.project-card', grid));
 }
 
 // --- Boot ----------------------------------------------------------------
 (async () => {
+  const grid = qs('#project-grid');
+  if (grid) skeletons(grid);
   try {
     render(await loadProjects());
   } catch (err) {
     console.error('[home] could not load projects:', err);
-    const grid = qs('#project-grid');
     if (grid) {
       grid.setAttribute('aria-busy', 'false');
       grid.replaceChildren(el('p', { class: 'pane__msg' }, 'Work couldn’t load — please refresh.'));
