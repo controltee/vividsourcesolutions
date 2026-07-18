@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>About — Control Tee</title>
+    <meta name="description" content="Control Tee is a design studio in Nairobi. About the studio, and how to get in touch." />
+    <link
+      rel="preload"
+      href="/fonts/CabinetGrotesk-Extrabold.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="stylesheet" href="/css/tokens.css" />
+    <link rel="stylesheet" href="/css/reset.css" />
+    <link rel="stylesheet" href="/css/shell.css" />
+    <link rel="stylesheet" href="/css/about.css" />
+    <script type="module" src="/js/shell.js"></script>
+    <script type="module" src="/js/about.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#pane">Skip to content</a>
+
+    <header class="topbar">
+      <a class="topbar__brand" href="/">Control Tee</a>
+      <button
+        class="topbar__toggle"
+        id="rail-toggle"
+        type="button"
+        aria-expanded="false"
+        aria-controls="rail"
+        aria-label="Open menu"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          aria-hidden="true"
+        >
+          <path d="M3 6h18M3 12h18M3 18h18" />
+        </svg>
+      </button>
+    </header>
+
+    <div class="scrim" id="scrim"></div>
+
+    <div class="shell">
+      <aside class="rail" id="rail">
+        <a class="rail__brand" href="/">Control Tee</a>
+
+        <nav class="rail__nav" id="rail-nav" aria-label="Projects">
+          <!-- rendered by shell.js -->
+        </nav>
+
+        <footer class="rail__foot">
+          <a href="/about.html" aria-current="page">About</a>
+          <a href="/about.html" id="contact-link">Contact</a>
+          <ul class="rail__social">
+            <li>
+              <a
+                href="https://www.instagram.com/control.tee/"
+                data-social="instagram"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Control Tee on Instagram"
+                >Instagram</a
+              >
+            </li>
+            <li>
+              <a
+                href="https://www.behance.net/controltee"
+                data-social="behance"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Control Tee on Behance"
+                >Behance</a
+              >
+            </li>
+            <li>
+              <a
+                href="https://www.linkedin.com/in/controltee/"
+                data-social="linkedin"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Control Tee on LinkedIn"
+                >LinkedIn</a
+              >
+            </li>
+          </ul>
+        </footer>
+      </aside>
+
+      <main class="pane" id="pane" tabindex="-1">
+        <p class="pane__msg" aria-busy="true">Loading…</p>
+      </main>
+    </div>
+  </body>
+</html>

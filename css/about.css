@@ -1,0 +1,40 @@
+/* about.css — About + Contact copy. Reads from site_content; this is the
+   simplest page in the site, so it earns the least CSS. */
+
+.about {
+  max-width: 60ch;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.about__title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--step-3);
+  letter-spacing: -0.02em;
+  margin-block-end: var(--space-s);
+}
+
+.about__body {
+  color: var(--chalk-60);
+  font-size: var(--step-0);
+  line-height: 1.6;
+}
+.about__body p + p {
+  margin-block-start: var(--space-s);
+}
+
+.about__contact-title {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--step-1);
+  margin-block-end: var(--space-s);
+}
+
+.about__contact-email {
+  display: inline-block;
+  margin-block-start: var(--space-s);
+  color: var(--paper);
+  font-size: var(--step-1);
+}

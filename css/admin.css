@@ -1,0 +1,325 @@
+/* admin.css — the CMS. A tool, not a showcase: dense, scannable, quiet. */
+
+body {
+  background: var(--ink);
+  color: var(--chalk);
+  font-family: var(--font-body);
+  font-size: var(--step-0);
+  min-height: 100dvh;
+}
+
+.admin-loading {
+  padding: var(--space-l);
+  color: var(--chalk-40);
+}
+
+a {
+  color: var(--paper);
+}
+
+/* ---- Login ---------------------------------------------------------------- */
+.admin-login {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-m);
+}
+.admin-login__card {
+  width: min(360px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-m);
+}
+.admin-login__brand {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--step-2);
+  text-align: center;
+}
+.admin-login__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s);
+}
+
+/* ---- Shared form controls --------------------------------------------------- */
+.admin-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3xs);
+}
+.admin-field__label {
+  font-size: var(--step--1);
+  color: var(--chalk-60);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.admin-field__hint {
+  font-size: var(--step--1);
+  color: var(--chalk-40);
+}
+.admin-input,
+.admin-textarea,
+.admin-select {
+  background: var(--ink-80);
+  border: 1px solid var(--moss);
+  color: var(--chalk);
+  padding: var(--space-2xs) var(--space-xs);
+  font: inherit;
+  border-radius: 2px;
+}
+.admin-textarea {
+  resize: vertical;
+  min-height: 6rem;
+}
+.admin-input:focus-visible,
+.admin-textarea:focus-visible,
+.admin-select:focus-visible,
+.admin-checkbox input:focus-visible {
+  outline: 2px solid var(--paper);
+  outline-offset: 1px;
+}
+.admin-checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  font-size: var(--step--1);
+}
+
+.admin-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3xs);
+  padding: var(--space-2xs) var(--space-s);
+  border: 1px solid var(--moss);
+  color: var(--chalk);
+  font: inherit;
+  font-size: var(--step--1);
+  border-radius: 2px;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+.admin-btn:hover {
+  background: var(--ink-80);
+}
+.admin-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.admin-btn--primary {
+  background: var(--paper);
+  color: var(--ink);
+  border-color: var(--paper);
+  font-weight: 500;
+}
+.admin-btn--primary:hover {
+  background: var(--chalk);
+}
+.admin-btn--danger {
+  border-color: #7a2020;
+  color: #ff8a8a;
+}
+.admin-btn--danger:hover {
+  background: #2a1010;
+}
+.admin-btn--icon {
+  padding: var(--space-3xs) var(--space-2xs);
+}
+
+.admin-error {
+  color: #ff8a8a;
+  font-size: var(--step--1);
+}
+.admin-hint-block {
+  color: var(--chalk-40);
+  font-size: var(--step--1);
+  line-height: 1.5;
+}
+
+/* ---- App shell -------------------------------------------------------------- */
+.admin-app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.admin-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-m);
+  padding: var(--space-s) var(--space-m);
+  border-block-end: 1px solid var(--moss);
+}
+.admin-topbar__brand {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--step-1);
+}
+.admin-topbar__right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-m);
+}
+.admin-save-state {
+  font-size: var(--step--1);
+  color: var(--chalk-40);
+  min-width: 6rem;
+}
+.admin-save-state[data-state="saving"] {
+  color: var(--paper);
+}
+.admin-save-state[data-state="error"] {
+  color: #ff8a8a;
+}
+
+.admin-tabs {
+  display: flex;
+  gap: var(--space-2xs);
+  padding: var(--space-s) var(--space-m) 0;
+  border-block-end: 1px solid var(--moss);
+  flex-wrap: wrap;
+}
+.admin-tab {
+  padding: var(--space-2xs) var(--space-s);
+  color: var(--chalk-60);
+  border-bottom: 2px solid transparent;
+  font-size: var(--step--1);
+}
+.admin-tab[aria-selected="true"] {
+  color: var(--chalk);
+  border-color: var(--paper);
+}
+.admin-tab:hover {
+  color: var(--chalk);
+}
+
+.admin-panel {
+  flex: 1;
+  padding: var(--space-m);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-l);
+  max-width: 1100px;
+}
+
+.admin-section__title {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--step-1);
+  margin-block-end: var(--space-s);
+}
+
+/* ---- Lists / tables ----------------------------------------------------------- */
+.admin-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
+.admin-list__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s);
+  padding: var(--space-2xs) var(--space-s);
+  border: 1px solid var(--ink-80);
+  border-radius: 2px;
+}
+.admin-list__row--dim {
+  color: var(--chalk-40);
+}
+.admin-list__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1em;
+}
+.admin-list__title {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.admin-list__meta {
+  font-size: var(--step--1);
+  color: var(--chalk-40);
+}
+.admin-list__actions {
+  display: flex;
+  gap: var(--space-3xs);
+  flex-shrink: 0;
+}
+.admin-badge {
+  font-size: var(--step--1);
+  padding: 0.1em 0.5em;
+  border-radius: 999px;
+  border: 1px solid var(--moss);
+  color: var(--chalk-60);
+}
+.admin-badge--live {
+  border-color: var(--paper);
+  color: var(--paper);
+}
+
+/* ---- Forms (category / project / settings) ------------------------------------ */
+.admin-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s);
+  max-width: 640px;
+}
+.admin-form__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-s);
+}
+@media (max-width: 560px) {
+  .admin-form__row {
+    grid-template-columns: 1fr;
+  }
+}
+.admin-form__actions {
+  display: flex;
+  gap: var(--space-s);
+  align-items: center;
+}
+
+/* ---- Assets grid ---------------------------------------------------------------- */
+.admin-asset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-s);
+}
+.admin-asset {
+  border: 1px solid var(--ink-80);
+  border-radius: 2px;
+  padding: var(--space-2xs);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
+.admin-asset img {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  background: var(--ink-80);
+}
+.admin-asset__actions {
+  display: flex;
+  gap: var(--space-3xs);
+  justify-content: space-between;
+}
+
+.admin-dropzone {
+  border: 1px dashed var(--moss);
+  border-radius: 4px;
+  padding: var(--space-m);
+  text-align: center;
+  color: var(--chalk-60);
+  font-size: var(--step--1);
+}
+.admin-dropzone.is-dragover {
+  border-color: var(--paper);
+  color: var(--chalk);
+}
