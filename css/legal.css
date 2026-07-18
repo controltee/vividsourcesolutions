@@ -1,0 +1,49 @@
+/* legal.css — privacy, terms, cookie policy. Long-form reading. */
+
+.legal {
+  max-width: 68ch;
+}
+.legal__updated {
+  color: var(--chalk-40);
+  font-size: var(--step--1);
+  margin-block-end: var(--space-l);
+}
+.legal__notice {
+  border: 1px solid var(--moss);
+  border-radius: 2px;
+  padding: var(--space-s);
+  color: var(--chalk-60);
+  font-size: var(--step--1);
+  margin-block-end: var(--space-l);
+}
+.legal h2 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--step-1);
+  color: var(--chalk);
+  margin-block: var(--space-l) var(--space-s);
+}
+.legal p,
+.legal li {
+  color: var(--chalk-60);
+  line-height: 1.65;
+}
+.legal p + p {
+  margin-block-start: var(--space-s);
+}
+.legal ul {
+  list-style: disc;
+  padding-inline-start: 1.25em;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  margin-block-start: var(--space-s);
+}
+.legal a {
+  color: var(--accent-ink);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+/* The cookie notice itself lives in shell.css — it appears site-wide, not
+   only on these pages. */

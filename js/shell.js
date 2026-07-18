@@ -219,6 +219,46 @@ function initThemeToggle() {
   });
 }
 
+// --- Cookie notice ----------------------------------------------------------
+// The site sets no advertising/analytics cookies — only functional storage
+// (theme, menu state, a short nav cache). So this is a dismissible NOTICE, not
+// a consent gate: there is nothing to withhold pending consent.
+const COOKIE_KEY = 'ct:cookie-notice';
+
+function initCookieNotice() {
+  let dismissed = false;
+  try {
+    dismissed = localStorage.getItem(COOKIE_KEY) === 'dismissed';
+  } catch {
+    dismissed = true; // storage blocked — don't nag on every page
+  }
+  if (dismissed) return;
+
+  const accept = el('button', { class: 'cookie-notice__accept', type: 'button' }, 'Got it');
+  const notice = el(
+    'aside',
+    { class: 'cookie-notice', role: 'note', 'aria-label': 'Cookie notice' },
+    el(
+      'p',
+      { class: 'cookie-notice__text' },
+      'We only store what makes this site work — your theme choice and menu state. No ad tracking. ',
+      el('a', { href: '/cookies.html' }, 'Cookie policy')
+    ),
+    accept
+  );
+
+  accept.addEventListener('click', () => {
+    try {
+      localStorage.setItem(COOKIE_KEY, 'dismissed');
+    } catch {
+      /* not critical */
+    }
+    notice.remove();
+  });
+
+  document.body.append(notice);
+}
+
 // --- Clock: the studio's local (Nairobi) time, bottom of the rail ------------
 function initClock() {
   const clock = qs('#rail-clock');
@@ -302,6 +342,7 @@ async function init() {
   initDrawer(); // independent of nav data
   initThemeToggle();
   initClock();
+  initCookieNotice();
   const activeSlug = new URLSearchParams(location.search).get('p');
   try {
     const groups = await loadNav();
