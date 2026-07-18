@@ -161,11 +161,9 @@ async function loadSiteSettings() {
 }
 
 function applySiteSettings(settings) {
-  const contactLink = qs('#contact-link');
-  if (settings.contact_email && contactLink) {
-    contactLink.href = `mailto:${settings.contact_email}`;
-  }
-
+  // Note: #contact-link points at /contact.html (the inquiry form) — it is
+  // deliberately NOT rewritten to a mailto:, since the form is the better
+  // route. contact_email is surfaced on the contact page instead.
   const socialSettingKey = { instagram: 'social_instagram_url', behance: 'social_behance_url', linkedin: 'social_linkedin_url' };
   for (const link of qsa('.rail__social a[data-social]')) {
     const url = settings[socialSettingKey[link.dataset.social]];

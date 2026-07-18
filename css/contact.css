@@ -1,0 +1,101 @@
+/* contact.css — the project inquiry form. */
+
+.inquiry {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-m);
+  max-width: 640px;
+  margin-block-start: var(--space-l);
+}
+
+.inquiry__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-m);
+}
+@media (max-width: 640px) {
+  .inquiry__row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.inquiry__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3xs);
+}
+
+.inquiry__label {
+  font-size: var(--step--1);
+  color: var(--chalk-60);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.inquiry__optional {
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--chalk-40);
+}
+
+.inquiry__input {
+  background: var(--ink-80);
+  border: 1px solid var(--moss);
+  color: var(--chalk);
+  padding: var(--space-2xs) var(--space-xs);
+  font: inherit;
+  border-radius: 2px;
+}
+.inquiry__input:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 1px;
+}
+.inquiry__textarea {
+  resize: vertical;
+  min-height: 8rem;
+}
+
+/* Honeypot — off-screen, never shown, never focusable. */
+.inquiry__botcheck {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.inquiry__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-m);
+  flex-wrap: wrap;
+}
+
+.inquiry__submit {
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--paper);
+  font: inherit;
+  font-weight: 500;
+  padding: var(--space-2xs) var(--space-m);
+  border-radius: 2px;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+.inquiry__submit:hover:not(:disabled) {
+  background: var(--chalk);
+  border-color: var(--chalk);
+}
+.inquiry__submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.inquiry__status {
+  font-size: var(--step--1);
+  color: var(--chalk-60);
+}
+.inquiry__status[data-state="success"] {
+  color: var(--accent-ink);
+}
+.inquiry__status[data-state="error"] {
+  color: var(--danger);
+}

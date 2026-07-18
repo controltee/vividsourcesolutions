@@ -4,10 +4,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script src="/js/theme-init.js"></script>
-    <title>Control Tee — Nairobi design studio</title>
+    <title>Contact — Control Tee</title>
     <meta
       name="description"
-      content="Control Tee is a design studio in Nairobi. Brand identity, event branding, motion and video."
+      content="Start a project with Control Tee — a design studio in Nairobi. Brand identity, event branding, motion and video."
     />
     <link
       rel="preload"
@@ -19,14 +19,14 @@
     <link rel="stylesheet" href="/css/tokens.css" />
     <link rel="stylesheet" href="/css/reset.css" />
     <link rel="stylesheet" href="/css/shell.css" />
-    <link rel="stylesheet" href="/css/home.css" />
+    <link rel="stylesheet" href="/css/about.css" />
+    <link rel="stylesheet" href="/css/contact.css" />
     <script type="module" src="/js/shell.js"></script>
-    <script type="module" src="/js/home.js"></script>
+    <script type="module" src="/js/contact.js"></script>
   </head>
   <body>
     <a class="skip-link" href="#pane">Skip to content</a>
 
-    <!-- Mobile only (hidden on desktop by shell.css) -->
     <header class="topbar">
       <a class="topbar__brand" href="/">Control Tee</a>
       <button
@@ -65,7 +65,7 @@
 
         <footer class="rail__foot">
           <a href="/about.html">About</a>
-          <a href="/contact.html" id="contact-link">Contact</a>
+          <a href="/contact.html" id="contact-link" aria-current="page">Contact</a>
           <ul class="rail__social">
             <li>
               <a
@@ -107,10 +107,62 @@
       </aside>
 
       <main class="pane" id="pane" tabindex="-1">
-        <h1 class="pane__title">Selected work</h1>
-        <div class="project-grid" id="project-grid" aria-busy="true">
-          <!-- rendered by home.js -->
-        </div>
+        <h1 class="pane__title">Start a project</h1>
+        <p class="about__body" id="contact-intro">
+          Tell us what you have in mind — a campaign, an identity, or a story
+          that needs to move — and we’ll get back to you.
+        </p>
+
+        <form class="inquiry" id="inquiry-form" novalidate>
+          <div class="inquiry__row">
+            <label class="inquiry__field">
+              <span class="inquiry__label">Your name</span>
+              <input class="inquiry__input" name="name" type="text" required autocomplete="name" />
+            </label>
+            <label class="inquiry__field">
+              <span class="inquiry__label">Email</span>
+              <input class="inquiry__input" name="email" type="email" required autocomplete="email" />
+            </label>
+          </div>
+
+          <div class="inquiry__row">
+            <label class="inquiry__field">
+              <span class="inquiry__label">Company <span class="inquiry__optional">(optional)</span></span>
+              <input class="inquiry__input" name="company" type="text" autocomplete="organization" />
+            </label>
+            <label class="inquiry__field">
+              <span class="inquiry__label">What do you need?</span>
+              <select class="inquiry__input" name="service">
+                <option value="Brand identity">Brand identity</option>
+                <option value="Event branding">Event branding</option>
+                <option value="Social &amp; marketing campaign">Social &amp; marketing campaign</option>
+                <option value="Motion design">Motion design</option>
+                <option value="Video production">Video production</option>
+                <option value="Something else">Something else</option>
+              </select>
+            </label>
+          </div>
+
+          <label class="inquiry__field">
+            <span class="inquiry__label">Tell us about the project</span>
+            <textarea class="inquiry__input inquiry__textarea" name="message" required rows="6"></textarea>
+          </label>
+
+          <!-- Honeypot: bots fill this, people never see it. -->
+          <input
+            class="inquiry__botcheck"
+            type="checkbox"
+            name="botcheck"
+            tabindex="-1"
+            autocomplete="off"
+            aria-hidden="true"
+          />
+
+          <div class="inquiry__actions">
+            <button class="inquiry__submit" type="submit">Send inquiry</button>
+            <p class="inquiry__status" id="inquiry-status" role="status" aria-live="polite"></p>
+          </div>
+        </form>
       </main>
     </div>
   </body>

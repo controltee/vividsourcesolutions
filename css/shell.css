@@ -65,11 +65,31 @@ body {
   line-height: 1;
   color: var(--chalk);
 }
+/* Sized by max-height AND max-width so both shapes work: a square mark renders
+   at its full height, a wide wordmark hits the rail width first and scales
+   down proportionally. */
 .brand-logo {
   display: block;
-  height: 2.25rem;
-  width: auto;
+  max-height: 4rem;
   max-width: 100%;
+  width: auto;
+  height: auto;
+}
+.topbar__brand .brand-logo {
+  max-height: 2rem; /* the mobile bar is slim */
+}
+
+/* A monochrome WHITE logo (the current one) would disappear on the light
+   ground, so invert it there — white mark becomes a black mark. This assumes a
+   monochrome logo; a full-colour logo would need a second light-mode upload
+   instead of a filter. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .brand-logo {
+    filter: invert(1);
+  }
+}
+:root[data-theme="light"] .brand-logo {
+  filter: invert(1);
 }
 .rail__tagline {
   margin-block-start: var(--space-3xs);
