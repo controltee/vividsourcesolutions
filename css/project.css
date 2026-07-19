@@ -141,20 +141,21 @@
 }
 
 /* ---- Mode: deck ------------------------------------------------------------- */
+/* Seamless vertical flow: slides butt directly against each other with no gap,
+   so a multi-panel case study reads as one continuous column. Width is fixed to
+   the media column; height stays natural (height: auto) so nothing is cropped —
+   panels of different heights stack cleanly. Captions are deliberately not
+   rendered in this mode (see renderDeck) because any text between slides breaks
+   the seam; alt text still carries the accessible description. */
 .deck__item {
   width: 100%;
-  margin-bottom: var(--space-m);
+  margin: 0;
 }
 .deck__item img,
 .deck__item video {
-  display: block;
+  display: block; /* also kills the inline baseline gap that would break the seam */
   width: 100%;
   height: auto;
-}
-.deck__caption {
-  margin-block-start: var(--space-2xs);
-  color: var(--chalk-60);
-  font-size: var(--step--1);
 }
 
 /* ---- Mode: reel -------------------------------------------------------------- */

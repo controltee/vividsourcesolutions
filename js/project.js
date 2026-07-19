@@ -114,12 +114,10 @@ function renderDeck(media, title) {
             sizes: '(max-width: 1100px) 100vw, 70vw',
             loading: i < 2 ? 'eager' : 'lazy',
           });
-    const figure = el(
-      'figure',
-      { class: 'deck__item reveal' },
-      media_el,
-      m.caption ? el('figcaption', { class: 'deck__caption' }, m.caption) : null
-    );
+    // No figcaption in deck mode: captions between slides break the seamless
+    // flow this layout exists for. The caption stays in the DB and still shows
+    // in gallery mode; alt above carries the accessible description either way.
+    const figure = el('figure', { class: 'deck__item reveal' }, media_el);
     container.append(figure);
   });
   return container;

@@ -8,19 +8,34 @@ This is a ground-up v3 rebuild. Two older Control Tee codebases exist and share 
 same live Supabase project (`ccaggjhyeygyosbdnxmq`):
 
 - `controltee/vividsourcesolutions` — the old site (posters/videos tables).
-- `controltee/Control-Tee` → deployed at `control-tee.vercel.app` — the current
-  rebuild this repo will eventually replace. Richer live schema.
+  **Its GitHub repo is now this project's deploy target — see Deployment below.**
+- `controltee/Control-Tee` → deployed at `control-tee.vercel.app` — the previous
+  rebuild this repo will eventually replace. Richer live schema. Left alone.
 
 Decisions (2026-07-17):
-- Build fresh here; leave the other two repos alone.
+- Build fresh here; leave the other two local folders alone.
 - REUSE the live DB `ccaggjhyeygyosbdnxmq` with additive-only migrations — no
   renames, no drops. Show Jesse every migration before it runs (he applies them
   in the dashboard; the anon key can't do DDL).
 
+## Deployment (decided 2026-07-18)
+
+Jesse repurposed the `vividsourcesolutions` GitHub repo to host this site. This
+repo's `origin` is `github.com/controltee/vividsourcesolutions`; Vercel deploys
+from its main → live at **controlteestudios.vercel.app**. The old flat-file site
+is preserved on the remote branch `pre-rebuild-old-site`.
+
+Deploy by pushing to origin. Neither `vercel` nor `gh` is installed on this
+machine. css/js are cached `max-age=3600`, so code changes need a hard-reload
+(Ctrl+Shift+R) to show up — content changes via /admin appear instantly.
+
 ## Live schema mapping (reconciled + applied, Phase 2)
 
-The new frontend reads the live tables directly. Reuse live column names; the
-additive migrations in sql/ (001 schema, 002 backfill, 003 RLS) are applied.
+The new frontend reads the live tables directly. Reuse live column names. All
+migrations in sql/ (001 schema, 002 backfill, 003 RLS, 004 media dimensions,
+005 contact/social rows) are applied — verified against the live DB 2026-07-19.
+Note 005 is misnamed: it creates no `site_settings` table, it inserts key-value
+rows into the existing `site_content`.
 
 - `categories` (id, name, slug, sort_order, description) — sort_order added.
 - `projects`: reuse title, category_id, client_id, `cover_url` (banner),
@@ -29,8 +44,9 @@ additive migrations in sql/ (001 schema, 002 backfill, 003 RLS) are applied.
   ('gallery'|'deck'|'reel'), is_published (publish gate), banner_w/banner_h
   (zero-CLS), services[].
 - `project_media` IS the gallery/"assets" table (project_id, `media_url` = the
-  image url). ADDED: width/height (null until the image pipeline backfills; the
-  project page tolerates nulls), alt, kind ('image'|'video'), caption, sort_order.
+  image url). ADDED: width/height (backfilled by 004 — all 40 rows populated; the
+  project page still tolerates nulls), alt, kind ('image'|'video'), caption,
+  sort_order.
 - Routing is by slug: `project.html?p=<slug>`.
 - RLS: anon reads published projects + their media only; authenticated admin has
   full access. Everything else already had correct policies.
@@ -53,13 +69,16 @@ pane changes. Do not re-render the rail on navigation.
 ## Two media modes
 Projects have a `layout` field: 'gallery' | 'deck' | 'reel'.
 - gallery = mixed-aspect posters in a column-count grid, click opens lightbox
-- deck    = fixed 16:9 brand slides, one per row, full pane width, no lightbox
+- deck    = brand case-study slides, one per row, full media-column width, NO gap
+            between them (seamless Behance-style vertical flow), no lightbox, no
+            captions rendered. Height is natural, NOT locked to 16:9 — forcing an
+            aspect would crop multi-panel artwork. Upload 1920px wide, any height.
 - reel    = video, poster frame + click to play
 One template (project.html), three renderers. Never fork the template.
 
 ## Commands
 - npm run img -- <folder>   (inside /scripts) — optimize a batch of images
-- vercel --prod             — deploy
+- git push origin main      — deploy (Vercel builds from the remote; no CLI here)
 
 ## Style
 Type and motion are the studio's signature. Restraint reads as confidence.

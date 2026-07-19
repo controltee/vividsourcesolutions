@@ -366,7 +366,7 @@ async function renderCategoriesTab(panel) {
 // --- Projects tab ------------------------------------------------------------
 const LAYOUT_OPTIONS = [
   { value: 'gallery', label: 'Gallery', hint: 'Mixed-aspect posters in a grid. Click an image to open it full-size.' },
-  { value: 'deck', label: 'Deck', hint: '16:9 slides, one per row, full width. No lightbox — read in sequence.' },
+  { value: 'deck', label: 'Deck', hint: 'Full-width slides in a seamless vertical flow — no gaps, no lightbox. Upload at 1920px wide; any height works and nothing gets cropped.' },
   { value: 'reel', label: 'Reel', hint: 'A single video, poster frame + click to play.' },
 ];
 
@@ -432,6 +432,27 @@ function projectForm(project, categories, clients, onSaved) {
   layoutSelect.addEventListener('change', () => {
     layoutHint.textContent = LAYOUT_OPTIONS.find((o) => o.value === layoutSelect.value).hint;
   });
+
+  // Brand identity case studies get Deck by default — that category is what the
+  // seamless full-width flow was built for. This is a suggestion, not a lock:
+  // it only ever fires on a NEW project whose layout hasn't been set by hand, so
+  // an existing project's saved layout is never overwritten, and one manual
+  // change to the dropdown stops it adjusting again.
+  const DECK_DEFAULT_CATEGORY_SLUG = 'brand-identity-systems';
+  let layoutTouched = !isNew;
+  layoutSelect.addEventListener('change', () => {
+    layoutTouched = true;
+  });
+  const suggestLayoutForCategory = () => {
+    if (layoutTouched) return;
+    const category = categories.find((c) => c.id === categorySelect.value);
+    const suggested = category?.slug === DECK_DEFAULT_CATEGORY_SLUG ? 'deck' : 'gallery';
+    if (layoutSelect.value === suggested) return;
+    layoutSelect.value = suggested;
+    layoutHint.textContent = LAYOUT_OPTIONS.find((o) => o.value === suggested).hint;
+  };
+  categorySelect.addEventListener('change', suggestLayoutForCategory);
+  suggestLayoutForCategory();
 
   const isPublished = el('input', { type: 'checkbox', checked: project?.is_published ?? true });
 
