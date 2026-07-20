@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Control Tee">
-  <!-- Standalone asset, so the palette is written out rather than pulled from
-       tokens.css: a favicon is fetched by the browser on its own and never sees
-       the site's stylesheets. Values are copies of --ink and --paper. -->
-  <rect width="64" height="64" rx="10" fill="#000000"/>
-  <text x="32" y="43" text-anchor="middle"
-        font-family="Verdana, DejaVu Sans, sans-serif" font-size="30" font-weight="700"
-        fill="#f7d54f">CT</text>
-</svg>
