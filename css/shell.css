@@ -70,13 +70,13 @@ body {
    down proportionally. */
 .brand-logo {
   display: block;
-  max-height: 4rem;
+  max-height: 5.5rem;
   max-width: 100%;
   width: auto;
   height: auto;
 }
 .topbar__brand .brand-logo {
-  max-height: 2rem; /* the mobile bar is slim */
+  max-height: 2.5rem; /* the mobile bar is slim */
 }
 
 /* A monochrome WHITE logo (the current one) would disappear on the light
@@ -261,25 +261,57 @@ body {
   display: flex;
   gap: var(--space-s);
 }
+/* The clock was easy to miss at 40% opacity. Raised to the same contrast as the
+   footer links and given a live dot, so it reads as current studio time rather
+   than decoration. */
 .rail__clock {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
   margin-block-start: var(--space-2xs);
   font-size: var(--step--1);
-  color: var(--chalk-40);
+  color: var(--chalk-60);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
 }
+.rail__clock::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-ink);
+  flex: none;
+  animation: clock-pulse 2.4s var(--ease-out) infinite;
+}
+@keyframes clock-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+/* Given a real button outline so it is discoverable as a control. Previously it
+   read as another footer link and users did not know the theme could change. */
 .theme-toggle {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2xs);
   align-self: flex-start;
-  padding: var(--space-3xs) 0;
-  color: var(--chalk-60);
+  padding: var(--space-3xs) var(--space-2xs);
+  border: 1px solid var(--chalk-40);
+  border-radius: 2px;
+  color: var(--chalk);
   font-size: var(--step--1);
-  transition: color var(--dur-fast) var(--ease-out);
+  transition: color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
 }
 .theme-toggle:hover {
-  color: var(--chalk);
+  color: var(--ink);
+  background: var(--accent-ink);
+  border-color: var(--accent-ink);
+}
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 2px;
 }
 .theme-toggle__icon {
   font-size: 1.1em;
@@ -434,6 +466,13 @@ body {
   .skip-link,
   .rail__list a,
   .rail__foot a {
+    transition: none;
+  }
+  /* The dot still marks the clock, it just stops pulsing. */
+  .rail__clock::before {
+    animation: none;
+  }
+  .theme-toggle {
     transition: none;
   }
   .rail__group::details-content {

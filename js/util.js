@@ -49,7 +49,23 @@ export function revealOnScroll(elements) {
     },
     { threshold: 0.08, rootMargin: '0px 0px -40px 0px' }
   );
-  list.forEach((node) => io.observe(node));
+  // Stagger: items reveal in sequence rather than snapping in as one block,
+  // which reads calmer on a grid. Capped at 6 steps so a long gallery never
+  // leaves the last images visibly waiting. Set per-property via CSSOM, never
+  // as a style="" string, because the CSP's style-src has no 'unsafe-inline'.
+  // The delay is cleared once the reveal finishes so it cannot slow later
+  // transitions on the same element.
+  list.forEach((node, i) => {
+    node.style.transitionDelay = `${Math.min(i, 6) * 60}ms`;
+    node.addEventListener(
+      'transitionend',
+      () => {
+        node.style.transitionDelay = '';
+      },
+      { once: true }
+    );
+    io.observe(node);
+  });
 
   // Safety net: content must never stay invisible. If the observer never fires
   // (a stalled rendering pipeline, an unusual browser), reveal everything.

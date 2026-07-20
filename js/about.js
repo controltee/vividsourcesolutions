@@ -1,4 +1,4 @@
-// about.js — reads about/contact copy + contact email from site_content.
+﻿// about.js — reads about/contact copy + contact email from site_content.
 // Same rows the admin's Site & Contact tab edits (see js/shell.js for the
 // rail footer's use of the same data).
 
@@ -55,5 +55,5 @@ load()
   .then(render)
   .catch((err) => {
     console.error('[about] failed to load site content:', err);
-    qs('#pane').replaceChildren(el('p', { class: 'pane__msg' }, 'This page couldn’t load — please refresh.'));
+    qs('#pane').replaceChildren(el('p', { class: 'pane__msg' }, 'This page couldn’t load. Please refresh.'));
   });

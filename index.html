@@ -1,10 +1,10 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script src="/js/theme-init.js"></script>
-    <title>Control Tee — Nairobi design studio</title>
+    <title>Control Tee · Nairobi design studio</title>
     <meta
       name="description"
       content="Control Tee is a design studio in Nairobi. Brand identity, event branding, motion and video."
@@ -16,6 +16,7 @@
       type="font/woff2"
       crossorigin
     />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/css/tokens.css" />
     <link rel="stylesheet" href="/css/reset.css" />
     <link rel="stylesheet" href="/css/shell.css" />
@@ -118,6 +119,13 @@
              fetch fails it simply stays hidden and the work still renders. -->
         <section class="home-intro" id="home-intro" hidden>
           <h1 class="home-intro__title" id="home-intro-title"></h1>
+          <!-- Decorative word cycle. aria-hidden: the h1 already names the
+               studio, and a looping animation announced to a screen reader
+               would be noise rather than information. -->
+          <p class="home-intro__cycle" aria-hidden="true">
+            <span class="home-intro__word">Creativity</span>
+            <span class="home-intro__word">Transformation</span>
+          </p>
           <p class="home-intro__body" id="home-intro-body"></p>
           <p class="home-intro__actions">
             <a class="home-intro__cta" href="#work-heading">View selected work</a>

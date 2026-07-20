@@ -1,4 +1,4 @@
-// home.js — the project grid. Fetches published projects, orders them by
+﻿// home.js — the project grid. Fetches published projects, orders them by
 // category then project sort order, and renders banner cards.
 
 import { qs, qsa, el, revealOnScroll } from './util.js';
@@ -55,11 +55,13 @@ async function renderIntro() {
   if (error || !data?.length) return;
 
   const values = Object.fromEntries(data.map((r) => [r.id, r.content]));
-  const headline = (values.home_headline || '').trim() || (values.about_headline || '').trim();
+  // Defaults to the brand mark rather than the About heading: "Creativity"
+  // works as a section title but is thin as the homepage h1. Set home_headline
+  // in /admin to override this.
+  const headline = (values.home_headline || '').trim() || 'CTRL+T';
   const body = (values.home_intro || '').trim() || firstParagraphText(values.about_body);
-  if (!headline && !body) return;
 
-  qs('#home-intro-title').textContent = headline || 'Control Tee';
+  qs('#home-intro-title').textContent = headline;
   const bodyEl = qs('#home-intro-body');
   bodyEl.textContent = body;
   bodyEl.hidden = !body;
@@ -129,7 +131,7 @@ function render(projects) {
     console.error('[home] could not load projects:', err);
     if (grid) {
       grid.setAttribute('aria-busy', 'false');
-      grid.replaceChildren(el('p', { class: 'pane__msg' }, 'Work couldn’t load — please refresh.'));
+      grid.replaceChildren(el('p', { class: 'pane__msg' }, 'Work couldn’t load. Please refresh.'));
     }
   }
 })();

@@ -1,4 +1,4 @@
-// project.js — one template, three renderers (gallery | deck | reel), switched
+﻿// project.js — one template, three renderers (gallery | deck | reel), switched
 // on project.layout. Never fork this into per-layout HTML files.
 
 import { qs, qsa, el, revealOnScroll } from './util.js';
@@ -168,7 +168,7 @@ async function loadProject() {
     return;
   }
 
-  document.title = `${project.title} — Control Tee`;
+  document.title = `${project.title} · Control Tee`;
 
   const { data: media, error: mediaError } = await supabase
     .from('project_media')

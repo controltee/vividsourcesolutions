@@ -1,4 +1,4 @@
-// admin.js — the CMS. Supabase email/password auth gate, then Categories,
+﻿// admin.js — the CMS. Supabase email/password auth gate, then Categories,
 // Projects (+ per-project gallery), and Site & Contact settings.
 //
 // No framework: each tab is a render(panel) function that fetches, builds
@@ -133,7 +133,7 @@ function fieldSizeWarning(bytes) {
     ? el(
         'p',
         { class: 'admin-error', 'aria-live': 'polite' },
-        `Heads up: this upload is ${(bytes / 1024).toFixed(0)}KB after compression — over the 500KB target.`
+        `Heads up: this upload is ${(bytes / 1024).toFixed(0)}KB after compression, over the 500KB target.`
       )
     : null;
 }
@@ -202,7 +202,7 @@ function renderApp() {
   const topbar = el(
     'header',
     { class: 'admin-topbar' },
-    el('div', { class: 'admin-topbar__brand' }, 'Control Tee — Admin'),
+    el('div', { class: 'admin-topbar__brand' }, 'Control Tee · Admin'),
     el(
       'div',
       { class: 'admin-topbar__right' },
@@ -318,7 +318,7 @@ async function moveCategory(categories, id, direction) {
 
 async function deleteCategory(id, projectCount, panel) {
   if (projectCount > 0) {
-    alert(`Can’t delete — ${projectCount} project(s) still use this category. Move or delete them first.`);
+    alert(`Can’t delete: ${projectCount} project(s) still use this category. Move or delete them first.`);
     return;
   }
   if (!confirm('Delete this category? This can’t be undone.')) return;
@@ -379,7 +379,7 @@ async function renderCategoriesTab(panel) {
 // --- Projects tab ------------------------------------------------------------
 const LAYOUT_OPTIONS = [
   { value: 'gallery', label: 'Gallery', hint: 'Mixed-aspect posters in a grid. Click an image to open it full-size.' },
-  { value: 'deck', label: 'Deck', hint: 'Full-width slides in a seamless vertical flow — no gaps, no lightbox. Upload at 1920px wide; any height works and nothing gets cropped.' },
+  { value: 'deck', label: 'Deck', hint: 'Full-width slides in a seamless vertical flow, with no gaps and no lightbox. Upload at 1920px wide; any height works and nothing gets cropped.' },
   { value: 'reel', label: 'Reel', hint: 'A single video, poster frame + click to play.' },
 ];
 
@@ -732,6 +732,17 @@ async function persistAssetOrder(assets) {
   for (const { a, i } of changed) a.sort_order = i;
 }
 
+// Reads the grid's final DOM order and persists it. Bails out if the DOM and
+// the data have drifted apart, rather than writing a half-correct order.
+async function persistOrderFromDom(grid, assets) {
+  const byId = new Map(assets.map((a) => [String(a.id), a]));
+  const ordered = qsa('.admin-asset', grid)
+    .map((n) => byId.get(n.dataset.assetId))
+    .filter(Boolean);
+  if (ordered.length !== assets.length) return;
+  await persistAssetOrder(ordered);
+}
+
 async function deleteAsset(asset) {
   if (!confirm('Remove this image from the gallery?')) return;
   const path = storagePathFromUrl(asset.media_url);
@@ -756,6 +767,45 @@ async function renderGalleryManager(container, project) {
   }
 
   const grid = el('div', { class: 'admin-asset-grid' });
+
+  // Reordering is driven by geometry on the GRID, not by a drop landing on a
+  // particular card. The grid is multi-column with gaps between cards, so
+  // per-card drop targets miss often; comparing against every card's centre
+  // never does.
+  let draggingEl = null;
+
+  function insertionTarget(x, y) {
+    const others = qsa('.admin-asset', grid).filter((n) => n !== draggingEl);
+    let best = null;
+    let bestDistance = Infinity;
+    for (const node of others) {
+      const r = node.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      const distance = Math.hypot(x - cx, y - cy);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        // Same row: the pointer's side of the centre decides. Different row:
+        // above the centre means insert before it.
+        const sameRow = Math.abs(y - cy) < r.height / 2;
+        best = { node, before: sameRow ? x < cx : y < cy };
+      }
+    }
+    return best;
+  }
+
+  grid.addEventListener('dragover', (e) => {
+    if (!draggingEl) return;
+    e.preventDefault(); // marks the grid as a valid drop target
+    e.dataTransfer.dropEffect = 'move';
+    const target = insertionTarget(e.clientX, e.clientY);
+    if (!target) return;
+    // Live reorder, so the card visibly moves under the cursor and the final
+    // position is never a surprise.
+    grid.insertBefore(draggingEl, target.before ? target.node : target.node.nextSibling);
+  });
+  grid.addEventListener('drop', (e) => e.preventDefault());
+
   assets.forEach((asset, i) => {
     const altInput = el('input', {
       class: 'admin-input',
@@ -832,49 +882,44 @@ async function renderGalleryManager(container, project) {
       el('div', { class: 'admin-asset__actions' }, upBtn, downBtn, saveBtn, deleteBtn)
     );
 
-    // Arm on handle press, disarm on release or drag end. Between those, the
-    // figure is a normal element, so the inputs behave normally.
-    const disarm = () => {
-      figure.draggable = false;
-    };
+    // Arm on handle press only, so the alt/caption inputs keep normal pointer
+    // behaviour the rest of the time.
     dragHandle.addEventListener('pointerdown', () => {
       figure.draggable = true;
     });
-    // Covers a press that never became a drag, so the figure does not stay armed.
-    dragHandle.addEventListener('pointerup', disarm);
-    dragHandle.addEventListener('pointercancel', disarm);
+    dragHandle.addEventListener('pointerup', () => {
+      figure.draggable = false;
+    });
 
     figure.addEventListener('dragstart', (e) => {
       if (!figure.draggable) {
         e.preventDefault();
         return;
       }
-      e.dataTransfer.effectAllowed = 'move';
+      draggingEl = figure;
+      // Firefox will not start a drag unless some data is set, even though the
+      // reorder below never reads it back.
       e.dataTransfer.setData('text/plain', String(asset.id));
+      e.dataTransfer.effectAllowed = 'move';
       figure.classList.add('admin-asset--dragging');
     });
-    figure.addEventListener('dragend', () => {
-      disarm();
+
+    // dragend ALWAYS fires — including when the pointer is released over a grid
+    // gap or outside the list entirely. The previous version persisted from a
+    // `drop` handler on each card, so releasing anywhere else silently did
+    // nothing, which is exactly the "drag works but the order never changes"
+    // symptom. Reading the DOM's final order here removes that whole class of
+    // failure, and surfaces any save error instead of swallowing it.
+    figure.addEventListener('dragend', async () => {
+      figure.draggable = false;
       figure.classList.remove('admin-asset--dragging');
-      qsa('.admin-asset--over', grid).forEach((n) => n.classList.remove('admin-asset--over'));
-    });
-    figure.addEventListener('dragover', (e) => {
-      e.preventDefault(); // required, or the drop event never fires
-      e.dataTransfer.dropEffect = 'move';
-      figure.classList.add('admin-asset--over');
-    });
-    figure.addEventListener('dragleave', () => figure.classList.remove('admin-asset--over'));
-    figure.addEventListener('drop', async (e) => {
-      e.preventDefault();
-      figure.classList.remove('admin-asset--over');
-      const draggedId = e.dataTransfer.getData('text/plain');
-      if (!draggedId || draggedId === asset.id) return;
-      const from = assets.findIndex((a) => String(a.id) === draggedId);
-      const to = assets.findIndex((a) => a.id === asset.id);
-      if (from < 0 || to < 0) return;
-      const [moved] = assets.splice(from, 1);
-      assets.splice(to, 0, moved);
-      await persistAssetOrder(assets);
+      draggingEl = null;
+      try {
+        await persistOrderFromDom(grid, assets);
+      } catch (err) {
+        errorEl.textContent = `Could not save the new order: ${err.message}`;
+        console.error('[admin] reorder failed:', err);
+      }
       renderGalleryManager(container, project);
     });
 
@@ -947,7 +992,7 @@ const SETTINGS_FIELDS = [
 function logoUploader(currentUrl, onChange) {
   const preview = el('div', { class: 'admin-logo-preview' });
   if (currentUrl) preview.append(el('img', { src: currentUrl, alt: 'Current logo', class: 'admin-cover-preview' }));
-  else preview.append(el('p', { class: 'admin-field__hint' }, 'No logo set — the “Control Tee” wordmark is shown.'));
+  else preview.append(el('p', { class: 'admin-field__hint' }, 'No logo set. The “Control Tee” wordmark is shown.'));
 
   const fileInput = el('input', { type: 'file', accept: 'image/*', 'aria-label': 'Upload a logo' });
   const status = el('p', { class: 'admin-field__hint', 'aria-live': 'polite' });

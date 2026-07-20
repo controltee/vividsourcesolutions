@@ -26,11 +26,45 @@
 .home-intro__title {
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: var(--step-3);
+  /* Scaled up from --step-3 rather than adding a new type token. */
+  font-size: calc(var(--step-3) * 1.15);
   letter-spacing: -0.02em;
   line-height: 1.05;
   color: var(--chalk);
 }
+
+/* Two words crossfading in place, one at a time. Fade plus a 6px translation
+   only: nothing bounces, nothing spins, per the studio's motion rules. The
+   words are stacked absolutely so the band's height never shifts as they
+   swap, which would otherwise nudge the whole grid on every cycle. */
+.home-intro__cycle {
+  position: relative;
+  height: 1.3em;
+  margin-block-start: var(--space-2xs);
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--step-1);
+  letter-spacing: -0.01em;
+  color: var(--accent-ink);
+}
+.home-intro__word {
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0;
+  opacity: 0;
+  animation: word-cycle 7s var(--ease-out) infinite;
+}
+.home-intro__word:nth-child(2) {
+  animation-delay: 3.5s;
+}
+@keyframes word-cycle {
+  0%   { opacity: 0; transform: translateY(6px); }
+  6%   { opacity: 1; transform: translateY(0); }
+  44%  { opacity: 1; transform: translateY(0); }
+  50%  { opacity: 0; transform: translateY(-6px); }
+  100% { opacity: 0; transform: translateY(-6px); }
+}
+
 .home-intro__body {
   margin-block-start: var(--space-xs);
   color: var(--chalk-60);
@@ -129,5 +163,20 @@
   }
   .project-card:hover .project-card__picture img {
     transform: none;
+  }
+  /* No looping motion: the first word simply stays put. The second is removed
+     rather than stacked on top of it, since both would otherwise sit at the
+     same absolute position and overlap. */
+  .home-intro__word {
+    animation: none;
+    position: static;
+    opacity: 1;
+    transform: none;
+  }
+  .home-intro__word:nth-child(2) {
+    display: none;
+  }
+  .home-intro__cycle {
+    height: auto;
   }
 }

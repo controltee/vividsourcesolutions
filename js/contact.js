@@ -1,4 +1,4 @@
-// contact.js — project inquiry form, submitted to Web3Forms.
+﻿// contact.js — project inquiry form, submitted to Web3Forms.
 //
 // Web3Forms takes a POST of FormData and emails it on; the access key is
 // public by design (it identifies the destination inbox, it isn't a secret
@@ -51,7 +51,7 @@ form?.addEventListener('submit', async (event) => {
 
   const formData = new FormData(form);
   formData.append('access_key', ACCESS_KEY);
-  formData.append('subject', `New project inquiry — ${formData.get('name') || 'Control Tee site'}`);
+  formData.append('subject', `New project inquiry from ${formData.get('name') || 'Control Tee site'}`);
   formData.append('from_name', 'Control Tee website');
 
   const originalLabel = submitBtn.textContent;
@@ -65,7 +65,7 @@ form?.addEventListener('submit', async (event) => {
 
     if (response.ok) {
       form.reset();
-      setStatus('Thank you — your message is on its way. We’ll be in touch shortly.', 'success');
+      setStatus('Thank you. Your message is on its way. We’ll be in touch shortly.', 'success');
     } else {
       setStatus(data.message || 'That didn’t send. Please try again in a moment.', 'error');
     }

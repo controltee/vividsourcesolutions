@@ -1,4 +1,4 @@
-// shell.js — renders the persistent rail nav from live data, keeps disclosure
+﻿// shell.js — renders the persistent rail nav from live data, keeps disclosure
 // state across navigation, and drives the mobile drawer.
 
 import { qs, qsa, el } from './util.js';
@@ -263,7 +263,7 @@ function initCookieNotice() {
     el(
       'p',
       { class: 'cookie-notice__text' },
-      'We only store what makes this site work — your theme choice and menu state. No ad tracking. ',
+      'We only store what makes this site work: your theme choice and menu state. No ad tracking. ',
       el('a', { href: '/cookies.html' }, 'Cookie policy')
     ),
     accept
@@ -375,13 +375,13 @@ async function init() {
     }
   } catch (err) {
     console.error('[shell] could not load the project nav:', err);
-    renderNavMessage('Work couldn’t load — please refresh.');
+    renderNavMessage('Work couldn’t load. Please refresh.');
   }
 
   try {
     applySiteSettings(await loadSiteSettings());
   } catch (err) {
-    console.error('[shell] could not load site settings — keeping static footer links:', err);
+    console.error('[shell] could not load site settings, keeping static footer links:', err);
   }
 }
 
