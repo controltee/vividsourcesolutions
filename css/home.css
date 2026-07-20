@@ -131,8 +131,12 @@
    Speed is set from --marquee-duration, which home.js computes from the number
    of logos so the pixels-per-second rate stays constant whether there are four
    logos or forty. A fixed duration would make a long list race. */
+/* Sits below the work grid, so the separation it needs is above it, not below.
+   A top border makes it read as a closing band rather than a stray strip. */
 .marquee {
-  margin-block-end: var(--space-l);
+  margin-block-start: var(--space-xl);
+  padding-block-start: var(--space-l);
+  border-block-start: 1px solid var(--ink-60);
 }
 .marquee__heading {
   font-size: var(--step--1);
