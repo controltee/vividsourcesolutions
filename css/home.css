@@ -19,15 +19,18 @@
    A compact band above the grid: enough to say who the studio is without
    pushing the work below the fold. Measure is capped so the paragraph stays
    readable on wide screens. No new tokens. */
+/* The measure cap lives on the paragraph, not the whole band: 62ch keeps prose
+   readable but would needlessly box in display type this large. */
 .home-intro {
-  max-width: 62ch;
   margin-block-end: var(--space-l);
 }
 .home-intro__title {
   font-family: var(--font-display);
   font-weight: 800;
-  /* Scaled up from --step-3 rather than adding a new type token. */
-  font-size: calc(var(--step-3) * 1.45);
+  /* Scaled up from --step-3 rather than adding a new type token. --step-3 is
+     already fluid, so multiplying it keeps the headline proportional at every
+     width instead of overflowing small screens at a fixed size. */
+  font-size: calc(var(--step-3) * 2.2);
   letter-spacing: -0.02em;
   line-height: 1.05;
   color: var(--chalk);
@@ -85,6 +88,7 @@
 }
 
 .home-intro__body {
+  max-width: 62ch;
   margin-block-start: var(--space-xs);
   color: var(--chalk-60);
   font-size: var(--step-0);
@@ -170,9 +174,9 @@
   align-items: center;
 }
 .marquee__item img {
-  height: 2.75rem;
+  height: 4.5rem;
   width: auto;
-  max-width: 11rem;
+  max-width: 18rem;
   object-fit: contain;
   /* Logos arrive in mixed colours and weights; muting them to a common
      treatment keeps the strip calm, and full opacity on hover rewards a look. */
