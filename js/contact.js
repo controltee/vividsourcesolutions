@@ -22,6 +22,11 @@ const submitBtn = form?.querySelector('button[type="submit"]');
 
 function setStatus(message, state) {
   statusEl.textContent = message;
+  // Clearing the state and forcing a reflow restarts the entrance animation.
+  // Without this, two errors in a row would leave the message sitting there
+  // unchanged, and the second attempt would look like nothing happened.
+  statusEl.dataset.state = '';
+  void statusEl.offsetWidth;
   statusEl.dataset.state = state || '';
 }
 
@@ -69,6 +74,7 @@ form?.addEventListener('submit', async (event) => {
   const originalLabel = submitBtn.textContent;
   submitBtn.textContent = 'Sending…';
   submitBtn.disabled = true;
+  submitBtn.dataset.state = 'sending'; // drives the sweep in contact.css
   setStatus('', '');
 
   try {
@@ -87,6 +93,7 @@ form?.addEventListener('submit', async (event) => {
   } finally {
     submitBtn.textContent = originalLabel;
     submitBtn.disabled = false;
+    delete submitBtn.dataset.state;
   }
 });
 

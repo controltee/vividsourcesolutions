@@ -84,14 +84,17 @@
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+/* Dash lengths are the paths' MEASURED lengths (getTotalLength: 144 and 34).
+   Rounding up instead would leave dead time at the start of each draw, where
+   the offset is still longer than the path and nothing is visible yet. */
 .inquiry__check-circle {
-  stroke-dasharray: 145;
-  stroke-dashoffset: 145;
+  stroke-dasharray: 144;
+  stroke-dashoffset: 144;
   animation: check-draw-circle 520ms var(--ease-out) forwards;
 }
 .inquiry__check-mark {
-  stroke-dasharray: 40;
-  stroke-dashoffset: 40;
+  stroke-dasharray: 34;
+  stroke-dashoffset: 34;
   /* Starts as the circle is finishing, so the two read as one gesture. */
   animation: check-draw-mark 320ms var(--ease-out) 380ms forwards;
 }
@@ -129,16 +132,59 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+/* While the request is in flight, a band of light sweeps across the button.
+   A disabled, greyed button says "you cannot press this"; it does not say
+   "something is happening". This does, without a spinner. */
+.inquiry__submit[data-state='sending'] {
+  position: relative;
+  overflow: hidden;
+}
+.inquiry__submit[data-state='sending']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  transform: translateX(-100%);
+  animation: submit-sweep 1.1s var(--ease-out) infinite;
+}
+@keyframes submit-sweep {
+  to { transform: translateX(100%); }
+}
 
 .inquiry__status {
   font-size: var(--step--1);
   color: var(--chalk-60);
 }
-.inquiry__status[data-state="success"] {
+/* Messages rise into place rather than blinking on, so a changed status is
+   noticed even when the wording is similar to the last one. */
+.inquiry__status[data-state='success'],
+.inquiry__status[data-state='error'] {
+  animation: status-in var(--dur-base) var(--ease-out);
+}
+.inquiry__status[data-state='success'] {
   color: var(--accent-ink);
 }
-.inquiry__status[data-state="error"] {
+.inquiry__status[data-state='error'] {
   color: var(--danger);
+  /* One lateral nudge marks a rejection without nagging. */
+  animation: status-in var(--dur-base) var(--ease-out), status-nudge 260ms var(--ease-out);
+}
+@keyframes status-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes status-nudge {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inquiry__submit[data-state='sending']::after,
+  .inquiry__status[data-state='success'],
+  .inquiry__status[data-state='error'] {
+    animation: none;
+  }
 }
 
 /* ---- Booking (Google Appointment Schedule embed) ------------------------ */

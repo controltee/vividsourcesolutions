@@ -30,9 +30,19 @@ function field(labelText, control, hint) {
 function setSaveState(state, message) {
   const indicator = qs('#save-state');
   if (!indicator) return;
+  const label = message ?? { idle: '', saving: 'Saving…', saved: 'Saved', error: 'Error' }[state] ?? '';
+
+  // Rebuilt rather than re-labelled: replacing the node restarts the CSS
+  // animations, so a second save animates again instead of showing a stale,
+  // already-finished tick. The icon is decorative; the text beside it is what
+  // aria-live announces.
   indicator.dataset.state = state;
-  indicator.textContent = message ?? { idle: '', saving: 'Saving…', saved: 'Saved', error: 'Error' }[state] ?? '';
-  if (state === 'saved') setTimeout(() => { if (indicator.dataset.state === 'saved') setSaveState('idle'); }, 2000);
+  indicator.replaceChildren(
+    state === 'idle' ? null : el('span', { class: 'admin-save-state__icon', 'aria-hidden': 'true' }),
+    el('span', { class: 'admin-save-state__label' }, label)
+  );
+
+  if (state === 'saved') setTimeout(() => { if (indicator.dataset.state === 'saved') setSaveState('idle'); }, 2400);
 }
 
 // The public rail caches its category/project nav in sessionStorage. That store

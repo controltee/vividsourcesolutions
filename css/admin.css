@@ -162,16 +162,107 @@ a {
   align-items: center;
   gap: var(--space-m);
 }
+/* ---- Save state -------------------------------------------------------------
+   Three distinct states, each with its own motion so the outcome is readable at
+   a glance rather than by stopping to read the word:
+     saving -> a dot breathing, i.e. something is in flight
+     saved  -> a tick drawing itself, the same gesture as the contact form
+     error  -> one short lateral nudge, the universal "no"
+   Nothing spins. */
 .admin-save-state {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
   font-size: var(--step--1);
   color: var(--chalk-40);
   min-width: 6rem;
 }
+.admin-save-state__label {
+  animation: save-label-in var(--dur-base) var(--ease-out);
+}
+@keyframes save-label-in {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.admin-save-state__icon {
+  position: relative;
+  width: 0.85rem;
+  height: 0.85rem;
+  flex: none;
+}
+
+/* saving: a breathing dot */
 .admin-save-state[data-state="saving"] {
   color: var(--paper);
 }
+.admin-save-state[data-state="saving"] .admin-save-state__icon::before {
+  content: '';
+  position: absolute;
+  inset: 0.15rem;
+  border-radius: 50%;
+  background: var(--paper);
+  animation: save-breathe 1s var(--ease-out) infinite;
+}
+@keyframes save-breathe {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.72); }
+}
+
+/* saved: the tick draws downward then across, so it reads as written */
+.admin-save-state[data-state="saved"] {
+  color: var(--paper);
+}
+.admin-save-state[data-state="saved"] .admin-save-state__icon::after {
+  content: '';
+  position: absolute;
+  left: 20%;
+  top: 46%;
+  width: 0.3rem;
+  height: 0.58rem;
+  border: solid var(--paper);
+  border-width: 0 2px 2px 0;
+  transform-origin: left top;
+  transform: translate(0, -50%) rotate(45deg);
+  animation: save-tick 300ms var(--ease-out) forwards;
+}
+@keyframes save-tick {
+  from { height: 0; opacity: 0; }
+  to { height: 0.58rem; opacity: 1; }
+}
+
+/* error: one nudge, not a repeating shake, which would read as alarm */
 .admin-save-state[data-state="error"] {
   color: var(--danger);
+  animation: save-nudge 260ms var(--ease-out);
+}
+.admin-save-state[data-state="error"] .admin-save-state__icon::before {
+  content: '!';
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  color: var(--danger);
+}
+@keyframes save-nudge {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-save-state,
+  .admin-save-state__label,
+  .admin-save-state[data-state="saving"] .admin-save-state__icon::before,
+  .admin-save-state[data-state="saved"] .admin-save-state__icon::after {
+    animation: none;
+  }
+  /* The tick must still be fully drawn when its draw-in is disabled. */
+  .admin-save-state[data-state="saved"] .admin-save-state__icon::after {
+    height: 0.58rem;
+    opacity: 1;
+  }
 }
 
 .admin-tabs {

@@ -178,13 +178,25 @@
   width: auto;
   max-width: 18rem;
   object-fit: contain;
-  /* Logos arrive in mixed colours and weights; muting them to a common
-     treatment keeps the strip calm, and full opacity on hover rewards a look. */
-  opacity: 0.55;
-  transition: opacity var(--dur-base) var(--ease-out);
+  /* Logos arrive in mixed colours. brightness(0) crushes every one to solid
+     black, then invert(1) lifts it to pure white, so the whole strip is one
+     flat colour no matter what was uploaded. Alpha is preserved, so
+     transparent backgrounds stay transparent. Full opacity: these read as
+     white, not grey. */
+  filter: brightness(0) invert(1);
+  opacity: 1;
+  transition: transform var(--dur-base) var(--ease-out);
 }
-.marquee__viewport:hover .marquee__item img {
-  opacity: 0.85;
+/* On the pale ground white would disappear, so the same trick stops at black.
+   Both the OS preference and the explicit toggle are covered, matching how
+   every other themed rule in this project is written. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) .marquee__item img {
+    filter: brightness(0);
+  }
+}
+:root[data-theme='light'] .marquee__item img {
+  filter: brightness(0);
 }
 @keyframes marquee-drift {
   from { transform: translateX(0); }
@@ -284,6 +296,5 @@
   }
   .marquee__item img {
     transition: none;
-    opacity: 0.85;
   }
 }
