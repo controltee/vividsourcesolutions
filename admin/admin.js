@@ -817,9 +817,13 @@ async function renderGalleryManager(container, project) {
       '⠿'
     );
 
+    // NOT draggable by default. A permanently-draggable figure makes the browser
+    // claim the pointer gesture inside the alt/caption inputs, so text cannot be
+    // selected and a drag started from the handle button behaves inconsistently.
+    // Draggability is switched on only while the handle is held (see below).
     const figure = el(
       'figure',
-      { class: 'admin-asset', draggable: 'true', 'data-asset-id': asset.id },
+      { class: 'admin-asset', draggable: 'false', 'data-asset-id': asset.id },
       dragHandle,
       el('img', { src: asset.media_url, alt: '', width: asset.width || false, height: asset.height || false }),
       altInput,
@@ -828,24 +832,29 @@ async function renderGalleryManager(container, project) {
       el('div', { class: 'admin-asset__actions' }, upBtn, downBtn, saveBtn, deleteBtn)
     );
 
-    // Text inputs live inside a draggable element, and in some browsers that
-    // steals the click-and-select gesture. Dragging is therefore only armed
-    // once the pointer goes down on the handle itself.
-    let armed = false;
+    // Arm on handle press, disarm on release or drag end. Between those, the
+    // figure is a normal element, so the inputs behave normally.
+    const disarm = () => {
+      figure.draggable = false;
+    };
     dragHandle.addEventListener('pointerdown', () => {
-      armed = true;
+      figure.draggable = true;
     });
+    // Covers a press that never became a drag, so the figure does not stay armed.
+    dragHandle.addEventListener('pointerup', disarm);
+    dragHandle.addEventListener('pointercancel', disarm);
+
     figure.addEventListener('dragstart', (e) => {
-      if (!armed) {
+      if (!figure.draggable) {
         e.preventDefault();
         return;
       }
       e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', asset.id);
+      e.dataTransfer.setData('text/plain', String(asset.id));
       figure.classList.add('admin-asset--dragging');
     });
     figure.addEventListener('dragend', () => {
-      armed = false;
+      disarm();
       figure.classList.remove('admin-asset--dragging');
       qsa('.admin-asset--over', grid).forEach((n) => n.classList.remove('admin-asset--over'));
     });
@@ -921,6 +930,13 @@ const SETTINGS_FIELDS = [
   { id: 'social_instagram_url', label: 'Instagram URL', type: 'input' },
   { id: 'social_behance_url', label: 'Behance URL', type: 'input' },
   { id: 'social_linkedin_url', label: 'LinkedIn URL', type: 'input' },
+  // Home band. Kept separate from the About copy on purpose: this headline is
+  // the homepage h1, so it carries first impression and SEO weight, where the
+  // About heading is only a section title. Both rows are created on first save
+  // (the settings form upserts), so no migration is needed. Left empty, the
+  // homepage falls back to about_headline + the first paragraph of about_body.
+  { id: 'home_headline', label: 'Home: headline (the homepage h1)', hint: 'Say what the studio is. Falls back to the About headline if blank.', type: 'input' },
+  { id: 'home_intro', label: 'Home: synopsis', hint: 'Two or three lines above the work. Plain text. Falls back to the first paragraph of the About body.', type: 'textarea' },
   { id: 'about_headline', label: 'About: headline', type: 'input' },
   { id: 'about_body', label: 'About: body (HTML)', type: 'textarea' },
   { id: 'contact_body', label: 'Contact: intro (HTML)', type: 'textarea' },

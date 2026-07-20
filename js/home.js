@@ -31,8 +31,9 @@ async function loadProjects() {
 }
 
 // --- Studio synopsis --------------------------------------------------------
-// Reuses the About page's rows rather than introducing a home-only key, so
-// there is one place to edit the studio's description and no migration to run.
+// Prefers home-specific copy (home_headline / home_intro) and falls back to the
+// About rows, so the band reads correctly before those keys are ever filled in.
+// The keys need no migration: the admin's settings form upserts them on save.
 // about_body stores markup; we take the first paragraph's TEXT only — this band
 // never renders HTML, unlike about.js which deliberately does.
 function firstParagraphText(html) {
@@ -48,16 +49,17 @@ async function renderIntro() {
   const { data, error } = await supabase
     .from('site_content')
     .select('id, content')
-    .in('id', ['about_headline', 'about_body']);
+    .in('id', ['home_headline', 'home_intro', 'about_headline', 'about_body']);
   // A missing synopsis is not worth blocking the work on: leave the band hidden
   // and let the grid carry the page, exactly as before this section existed.
   if (error || !data?.length) return;
 
   const values = Object.fromEntries(data.map((r) => [r.id, r.content]));
-  const body = firstParagraphText(values.about_body);
-  if (!values.about_headline && !body) return;
+  const headline = (values.home_headline || '').trim() || (values.about_headline || '').trim();
+  const body = (values.home_intro || '').trim() || firstParagraphText(values.about_body);
+  if (!headline && !body) return;
 
-  qs('#home-intro-title').textContent = values.about_headline || 'Control Tee';
+  qs('#home-intro-title').textContent = headline || 'Control Tee';
   const bodyEl = qs('#home-intro-body');
   bodyEl.textContent = body;
   bodyEl.hidden = !body;
