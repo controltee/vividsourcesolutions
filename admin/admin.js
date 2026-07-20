@@ -194,6 +194,7 @@ function renderLogin(errorMessage) {
 const TABS = [
   { id: 'projects', label: 'Projects' },
   { id: 'categories', label: 'Categories' },
+  { id: 'logos', label: 'Client logos' },
   { id: 'settings', label: 'Site & Contact' },
 ];
 let activeTabId = 'projects';
@@ -242,6 +243,7 @@ function renderApp() {
   );
 
   if (activeTabId === 'categories') renderCategoriesTab(panel);
+  else if (activeTabId === 'logos') renderLogosTab(panel);
   else if (activeTabId === 'settings') renderSettingsTab(panel);
   else renderProjectsTab(panel);
 }
@@ -965,6 +967,149 @@ async function renderGalleryManager(container, project) {
   container.replaceChildren(
     grid,
     el('div', { class: 'admin-dropzone' }, el('label', {}, 'Add images: ', fileInput), uploadStatus)
+  );
+}
+
+// --- Client logos tab (partner_logos -> the homepage marquee) -------------------
+// Quality in the marquee is decided at upload time, so the rules below are
+// ENFORCED, not merely suggested: a 60px-tall PNG cannot be rescued later, and
+// one soft logo drags down a strip where everything else is crisp.
+const LOGO_MIN_HEIGHT = 200; // renders at ~44px, so this still has retina headroom
+const LOGO_MAX_BYTES = 500 * 1024;
+
+async function uploadLogoFile(file) {
+  if (file.size > LOGO_MAX_BYTES) {
+    throw new Error(`That file is ${(file.size / 1024).toFixed(0)}KB. Keep logos under 500KB.`);
+  }
+  // SVG is stored verbatim. Pushing a vector through the canvas would rasterise
+  // it and throw away the one property that keeps it sharp at any size.
+  if (file.type === 'image/svg+xml') {
+    const path = `partners/logo-${Date.now()}.svg`;
+    const { error } = await supabase.storage
+      .from(BUCKET)
+      .upload(path, file, { contentType: 'image/svg+xml', upsert: false });
+    if (error) throw error;
+    return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+  }
+  const bitmap = await createImageBitmap(file);
+  const height = bitmap.height;
+  bitmap.close();
+  if (height < LOGO_MIN_HEIGHT) {
+    throw new Error(
+      `This logo is only ${height}px tall. Use at least ${LOGO_MIN_HEIGHT}px (400px, or an SVG, is better) or it will look soft as it scrolls.`
+    );
+  }
+  const uploaded = await uploadImage(file, 'partners', 'logo');
+  return uploaded.url;
+}
+
+async function renderLogosTab(panel) {
+  panel.replaceChildren(el('p', {}, 'Loading…'));
+  const { data: logos, error } = await supabase
+    .from('partner_logos')
+    .select('*')
+    .order('created_at');
+  if (error) {
+    panel.replaceChildren(
+      el('p', { class: 'admin-error', 'aria-live': 'polite' }, `Failed to load logos: ${error.message}`)
+    );
+    return;
+  }
+
+  const grid = el('div', { class: 'admin-asset-grid' });
+  (logos || []).forEach((logo) => {
+    const deleteBtn = el('button', { class: 'admin-btn admin-btn--icon admin-btn--danger', type: 'button' }, 'Delete');
+    deleteBtn.addEventListener('click', async () => {
+      if (!confirm(`Remove ${logo.name || 'this logo'} from the marquee?`)) return;
+      const path = storagePathFromUrl(logo.logo_url || '');
+      await withSaveState(
+        (async () => {
+          if (path) await supabase.storage.from(BUCKET).remove([path]);
+          await supabase.from('partner_logos').delete().eq('id', logo.id).throwOnError();
+        })()
+      );
+      renderLogosTab(panel);
+    });
+    grid.append(
+      el(
+        'figure',
+        { class: 'admin-asset admin-asset--logo' },
+        el('img', { src: logo.logo_url, alt: logo.name || '', width: 176, height: 44 }),
+        el('p', { class: 'admin-field__hint' }, logo.name || '(unnamed)'),
+        el('div', { class: 'admin-asset__actions' }, deleteBtn)
+      )
+    );
+  });
+
+  const nameInput = el('input', { class: 'admin-input', placeholder: 'Client name', 'aria-label': 'Client name' });
+  const fileInput = el('input', { type: 'file', accept: 'image/svg+xml,image/png,image/webp' });
+  const statusEl = el('p', { class: 'admin-field__hint', 'aria-live': 'polite' });
+  const errorEl = el('p', { class: 'admin-error', 'aria-live': 'polite' });
+  const addBtn = el('button', { class: 'admin-btn admin-btn--primary', type: 'button' }, 'Add logo');
+
+  addBtn.addEventListener('click', async () => {
+    errorEl.textContent = '';
+    const file = fileInput.files?.[0];
+    const name = nameInput.value.trim();
+    if (!file) {
+      errorEl.textContent = 'Choose a logo file first.';
+      return;
+    }
+    if (!name) {
+      errorEl.textContent = 'Add the client name. It becomes the image alt text.';
+      return;
+    }
+    addBtn.disabled = true;
+    statusEl.textContent = 'Uploading…';
+    try {
+      const url = await uploadLogoFile(file);
+      await withSaveState(
+        supabase.from('partner_logos').insert({ name, logo_url: url }).throwOnError()
+      );
+      renderLogosTab(panel);
+    } catch (err) {
+      errorEl.textContent = err.message;
+      statusEl.textContent = '';
+      addBtn.disabled = false;
+    }
+  });
+
+  panel.replaceChildren(
+    el(
+      'section',
+      {},
+      el('h2', { class: 'admin-section__title' }, 'Client logos'),
+      el(
+        'p',
+        { class: 'admin-field__hint' },
+        'These scroll in the homepage marquee, in the order they were added.'
+      ),
+      grid
+    ),
+    el(
+      'section',
+      {},
+      el('h2', { class: 'admin-section__title' }, 'Add a logo'),
+      el(
+        'div',
+        { class: 'admin-logo-spec' },
+        el('p', { class: 'admin-field__hint' }, 'For a crisp marquee, upload in this order of preference:'),
+        el(
+          'ul',
+          { class: 'admin-field__hint' },
+          el('li', {}, 'SVG is best. It stays sharp at any size and is stored as-is.'),
+          el('li', {}, 'Otherwise PNG or WebP with a TRANSPARENT background, at least 200px tall (400px is better).'),
+          el('li', {}, 'One colour, ideally white. Logos are shown at a single muted opacity, so full-colour marks look inconsistent next to each other.'),
+          el('li', {}, 'Trim the empty space around the mark, or it will float with odd gaps.'),
+          el('li', {}, 'Under 500KB.')
+        )
+      ),
+      field('Client name', nameInput),
+      field('Logo file', fileInput),
+      statusEl,
+      errorEl,
+      addBtn
+    )
   );
 }
 

@@ -70,6 +70,47 @@
   flex-wrap: wrap;
 }
 
+/* ---- Success mark ----------------------------------------------------------
+   The circle sweeps in, then the tick draws. Both are stroke-dashoffset
+   animations: the dash array is set to the path's own length, so offsetting it
+   to zero reveals the stroke as if it were being drawn. Nothing bounces or
+   spins; the tick simply appears in the direction a hand would write it. */
+.inquiry__check {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: none;
+  stroke: var(--accent-ink);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.inquiry__check-circle {
+  stroke-dasharray: 145;
+  stroke-dashoffset: 145;
+  animation: check-draw-circle 520ms var(--ease-out) forwards;
+}
+.inquiry__check-mark {
+  stroke-dasharray: 40;
+  stroke-dashoffset: 40;
+  /* Starts as the circle is finishing, so the two read as one gesture. */
+  animation: check-draw-mark 320ms var(--ease-out) 380ms forwards;
+}
+@keyframes check-draw-circle {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes check-draw-mark {
+  to { stroke-dashoffset: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* No drawing: the finished mark is simply present. */
+  .inquiry__check-circle,
+  .inquiry__check-mark {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
+
 .inquiry__submit {
   background: var(--paper);
   color: var(--ink);

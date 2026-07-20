@@ -306,6 +306,24 @@ a {
   background: var(--ink-80);
 }
 
+/* Logos are marks, not photographs: `contain` so nothing is cropped, on the
+   brand black because most of them are white on transparency and would vanish
+   against the panel. */
+.admin-asset--logo img {
+  height: 64px;
+  object-fit: contain;
+  background: var(--ink);
+  padding: var(--space-2xs);
+}
+.admin-logo-spec ul {
+  margin-block: var(--space-2xs);
+  padding-inline-start: var(--space-s);
+  list-style: disc;
+}
+.admin-logo-spec li {
+  margin-block-end: var(--space-3xs);
+}
+
 /* ---- Gallery drag-to-reorder ------------------------------------------------
    Drag is the fast path; the up/down buttons remain as the keyboard-accessible
    equivalent. Only existing tokens are used here — no new ones added. */

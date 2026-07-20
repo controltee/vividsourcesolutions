@@ -43,6 +43,84 @@ function firstParagraphText(html) {
   return (p ? p.textContent : doc.body.textContent).trim();
 }
 
+const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Types the headline in, holds it, deletes it, then repeats. Timings are
+// deliberately uneven: typing is slower than deleting, and the full word is
+// held far longer than the empty pause, which is what makes it read as typing
+// rather than as a flicker. setTimeout per character (not setInterval) so each
+// phase can have its own pace.
+function typeLoop(node, text) {
+  const TYPE_MS = 110;
+  const DELETE_MS = 55;
+  const HOLD_FULL = 2000;
+  const HOLD_EMPTY = 500;
+  let count = 0;
+  let deleting = false;
+
+  const step = () => {
+    node.textContent = text.slice(0, count);
+    let delay;
+    if (!deleting) {
+      if (count < text.length) {
+        count += 1;
+        delay = TYPE_MS;
+      } else {
+        deleting = true;
+        delay = HOLD_FULL;
+      }
+    } else if (count > 0) {
+      count -= 1;
+      delay = DELETE_MS;
+    } else {
+      deleting = false;
+      delay = HOLD_EMPTY;
+    }
+    setTimeout(step, delay);
+  };
+  step();
+}
+
+// --- Client logo marquee ----------------------------------------------------
+async function renderMarquee() {
+  const section = qs('#logo-marquee');
+  const track = qs('#marquee-track');
+  if (!section || !track) return;
+
+  const { data, error } = await supabase
+    .from('partner_logos')
+    .select('id, name, logo_url')
+    .order('created_at');
+  if (error) return;
+
+  const logos = (data || []).filter((l) => l.logo_url);
+  if (!logos.length) return; // no logos: the section stays hidden entirely
+
+  // The list is rendered twice. The CSS translates the track by exactly -50%,
+  // so when the first copy scrolls out the second is already in its place and
+  // the loop is seamless. The duplicate is aria-hidden with empty alt so the
+  // same client is not announced twice.
+  const item = (logo, isDuplicate) =>
+    el(
+      'li',
+      { class: 'marquee__item', 'aria-hidden': isDuplicate ? 'true' : false },
+      el('img', {
+        src: logo.logo_url,
+        alt: isDuplicate ? '' : logo.name || '',
+        loading: 'lazy',
+        width: 176,
+        height: 44,
+      })
+    );
+
+  track.replaceChildren(...logos.map((l) => item(l, false)), ...logos.map((l) => item(l, true)));
+
+  // Constant pixels-per-second regardless of how many logos there are, so
+  // adding clients slows the loop down rather than making it race.
+  track.style.setProperty('--marquee-duration', `${Math.max(24, logos.length * 6)}s`);
+  section.hidden = false;
+}
+
 async function renderIntro() {
   const section = qs('#home-intro');
   if (!section) return;
@@ -61,7 +139,16 @@ async function renderIntro() {
   const headline = (values.home_headline || '').trim() || 'CTRL+T';
   const body = (values.home_intro || '').trim() || firstParagraphText(values.about_body);
 
-  qs('#home-intro-title').textContent = headline;
+  // The h1's accessible name is the complete headline, always, so a screen
+  // reader never hears a half-typed word.
+  const titleEl = qs('#home-intro-title');
+  const typeEl = qs('#home-intro-type');
+  titleEl.setAttribute('aria-label', headline);
+  if (prefersReducedMotion()) {
+    typeEl.textContent = headline;
+  } else {
+    typeLoop(typeEl, headline);
+  }
   const bodyEl = qs('#home-intro-body');
   bodyEl.textContent = body;
   bodyEl.hidden = !body;
@@ -125,6 +212,7 @@ function render(projects) {
   // Fire the synopsis alongside the projects rather than before them: the work
   // is the point of the page and must not wait on the copy.
   renderIntro().catch((err) => console.error('[home] synopsis failed:', err));
+  renderMarquee().catch((err) => console.error('[home] logo marquee failed:', err));
   try {
     render(await loadProjects());
   } catch (err) {

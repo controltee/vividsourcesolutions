@@ -119,7 +119,14 @@
              redeploy. Starts hidden so an empty band never flashes; if the
              fetch fails it simply stays hidden and the work still renders. -->
         <section class="home-intro" id="home-intro" hidden>
-          <h1 class="home-intro__title" id="home-intro-title"></h1>
+          <!-- The h1's accessible name is set via aria-label by home.js, so the
+               full headline is always announced even though the visible text is
+               typed in and out. The animated spans are hidden from assistive
+               tech: a caret and a partially-typed word are noise to a reader. -->
+          <h1 class="home-intro__title" id="home-intro-title">
+            <span class="home-intro__type" id="home-intro-type" aria-hidden="true"></span
+            ><span class="home-intro__caret" aria-hidden="true"></span>
+          </h1>
           <!-- Decorative word cycle. aria-hidden: the h1 already names the
                studio, and a looping animation announced to a screen reader
                would be noise rather than information. -->
@@ -132,6 +139,16 @@
             <a class="home-intro__cta" href="#work-heading">View selected work</a>
             <a class="home-intro__more" href="/about.html">More about the studio</a>
           </p>
+        </section>
+
+        <!-- Client logo marquee. Populated by home.js from partner_logos and
+             hidden entirely when there are none, so an empty strip never ships.
+             The track is duplicated in JS to make the scroll seamless. -->
+        <section class="marquee" id="logo-marquee" hidden aria-labelledby="marquee-heading">
+          <h2 class="marquee__heading" id="marquee-heading">Trusted by</h2>
+          <div class="marquee__viewport">
+            <ul class="marquee__track" id="marquee-track"></ul>
+          </div>
         </section>
 
         <h2 class="pane__title" id="work-heading">Selected work</h2>

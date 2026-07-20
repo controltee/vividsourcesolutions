@@ -25,6 +25,18 @@ function setStatus(message, state) {
   statusEl.dataset.state = state || '';
 }
 
+/** Plays the drawn checkmark. Decorative only: #inquiry-status already
+ * announces the result, so this never carries information on its own. The
+ * animation is restarted each time by removing the node from the flow and
+ * forcing a reflow, otherwise a second submission would show a static tick. */
+function showCheck() {
+  const check = qs('#inquiry-check');
+  if (!check) return;
+  check.hidden = true;
+  void check.offsetWidth; // reflow, so the CSS animations run again
+  check.hidden = false;
+}
+
 /** Returns the first invalid field, or null. Keeps native constraints but
  * reports them inline rather than with the browser's default bubbles. */
 function firstInvalid() {
@@ -66,6 +78,7 @@ form?.addEventListener('submit', async (event) => {
     if (response.ok) {
       form.reset();
       setStatus('Thank you. Your message is on its way. We’ll be in touch shortly.', 'success');
+      showCheck();
     } else {
       setStatus(data.message || 'That didn’t send. Please try again in a moment.', 'error');
     }

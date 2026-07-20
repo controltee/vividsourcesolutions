@@ -167,6 +167,20 @@
 
           <div class="inquiry__actions">
             <button class="inquiry__submit" type="submit">Send inquiry</button>
+            <!-- Success mark. Purely decorative: the outcome is already
+                 announced through #inquiry-status, so this is aria-hidden and
+                 must never be the only signal that the message sent. The two
+                 paths are drawn by animating stroke-dashoffset. -->
+            <svg
+              class="inquiry__check"
+              id="inquiry-check"
+              viewBox="0 0 52 52"
+              aria-hidden="true"
+              hidden
+            >
+              <circle class="inquiry__check-circle" cx="26" cy="26" r="23" fill="none" />
+              <path class="inquiry__check-mark" fill="none" d="M14 27 L22 35 L38 19" />
+            </svg>
             <p class="inquiry__status" id="inquiry-status" role="status" aria-live="polite"></p>
           </div>
         </form>

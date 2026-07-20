@@ -27,10 +27,29 @@
   font-family: var(--font-display);
   font-weight: 800;
   /* Scaled up from --step-3 rather than adding a new type token. */
-  font-size: calc(var(--step-3) * 1.15);
+  font-size: calc(var(--step-3) * 1.45);
   letter-spacing: -0.02em;
   line-height: 1.05;
   color: var(--chalk);
+  /* Reserve the line so the band does not grow and shrink as the headline
+     types in and out, which would shove the rest of the page around. */
+  min-height: 1.05em;
+}
+
+/* Typed caret. A steady block that blinks only while idle would read as two
+   competing rhythms, so it simply blinks throughout at a slow, even rate. */
+.home-intro__caret {
+  display: inline-block;
+  width: 0.06em;
+  height: 0.78em;
+  margin-inline-start: 0.06em;
+  vertical-align: baseline;
+  background: var(--accent-ink);
+  animation: caret-blink 1.1s steps(1, end) infinite;
+}
+@keyframes caret-blink {
+  0%, 50% { opacity: 1; }
+  50.01%, 100% { opacity: 0; }
 }
 
 /* Two words crossfading in place, one at a time. Fade plus a 6px translation
@@ -102,6 +121,66 @@
 .home-intro + .pane__title {
   font-size: var(--step-1);
   color: var(--chalk-60);
+}
+
+/* ---- Client logo marquee ---------------------------------------------------
+   One continuous drift. The track holds the logo list TWICE (duplicated in
+   home.js) and translates by exactly -50%, so the second copy lands where the
+   first began and the loop has no visible seam or jump.
+
+   Speed is set from --marquee-duration, which home.js computes from the number
+   of logos so the pixels-per-second rate stays constant whether there are four
+   logos or forty. A fixed duration would make a long list race. */
+.marquee {
+  margin-block-end: var(--space-l);
+}
+.marquee__heading {
+  font-size: var(--step--1);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--chalk-40);
+  margin-block-end: var(--space-s);
+}
+.marquee__viewport {
+  overflow: hidden;
+  /* Fades the logos out at both edges instead of clipping them mid-mark. */
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+.marquee__track {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xl);
+  width: max-content;
+  animation: marquee-drift var(--marquee-duration, 40s) linear infinite;
+}
+/* Pausing on hover lets someone actually look at a logo they recognised. */
+.marquee__viewport:hover .marquee__track,
+.marquee__track:focus-within {
+  animation-play-state: paused;
+}
+.marquee__item {
+  flex: none;
+  display: flex;
+  align-items: center;
+}
+.marquee__item img {
+  height: 2.75rem;
+  width: auto;
+  max-width: 11rem;
+  object-fit: contain;
+  /* Logos arrive in mixed colours and weights; muting them to a common
+     treatment keeps the strip calm, and full opacity on hover rewards a look. */
+  opacity: 0.55;
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+.marquee__viewport:hover .marquee__item img {
+  opacity: 0.85;
+}
+@keyframes marquee-drift {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
 }
 
 /* ---- Grid --------------------------------------------------------------- */
@@ -178,5 +257,25 @@
   }
   .home-intro__cycle {
     height: auto;
+  }
+  /* No typing and no blink: home.js writes the full headline straight out. */
+  .home-intro__caret {
+    display: none;
+  }
+  /* The marquee stops drifting and becomes a plain wrapped row, so every logo
+     is still reachable rather than parked off-screen mid-scroll. */
+  .marquee__track {
+    animation: none;
+    flex-wrap: wrap;
+    width: auto;
+    gap: var(--space-m) var(--space-l);
+  }
+  .marquee__viewport {
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
+  .marquee__item img {
+    transition: none;
+    opacity: 0.85;
   }
 }
