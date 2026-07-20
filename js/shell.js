@@ -9,7 +9,29 @@ const NAV_KEY = 'ct:nav:v2'; // v2: now includes empty categories — bump inval
 const NAV_TTL = 5 * 60 * 1000; // 5 minutes
 const SITE_KEY = 'ct:site';
 const SITE_TTL = 5 * 60 * 1000;
+// Written by the admin (localStorage, so it is visible to every tab on this
+// origin) after each successful save. Any cache entry older than this stamp is
+// stale — that is what stops a just-edited project showing under its old
+// category until the TTL happens to lapse.
+const STAMP_KEY = 'ct:content-stamp';
 const DESKTOP = window.matchMedia('(min-width: 900px)');
+
+// A cached entry is only good if it is inside its TTL AND was written after the
+// last admin edit. Reading the stamp is wrapped because localStorage throws in
+// some privacy modes; treating that as "no stamp" just falls back to TTL-only
+// behaviour, which is the old, still-correct-if-slower path.
+function contentStamp() {
+  try {
+    const raw = Number(localStorage.getItem(STAMP_KEY));
+    return Number.isFinite(raw) ? raw : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function cacheIsFresh(cached, ttl) {
+  return Boolean(cached) && Date.now() - cached.t < ttl && cached.t >= contentStamp();
+}
 
 // --- Nav data --------------------------------------------------------------
 // All categories (ordered) + their published projects. Empty categories are
@@ -19,7 +41,7 @@ const DESKTOP = window.matchMedia('(min-width: 900px)');
 async function loadNav() {
   try {
     const cached = JSON.parse(sessionStorage.getItem(NAV_KEY));
-    if (cached && Array.isArray(cached.groups) && Date.now() - cached.t < NAV_TTL) {
+    if (cacheIsFresh(cached, NAV_TTL) && Array.isArray(cached.groups)) {
       return cached.groups;
     }
   } catch {
@@ -144,7 +166,7 @@ const SITE_CONTENT_IDS = [
 async function loadSiteSettings() {
   try {
     const cached = JSON.parse(sessionStorage.getItem(SITE_KEY));
-    if (cached && Date.now() - cached.t < SITE_TTL) return cached.settings;
+    if (cacheIsFresh(cached, SITE_TTL)) return cached.settings;
   } catch {
     /* corrupt cache — refetch */
   }

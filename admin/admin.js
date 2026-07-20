@@ -35,10 +35,23 @@ function setSaveState(state, message) {
   if (state === 'saved') setTimeout(() => { if (indicator.dataset.state === 'saved') setSaveState('idle'); }, 2000);
 }
 
+// The public rail caches its category/project nav in sessionStorage. That store
+// is per-tab, so clearing it from here would not reach a public tab the user
+// already has open — which is exactly how a freshly-filed project appeared to
+// land in the wrong category. localStorage IS shared across tabs on this origin,
+// so we bump a timestamp instead and shell.js treats any cache entry older than
+// it as stale. Same-browser only; another device still waits out the 5min TTL.
+const CONTENT_STAMP_KEY = 'ct:content-stamp';
+
 async function withSaveState(promise) {
   setSaveState('saving');
   try {
     const result = await promise;
+    try {
+      localStorage.setItem(CONTENT_STAMP_KEY, String(Date.now()));
+    } catch {
+      /* private mode / quota — the TTL still expires the cache on its own */
+    }
     setSaveState('saved');
     return result;
   } catch (err) {
@@ -703,6 +716,22 @@ async function moveAsset(assets, id, direction) {
   );
 }
 
+// Rewrite sort_order to match array position after a drag. Only rows that
+// actually moved are sent, so nudging one image up a slot is a couple of
+// updates rather than one per image in the gallery.
+async function persistAssetOrder(assets) {
+  const changed = assets.map((a, i) => ({ a, i })).filter(({ a, i }) => a.sort_order !== i);
+  if (!changed.length) return;
+  await withSaveState(
+    Promise.all(
+      changed.map(({ a, i }) =>
+        supabase.from('project_media').update({ sort_order: i }).eq('id', a.id).throwOnError()
+      )
+    )
+  );
+  for (const { a, i } of changed) a.sort_order = i;
+}
+
 async function deleteAsset(asset) {
   if (!confirm('Remove this image from the gallery?')) return;
   const path = storagePathFromUrl(asset.media_url);
@@ -774,17 +803,73 @@ async function renderGalleryManager(container, project) {
       renderGalleryManager(container, project);
     });
 
-    grid.append(
-      el(
-        'figure',
-        { class: 'admin-asset' },
-        el('img', { src: asset.media_url, alt: '', width: asset.width || false, height: asset.height || false }),
-        altInput,
-        captionInput,
-        errorEl,
-        el('div', { class: 'admin-asset__actions' }, upBtn, downBtn, saveBtn, deleteBtn)
-      )
+    // Drag to reorder. The arrow buttons stay: dragging is pointer-only, so
+    // removing them would leave keyboard and screen-reader users with no way to
+    // reorder at all. Drag is the fast path, arrows are the accessible one.
+    const dragHandle = el(
+      'button',
+      {
+        class: 'admin-asset__handle',
+        type: 'button',
+        'aria-label': `Drag to reorder image ${i + 1} of ${assets.length}`,
+        title: 'Drag to reorder',
+      },
+      '⠿'
     );
+
+    const figure = el(
+      'figure',
+      { class: 'admin-asset', draggable: 'true', 'data-asset-id': asset.id },
+      dragHandle,
+      el('img', { src: asset.media_url, alt: '', width: asset.width || false, height: asset.height || false }),
+      altInput,
+      captionInput,
+      errorEl,
+      el('div', { class: 'admin-asset__actions' }, upBtn, downBtn, saveBtn, deleteBtn)
+    );
+
+    // Text inputs live inside a draggable element, and in some browsers that
+    // steals the click-and-select gesture. Dragging is therefore only armed
+    // once the pointer goes down on the handle itself.
+    let armed = false;
+    dragHandle.addEventListener('pointerdown', () => {
+      armed = true;
+    });
+    figure.addEventListener('dragstart', (e) => {
+      if (!armed) {
+        e.preventDefault();
+        return;
+      }
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', asset.id);
+      figure.classList.add('admin-asset--dragging');
+    });
+    figure.addEventListener('dragend', () => {
+      armed = false;
+      figure.classList.remove('admin-asset--dragging');
+      qsa('.admin-asset--over', grid).forEach((n) => n.classList.remove('admin-asset--over'));
+    });
+    figure.addEventListener('dragover', (e) => {
+      e.preventDefault(); // required, or the drop event never fires
+      e.dataTransfer.dropEffect = 'move';
+      figure.classList.add('admin-asset--over');
+    });
+    figure.addEventListener('dragleave', () => figure.classList.remove('admin-asset--over'));
+    figure.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      figure.classList.remove('admin-asset--over');
+      const draggedId = e.dataTransfer.getData('text/plain');
+      if (!draggedId || draggedId === asset.id) return;
+      const from = assets.findIndex((a) => String(a.id) === draggedId);
+      const to = assets.findIndex((a) => a.id === asset.id);
+      if (from < 0 || to < 0) return;
+      const [moved] = assets.splice(from, 1);
+      assets.splice(to, 0, moved);
+      await persistAssetOrder(assets);
+      renderGalleryManager(container, project);
+    });
+
+    grid.append(figure);
   });
 
   const fileInput = el('input', { type: 'file', accept: 'image/*', multiple: true });

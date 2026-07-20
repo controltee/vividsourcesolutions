@@ -15,6 +15,61 @@
   font-size: var(--step-0);
 }
 
+/* ---- Studio synopsis -------------------------------------------------------
+   A compact band above the grid: enough to say who the studio is without
+   pushing the work below the fold. Measure is capped so the paragraph stays
+   readable on wide screens. No new tokens. */
+.home-intro {
+  max-width: 62ch;
+  margin-block-end: var(--space-l);
+}
+.home-intro__title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--step-3);
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--chalk);
+}
+.home-intro__body {
+  margin-block-start: var(--space-xs);
+  color: var(--chalk-60);
+  font-size: var(--step-0);
+  line-height: 1.5;
+}
+.home-intro__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-m);
+  margin-block-start: var(--space-s);
+  font-size: var(--step--1);
+}
+.home-intro__cta {
+  color: var(--chalk);
+  border-block-end: 1px solid var(--chalk);
+  padding-block-end: 2px;
+}
+.home-intro__more {
+  color: var(--chalk-60);
+}
+.home-intro__more:hover,
+.home-intro__cta:hover {
+  color: var(--accent-ink);
+  border-color: var(--accent-ink);
+}
+.home-intro__cta:focus-visible,
+.home-intro__more:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 3px;
+}
+
+/* The grid heading is secondary to the synopsis now, so it sits smaller than
+   the band's title while keeping the same family and spacing rhythm. */
+.home-intro + .pane__title {
+  font-size: var(--step-1);
+  color: var(--chalk-60);
+}
+
 /* ---- Grid --------------------------------------------------------------- */
 .project-grid {
   display: grid;

@@ -30,6 +30,40 @@ async function loadProjects() {
     );
 }
 
+// --- Studio synopsis --------------------------------------------------------
+// Reuses the About page's rows rather than introducing a home-only key, so
+// there is one place to edit the studio's description and no migration to run.
+// about_body stores markup; we take the first paragraph's TEXT only — this band
+// never renders HTML, unlike about.js which deliberately does.
+function firstParagraphText(html) {
+  if (!html) return '';
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const p = doc.querySelector('p');
+  return (p ? p.textContent : doc.body.textContent).trim();
+}
+
+async function renderIntro() {
+  const section = qs('#home-intro');
+  if (!section) return;
+  const { data, error } = await supabase
+    .from('site_content')
+    .select('id, content')
+    .in('id', ['about_headline', 'about_body']);
+  // A missing synopsis is not worth blocking the work on: leave the band hidden
+  // and let the grid carry the page, exactly as before this section existed.
+  if (error || !data?.length) return;
+
+  const values = Object.fromEntries(data.map((r) => [r.id, r.content]));
+  const body = firstParagraphText(values.about_body);
+  if (!values.about_headline && !body) return;
+
+  qs('#home-intro-title').textContent = values.about_headline || 'Control Tee';
+  const bodyEl = qs('#home-intro-body');
+  bodyEl.textContent = body;
+  bodyEl.hidden = !body;
+  section.hidden = false;
+}
+
 // --- Render ----------------------------------------------------------------
 function card(project, { eager, priority }) {
   const picture = pictureFor(project.cover_url, project.banner_w, project.banner_h, {
@@ -84,6 +118,9 @@ function render(projects) {
 (async () => {
   const grid = qs('#project-grid');
   if (grid) skeletons(grid);
+  // Fire the synopsis alongside the projects rather than before them: the work
+  // is the point of the page and must not wait on the copy.
+  renderIntro().catch((err) => console.error('[home] synopsis failed:', err));
   try {
     render(await loadProjects());
   } catch (err) {

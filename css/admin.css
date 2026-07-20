@@ -305,6 +305,42 @@ a {
   object-fit: cover;
   background: var(--ink-80);
 }
+
+/* ---- Gallery drag-to-reorder ------------------------------------------------
+   Drag is the fast path; the up/down buttons remain as the keyboard-accessible
+   equivalent. Only existing tokens are used here — no new ones added. */
+.admin-asset__handle {
+  align-self: flex-start;
+  background: none;
+  border: 0;
+  padding: var(--space-3xs);
+  color: var(--chalk-40);
+  cursor: grab;
+  font-size: var(--step-0);
+  line-height: 1;
+}
+.admin-asset__handle:hover,
+.admin-asset__handle:focus-visible {
+  color: var(--chalk);
+}
+.admin-asset__handle:active {
+  cursor: grabbing;
+}
+.admin-asset--dragging {
+  opacity: 0.4;
+}
+/* Drop target: a leading edge marks where the image will land. */
+.admin-asset--over {
+  border-color: var(--moss);
+  box-shadow: inset 3px 0 0 0 var(--moss);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-asset--dragging {
+    opacity: 1; /* no fade cue when motion/effects are unwelcome */
+    outline: 2px dashed var(--chalk-40);
+  }
+}
 .admin-asset__actions {
   display: flex;
   gap: var(--space-3xs);

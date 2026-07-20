@@ -112,7 +112,20 @@
       </aside>
 
       <main class="pane" id="pane" tabindex="-1">
-        <h1 class="pane__title">Selected work</h1>
+        <!-- Studio synopsis. Populated by home.js from the same site_content
+             rows the About page uses, so it stays editable in /admin with no
+             redeploy. Starts hidden so an empty band never flashes; if the
+             fetch fails it simply stays hidden and the work still renders. -->
+        <section class="home-intro" id="home-intro" hidden>
+          <h1 class="home-intro__title" id="home-intro-title"></h1>
+          <p class="home-intro__body" id="home-intro-body"></p>
+          <p class="home-intro__actions">
+            <a class="home-intro__cta" href="#work-heading">View selected work</a>
+            <a class="home-intro__more" href="/about.html">More about the studio</a>
+          </p>
+        </section>
+
+        <h2 class="pane__title" id="work-heading">Selected work</h2>
         <div class="project-grid" id="project-grid" aria-busy="true">
           <!-- rendered by home.js -->
         </div>
