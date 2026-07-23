@@ -176,12 +176,13 @@
 }
 .marquee__item img {
   /* The logos are the whole point of this band, so they are sized as artwork
-     rather than as a footnote. Fluid between phone and desktop: a fixed 12rem
-     would eat a small screen, and a fixed 6rem is what made the strip read as
-     out of focus on a wide one. */
-  height: clamp(6rem, 11vw, 12rem);
+     rather than as a footnote. Fluid between phone and desktop: a fixed 10rem
+     would eat a small screen, and the original 4.5rem is what made the strip
+     read as out of focus on a wide one. Backed off a step from the first pass
+     at 11vw/12rem, which tipped over into shouting. */
+  height: clamp(5rem, 9vw, 10rem);
   width: auto;
-  max-width: min(34rem, 62vw);
+  max-width: min(30rem, 58vw);
   object-fit: contain;
   /* Logos arrive in mixed colours. brightness(0) crushes every one to solid
      black, then invert(1) lifts it to pure white, so the whole strip is one

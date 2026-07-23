@@ -70,7 +70,11 @@ function groupByClient(projects) {
     items.push({
       kind: 'client',
       client: p.client,
-      name: p.client?.name || 'Client',
+      // card_title (sql/007) is the card's heading when set; `name` stays the
+      // organisation's real name and is what project pages print. The SLUG
+      // always follows `name`, never the card title, so retitling a card can
+      // never break a link to that client's page.
+      name: p.client?.card_title?.trim() || p.client?.name || 'Client',
       slug: slugify(p.client?.name) || p.client_id,
       projects: siblings,
     });

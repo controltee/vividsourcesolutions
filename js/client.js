@@ -84,6 +84,9 @@ async function load() {
         a.title.localeCompare(b.title)
     );
 
+  // The heading matches the home card (card_title when set); the tab title and
+  // the URL stay on the canonical name.
+  const heading = client.card_title?.trim() || client.name;
   document.title = `${client.name} · Control Tee`;
 
   // The same banner the home card uses, when one is set. Decorative: the h1
@@ -105,7 +108,7 @@ async function load() {
     el('a', { class: 'client-head__back', href: '/' }, '← Back to work'),
     banner,
     el('p', { class: 'client-head__eyebrow' }, 'Client'),
-    el('h1', { class: 'client-head__title' }, client.name),
+    el('h1', { class: 'client-head__title' }, heading),
     client.description?.trim()
       ? el('p', { class: 'client-head__summary' }, client.description.trim())
       : null,

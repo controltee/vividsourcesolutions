@@ -5,7 +5,7 @@ import { qs, qsa, el, slugify } from './util.js';
 import { supabase } from './supabase.js';
 
 const OPEN_KEY = 'ct:rail:open';
-const NAV_KEY = 'ct:nav:v3'; // v3: groups repeat clients — bump invalidates old caches
+const NAV_KEY = 'ct:nav:v4'; // v4: client labels follow card_title — bump invalidates old caches
 const NAV_TTL = 5 * 60 * 1000; // 5 minutes
 const SITE_KEY = 'ct:site';
 const SITE_TTL = 5 * 60 * 1000;
@@ -52,7 +52,10 @@ async function loadNav() {
     supabase.from('categories').select('id, name, slug, sort_order').order('sort_order'),
     supabase
       .from('projects')
-      .select('id, title, slug, category_id, client_id, sort_order, clients(name)')
+      // clients(*) rather than clients(name): the rail label follows card_title
+      // when it is set, and a named embed would error on any client column
+      // PostgREST has not seen yet (sql/007).
+      .select('id, title, slug, category_id, client_id, sort_order, clients(*)')
       .eq('is_published', true)
       .order('sort_order')
       .order('title'),
@@ -101,8 +104,10 @@ function nestRepeatClients(projects) {
     const name = p.clients?.name || 'Client';
     items.push({
       type: 'client',
-      name,
-      // Matches the route client.js resolves: slugify(name), id as a fallback.
+      // Label follows card_title so the rail reads the same as the home card.
+      name: p.clients?.card_title?.trim() || name,
+      // The route resolves on the canonical NAME, never the card title, so
+      // retitling never breaks a link: slugify(name), id as a fallback.
       slug: slugify(name) || String(p.client_id),
       projects: projects
         .filter((sib) => sib.client_id === p.client_id)

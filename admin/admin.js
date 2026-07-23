@@ -1065,6 +1065,14 @@ function clientForm(client, projectCount, onSaved) {
   const name = el('input', { class: 'admin-input', required: true, value: client.name || '' });
   const summary = el('input', { class: 'admin-input', maxlength: 140, value: client.description || '' });
 
+  // card_title arrives with sql/007. PostgREST returns every column of the row,
+  // so the key being present is a reliable probe for whether the migration has
+  // run. Probing beats trying the write and handling the failure: the field is
+  // simply not offered until it can actually be saved, and the rest of the tab
+  // keeps working in the meantime.
+  const hasCardTitle = 'card_title' in client;
+  const cardTitle = el('input', { class: 'admin-input', value: client.card_title || '' });
+
   const coverInput = el('input', { type: 'file', accept: 'image/*' });
   const coverPreview = el(
     'div',
@@ -1125,8 +1133,19 @@ function clientForm(client, projectCount, onSaved) {
     field(
       'Name',
       name,
-      `Shown as the card title and the page heading. The client page URL is built from this name, so renaming changes /client.html?c=${slugify(client.name) || '…'} and any old link to it stops working.`
+      `The organisation's real name. Printed under "Client" on every project page and used in the Client dropdown. The client page URL is built from it, so renaming changes /client.html?c=${slugify(client.name) || '…'} and any old link stops working.`
     ),
+    hasCardTitle
+      ? field(
+          'Card title (home page)',
+          cardTitle,
+          'The heading on the home card and the client page. Left empty it uses the name above. Editing this does NOT change what project pages show, and does NOT change the URL.'
+        )
+      : field(
+          'Card title (home page)',
+          el('input', { class: 'admin-input', value: client.name || '', disabled: true }),
+          'Needs sql/007_client_card_title.sql run in the Supabase dashboard. Until then the card uses the name above.'
+        ),
     field(
       'Summary (card subtitle)',
       summary,
@@ -1156,6 +1175,7 @@ function clientForm(client, projectCount, onSaved) {
       // Riara University from the old codebase shows up instead of having to be
       // uploaded again. See sql/006 for why cover_url/summary went unused.
       const payload = { name: nameValue, description: summary.value.trim() || null };
+      if (hasCardTitle) payload.card_title = cardTitle.value.trim() || null;
       if (pendingCover) {
         const uploaded = await uploadImage(
           new File([pendingCover.blob], 'cover.webp', { type: 'image/webp' }),
@@ -1247,7 +1267,8 @@ async function renderClientsTab(panel) {
           { class: 'admin-list__meta' },
           `${count} project${count === 1 ? '' : 's'}` +
             (count ? ` · ${live} live` : '') +
-            (c.banner_url ? ' · own banner' : ' · banner from first project')
+            (c.banner_url ? ' · own banner' : ' · banner from first project') +
+            (c.card_title ? ` · card: “${c.card_title}”` : '')
         )
       ),
       // Only a client with 2+ PUBLISHED projects actually gets a grouped card

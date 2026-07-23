@@ -79,6 +79,12 @@ Repeat work for one client reads as ONE body of work, in all three surfaces:
 - **Admin → Projects** — the same projects are boxed under the client's name,
   and the Client dropdown shows each client's project count.
 
+`clients.name` is the organisation's REAL name — project pages print it under
+"Client", and the client URL is built from it. `clients.card_title` (sql/007,
+optional) overrides only the home-card heading, the client-page h1 and the rail
+label. Editing a card title therefore never rewrites a project page and never
+breaks a link. Everything that builds the slug uses `name`, never `card_title`.
+
 Routing is `client.html?c=<slugify(client.name)>`. `clients` has NO slug column
 and this needed no migration — js/client.js pulls the (small) client list and
 matches on the slugified name, falling back to a raw client id. If a slug column
