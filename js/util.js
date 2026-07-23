@@ -23,6 +23,20 @@ export function el(tag, attrs = {}, ...children) {
   return node;
 }
 
+/**
+ * URL-safe slug from arbitrary text. Shared by the admin (project/category
+ * slugs) and the public pages (client routing). Clients have no slug column in
+ * the live DB, so `client.html?c=` routes on slugify(client.name) and resolves
+ * it back by matching — no migration, and the URL still reads as a name.
+ */
+export function slugify(text) {
+  return String(text ?? '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /**

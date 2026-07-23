@@ -1,11 +1,11 @@
 ﻿// shell.js — renders the persistent rail nav from live data, keeps disclosure
 // state across navigation, and drives the mobile drawer.
 
-import { qs, qsa, el } from './util.js';
+import { qs, qsa, el, slugify } from './util.js';
 import { supabase } from './supabase.js';
 
 const OPEN_KEY = 'ct:rail:open';
-const NAV_KEY = 'ct:nav:v2'; // v2: now includes empty categories — bump invalidates old caches
+const NAV_KEY = 'ct:nav:v3'; // v3: groups repeat clients — bump invalidates old caches
 const NAV_TTL = 5 * 60 * 1000; // 5 minutes
 const SITE_KEY = 'ct:site';
 const SITE_TTL = 5 * 60 * 1000;
@@ -52,7 +52,7 @@ async function loadNav() {
     supabase.from('categories').select('id, name, slug, sort_order').order('sort_order'),
     supabase
       .from('projects')
-      .select('id, title, slug, category_id, sort_order')
+      .select('id, title, slug, category_id, client_id, sort_order, clients(name)')
       .eq('is_published', true)
       .order('sort_order')
       .order('title'),
@@ -70,11 +70,46 @@ async function loadNav() {
   const groups = cats.data.map((c) => ({
     slug: c.slug,
     name: c.name,
-    projects: (byCategory.get(c.id) || []).map((p) => ({ slug: p.slug, title: p.title })),
+    items: nestRepeatClients(byCategory.get(c.id) || []),
   }));
 
   sessionStorage.setItem(NAV_KEY, JSON.stringify({ t: Date.now(), groups }));
   return groups;
+}
+
+// Two jobs for the same client should read as one entry with its work nested
+// under it, not as two neighbouring links that look like unrelated projects.
+// Only clients with MORE THAN ONE project in this category get nested — a
+// one-off would just be a heading with a single item under it, which is noise.
+// Each nested group keeps the grid position of the client's first project, so
+// the sort_order set in the admin still decides the running order.
+function nestRepeatClients(projects) {
+  const counts = new Map();
+  for (const p of projects) {
+    if (p.client_id) counts.set(p.client_id, (counts.get(p.client_id) || 0) + 1);
+  }
+
+  const emitted = new Set();
+  const items = [];
+  for (const p of projects) {
+    if (!p.client_id || counts.get(p.client_id) < 2) {
+      items.push({ type: 'project', slug: p.slug, title: p.title });
+      continue;
+    }
+    if (emitted.has(p.client_id)) continue;
+    emitted.add(p.client_id);
+    const name = p.clients?.name || 'Client';
+    items.push({
+      type: 'client',
+      name,
+      // Matches the route client.js resolves: slugify(name), id as a fallback.
+      slug: slugify(name) || String(p.client_id),
+      projects: projects
+        .filter((sib) => sib.client_id === p.client_id)
+        .map((sib) => ({ slug: sib.slug, title: sib.title })),
+    });
+  }
+  return items;
 }
 
 // --- Disclosure open-state persistence -------------------------------------
@@ -86,7 +121,7 @@ function readOpenState(groups) {
     /* corrupt value — fall through to default */
   }
   // First visit: open categories that have work; leave empty ones collapsed.
-  const populated = new Set(groups.filter((g) => g.projects.length).map((g) => g.slug));
+  const populated = new Set(groups.filter((g) => g.items.length).map((g) => g.slug));
   persistOpenState(populated);
   return populated;
 }
@@ -97,16 +132,69 @@ function persistOpenState(set) {
 }
 
 // --- Nav render ------------------------------------------------------------
-function renderNav(groups, activeSlug) {
+function projectItem(project, activeSlug) {
+  const active = project.slug === activeSlug;
+  return el(
+    'li',
+    {},
+    el(
+      'a',
+      {
+        href: `/project.html?p=${encodeURIComponent(project.slug)}`,
+        class: active ? 'is-active' : false,
+        'aria-current': active ? 'page' : false,
+      },
+      project.title
+    )
+  );
+}
+
+// A repeat client: the label links to their client page, and their projects sit
+// nested underneath. Deliberately NOT a second <details> inside the category's
+// one — nesting disclosures would put two clicks between the rail and a project
+// that used to take one, and the whole point is to make the relationship
+// visible at a glance.
+function clientItem(item, active) {
+  const isActive = item.slug === active.client;
+  return el(
+    'li',
+    { class: 'rail__client' },
+    el(
+      'a',
+      {
+        class: isActive ? 'rail__client-label is-active' : 'rail__client-label',
+        href: `/client.html?c=${encodeURIComponent(item.slug)}`,
+        'aria-current': isActive ? 'page' : false,
+      },
+      item.name,
+      el('span', { class: 'rail__client-count', 'aria-hidden': 'true' }, String(item.projects.length))
+    ),
+    el(
+      'ul',
+      { class: 'rail__sublist' },
+      ...item.projects.map((project) => projectItem(project, active.project))
+    )
+  );
+}
+
+function groupHasActive(group, active) {
+  return group.items.some((item) =>
+    item.type === 'client'
+      ? item.slug === active.client || item.projects.some((p) => p.slug === active.project)
+      : item.slug === active.project
+  );
+}
+
+function renderNav(groups, active) {
   const nav = qs('#rail-nav');
   if (!nav) return;
 
   const openSlugs = readOpenState(groups);
-  const activeGroup = groups.find((g) => g.projects.some((p) => p.slug === activeSlug));
+  const activeGroup = groups.find((g) => groupHasActive(g, active));
   if (activeGroup) openSlugs.add(activeGroup.slug); // auto-open the active project's group
 
   const details = groups.map((group) => {
-    const empty = group.projects.length === 0;
+    const empty = group.items.length === 0;
     const summary = el('summary', { class: 'rail__group-label' }, group.name);
 
     const list = empty
@@ -114,19 +202,9 @@ function renderNav(groups, activeSlug) {
       : el(
           'ul',
           { class: 'rail__list' },
-          ...group.projects.map((project) => {
-            const active = project.slug === activeSlug;
-            const link = el(
-              'a',
-              {
-                href: `/project.html?p=${encodeURIComponent(project.slug)}`,
-                class: active ? 'is-active' : false,
-                'aria-current': active ? 'page' : false,
-              },
-              project.title
-            );
-            return el('li', {}, link);
-          })
+          ...group.items.map((item) =>
+            item.type === 'client' ? clientItem(item, active) : projectItem(item, active.project)
+          )
         );
 
     const groupEl = el(
@@ -365,13 +443,16 @@ async function init() {
   initThemeToggle();
   initClock();
   initCookieNotice();
-  const activeSlug = new URLSearchParams(location.search).get('p');
+  // `?p` on project.html, `?c` on client.html. Both are read here so the rail
+  // can highlight a client label as the current page too.
+  const params = new URLSearchParams(location.search);
+  const active = { project: params.get('p'), client: params.get('c') };
   try {
     const groups = await loadNav();
     if (!groups.length) {
       renderNavMessage('No published work yet.');
     } else {
-      renderNav(groups, activeSlug);
+      renderNav(groups, active);
     }
   } catch (err) {
     console.error('[shell] could not load the project nav:', err);

@@ -6,7 +6,7 @@
 // the whole "state management" story, which is fine at this data size.
 
 import { supabase } from '../js/supabase.js';
-import { el, qs, qsa } from '../js/util.js';
+import { el, qs, qsa, slugify } from '../js/util.js';
 
 const root = qs('#admin-root');
 const BUCKET = 'portfolio_assets';
@@ -71,14 +71,8 @@ async function withSaveState(promise) {
 }
 
 // --- Small shared helpers ----------------------------------------------------
-function slugify(text) {
-  return text
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
-
+// slugify comes from util.js so the public site's client routing and the slugs
+// written here can never drift apart.
 async function uniqueSlug(table, base, excludeId) {
   let candidate = base;
   let n = 2;
@@ -395,9 +389,25 @@ const LAYOUT_OPTIONS = [
   { value: 'reel', label: 'Reel', hint: 'A single video, poster frame + click to play.' },
 ];
 
+// Clients carry their project count so the dropdown can say "RUSA (2 projects)".
+// That count is the whole affordance behind client grouping: picking an existing
+// client is what files a new job under the same name on the site, and the number
+// is the only place that is visible at the moment of choosing.
 async function fetchClients() {
-  const { data } = await supabase.from('clients').select('id, name').order('name');
-  return data || [];
+  const [{ data: clients }, { data: rows }] = await Promise.all([
+    supabase.from('clients').select('id, name').order('name'),
+    supabase.from('projects').select('client_id'),
+  ]);
+  const counts = new Map();
+  for (const r of rows || []) {
+    if (r.client_id) counts.set(r.client_id, (counts.get(r.client_id) || 0) + 1);
+  }
+  return (clients || []).map((c) => ({ ...c, projectCount: counts.get(c.id) || 0 }));
+}
+
+function clientOptionLabel(client) {
+  if (!client.projectCount) return client.name;
+  return `${client.name} (${client.projectCount} project${client.projectCount === 1 ? '' : 's'})`;
 }
 
 function projectForm(project, categories, clients, onSaved) {
@@ -422,7 +432,9 @@ function projectForm(project, categories, clients, onSaved) {
     'select',
     { class: 'admin-select' },
     el('option', { value: '' }, 'Independent / no client'),
-    ...clients.map((c) => el('option', { value: c.id, selected: c.id === project?.client_id }, c.name)),
+    ...clients.map((c) =>
+      el('option', { value: c.id, selected: c.id === project?.client_id }, clientOptionLabel(c))
+    ),
     el('option', { value: '__new__' }, '+ Add new client…')
   );
   const newClientInput = el('input', {
@@ -511,7 +523,11 @@ function projectForm(project, categories, clients, onSaved) {
     el('div', { class: 'admin-form__row' }, field('Title', title), field('Slug', slug)),
     el('div', { class: 'admin-form__row' },
       field('Category', categorySelect),
-      field('Client', [clientSelect, newClientInput])
+      field(
+        'Client',
+        [clientSelect, newClientInput],
+        'Pick the EXISTING client for repeat work. Two projects under the same client share one card on the home page and one entry in the menu. Only use “Add new client” for someone genuinely new.'
+      )
     ),
     field('Summary (home card subtitle)', summary),
     el('div', { class: 'admin-form__row' }, field('Date', dateMade), field('Services', services)),
@@ -537,9 +553,19 @@ function projectForm(project, categories, clients, onSaved) {
       if (clientSelect.value === '__new__') {
         const name = newClientInput.value.trim();
         if (!name) throw new Error('Enter a name for the new client, or pick an existing one.');
-        const { data, error } = await supabase.from('clients').insert({ name }).select('id').single();
-        if (error) throw error;
-        clientId = data.id;
+        // Typing a name that already exists used to mint a SECOND client row, so
+        // the two jobs looked unrelated on the site even though they were for
+        // the same people. Match on the slug rather than the raw string so
+        // "RUSA", "rusa" and "R.U.S.A." all land on the existing client.
+        const key = slugify(name);
+        const existing = clients.find((c) => slugify(c.name) === key);
+        if (existing) {
+          clientId = existing.id;
+        } else {
+          const { data, error } = await supabase.from('clients').insert({ name }).select('id').single();
+          if (error) throw error;
+          clientId = data.id;
+        }
       }
 
       const baseSlug = slugify(slug.value || titleValue);
@@ -641,6 +667,7 @@ async function renderProjectsTab(panel, focusProjectId) {
   }
 
   const categoryById = new Map((categories || []).map((c) => [c.id, c]));
+  const clientById = new Map(clients.map((c) => [c.id, c]));
   const byCategory = new Map();
   for (const p of projects) {
     if (!byCategory.has(p.category_id)) byCategory.set(p.category_id, []);
@@ -649,7 +676,10 @@ async function renderProjectsTab(panel, focusProjectId) {
 
   const sections = [];
   for (const [categoryId, list] of byCategory) {
-    const rows = list.map((p, i) => {
+    // `i` is the project's index in the FULL category list, not in whatever
+    // client group it is rendered inside — up/down still reorders across the
+    // whole category, which is what sort_order means on the public site.
+    const row = (p, i) => {
       const editBtn = el('button', { class: 'admin-btn admin-btn--icon', type: 'button' }, 'Edit');
       const galleryBtn = el('button', { class: 'admin-btn admin-btn--icon', type: 'button' }, 'Gallery');
       const upBtn = el('button', { class: 'admin-btn admin-btn--icon', type: 'button', disabled: i === 0 }, '↑');
@@ -662,6 +692,7 @@ async function renderProjectsTab(panel, focusProjectId) {
       editBtn.addEventListener('click', () => renderProjectEditor(panel, p, categories, clients));
       galleryBtn.addEventListener('click', () => renderProjectEditor(panel, p, categories, clients, { showGallery: true }));
 
+      const clientName = p.client_id ? clientById.get(p.client_id)?.name : null;
       return el(
         'div',
         { class: 'admin-list__row' },
@@ -669,10 +700,48 @@ async function renderProjectsTab(panel, focusProjectId) {
           'div',
           { class: 'admin-list__main' },
           el('span', { class: 'admin-list__title' }, p.title),
-          el('span', { class: 'admin-list__meta' }, `/${p.slug || '(no slug)'} · ${p.layout}`)
+          el(
+            'span',
+            { class: 'admin-list__meta' },
+            `/${p.slug || '(no slug)'} · ${p.layout} · ${clientName || 'Independent'}`
+          )
         ),
         el('span', { class: `admin-badge${p.is_published ? ' admin-badge--live' : ''}` }, p.is_published ? 'Live' : 'Draft'),
         el('div', { class: 'admin-list__actions' }, upBtn, downBtn, galleryBtn, editBtn, deleteBtn)
+      );
+    };
+
+    // Repeat clients are boxed together under their name, mirroring exactly how
+    // the home grid and the rail present them. Seeing "RUSA · 2 projects" here
+    // is the confirmation that the second job landed on the existing client
+    // rather than on a new one that happens to be spelled the same.
+    const counts = new Map();
+    for (const p of list) {
+      if (p.client_id) counts.set(p.client_id, (counts.get(p.client_id) || 0) + 1);
+    }
+    const emitted = new Set();
+    const children = [];
+    list.forEach((p, i) => {
+      if (!p.client_id || counts.get(p.client_id) < 2) {
+        children.push(row(p, i));
+        return;
+      }
+      if (emitted.has(p.client_id)) return;
+      emitted.add(p.client_id);
+      const siblings = list
+        .map((q, qi) => ({ q, qi }))
+        .filter(({ q }) => q.client_id === p.client_id);
+      children.push(
+        el(
+          'div',
+          { class: 'admin-client-group' },
+          el(
+            'p',
+            { class: 'admin-client-group__label' },
+            `${clientById.get(p.client_id)?.name || 'Client'} · ${siblings.length} projects`
+          ),
+          ...siblings.map(({ q, qi }) => row(q, qi))
+        )
       );
     });
 
@@ -681,7 +750,7 @@ async function renderProjectsTab(panel, focusProjectId) {
         'section',
         {},
         el('h2', { class: 'admin-section__title' }, categoryById.get(categoryId)?.name || 'Uncategorized'),
-        el('div', { class: 'admin-list' }, ...rows)
+        el('div', { class: 'admin-list' }, ...children)
       )
     );
   }

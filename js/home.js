@@ -1,11 +1,10 @@
 ﻿// home.js — the project grid. Fetches published projects, orders them by
 // category then project sort order, and renders banner cards.
 
-import { qs, qsa, el, revealOnScroll } from './util.js';
+import { qs, qsa, el, revealOnScroll, slugify } from './util.js';
 import { supabase } from './supabase.js';
 import { pictureFor } from './image.js';
-
-const SIZES = '(max-width: 700px) 90vw, (max-width: 1100px) 45vw, 30vw';
+import { CARD_SIZES, projectCard, cardSkeletons } from './project-card.js';
 
 // --- Data ------------------------------------------------------------------
 async function loadProjects() {
@@ -13,7 +12,9 @@ async function loadProjects() {
     supabase.from('categories').select('id, sort_order'),
     supabase
       .from('projects')
-      .select('id, title, slug, summary, cover_url, banner_w, banner_h, category_id, sort_order')
+      .select(
+        'id, title, slug, summary, cover_url, banner_w, banner_h, category_id, client_id, sort_order, clients(name)'
+      )
       .eq('is_published', true),
   ]);
   if (cats.error) throw cats.error;
@@ -28,6 +29,44 @@ async function loadProjects() {
         (a.sort_order ?? 0) - (b.sort_order ?? 0) ||
         a.title.localeCompare(b.title)
     );
+}
+
+// --- Client grouping ---------------------------------------------------------
+// Repeat work for the same client should read as ONE body of work, not as two
+// unrelated tiles that happen to share a name. So any client with more than one
+// published project collapses into a single card that opens their client page;
+// a client with one project, and anything with no client at all, still renders
+// as the plain project card it always did.
+//
+// The group takes the grid position of its FIRST project, so the
+// category/sort_order ordering Jesse sets in the admin still decides where a
+// client lands on the page.
+function groupByClient(projects) {
+  const byClient = new Map();
+  for (const p of projects) {
+    if (!p.client_id) continue;
+    if (!byClient.has(p.client_id)) byClient.set(p.client_id, []);
+    byClient.get(p.client_id).push(p);
+  }
+
+  const emitted = new Set();
+  const items = [];
+  for (const p of projects) {
+    const siblings = p.client_id ? byClient.get(p.client_id) : null;
+    if (!siblings || siblings.length < 2) {
+      items.push({ kind: 'project', project: p });
+      continue;
+    }
+    if (emitted.has(p.client_id)) continue;
+    emitted.add(p.client_id);
+    items.push({
+      kind: 'client',
+      name: p.clients?.name || 'Client',
+      slug: slugify(p.clients?.name) || p.client_id,
+      projects: siblings,
+    });
+  }
+  return items;
 }
 
 // --- Studio synopsis --------------------------------------------------------
@@ -108,8 +147,13 @@ async function renderMarquee() {
         src: logo.logo_url,
         alt: isDuplicate ? '' : logo.name || '',
         loading: 'lazy',
-        width: 176,
-        height: 44,
+        // Placeholder intrinsic ratio only — CSS fixes the height and lets the
+        // width follow the real mark once it loads. Square, because every logo
+        // currently in partner_logos is (they are uploaded as trimmed marks,
+        // not wordmarks); the old 4:1 reserved a slot three times too wide and
+        // snapped shut on load.
+        width: 200,
+        height: 200,
       })
     );
 
@@ -156,38 +200,42 @@ async function renderIntro() {
 }
 
 // --- Render ----------------------------------------------------------------
-function card(project, { eager, priority }) {
-  const picture = pictureFor(project.cover_url, project.banner_w, project.banner_h, {
-    alt: '', // decorative: the visible card title is the link's accessible name
-    sizes: SIZES,
+// One card standing in for every project a repeat client has. The cover is the
+// first project's banner that actually has one, so the card never falls back to
+// an empty tile just because the top project is missing artwork.
+function clientCard(group, { eager, priority }) {
+  const lead = group.projects.find((p) => p.cover_url) || group.projects[0];
+  const picture = pictureFor(lead.cover_url, lead.banner_w, lead.banner_h, {
+    alt: '',
+    sizes: CARD_SIZES,
     loading: eager ? 'eager' : 'lazy',
     priority,
   });
   picture.classList.add('project-card__picture');
 
+  const count = group.projects.length;
   return el(
     'a',
-    { class: 'project-card reveal', href: `/project.html?p=${encodeURIComponent(project.slug)}` },
-    picture,
+    {
+      class: 'project-card project-card--client reveal',
+      href: `/client.html?c=${encodeURIComponent(group.slug)}`,
+    },
+    el(
+      'div',
+      { class: 'project-card__frame' },
+      picture,
+      // aria-hidden: the count is repeated verbatim in the summary below, which
+      // is inside the link's accessible name. Announcing it twice is noise.
+      el('span', { class: 'project-card__count', 'aria-hidden': 'true' }, `${count} projects`)
+    ),
     el(
       'div',
       { class: 'project-card__text' },
-      el('h2', { class: 'project-card__title' }, project.title),
-      project.summary ? el('p', { class: 'project-card__summary' }, project.summary) : null
-    )
-  );
-}
-
-// Placeholder cards shown while the real projects load — keeps the grid from
-// flashing empty and reserves layout.
-function skeletons(grid, count = 6) {
-  grid.replaceChildren(
-    ...Array.from({ length: count }, () =>
+      el('h2', { class: 'project-card__title' }, group.name),
       el(
-        'div',
-        { class: 'project-card project-card--skeleton', 'aria-hidden': 'true' },
-        el('div', { class: 'skeleton skeleton--banner' }),
-        el('div', { class: 'skeleton skeleton--line' })
+        'p',
+        { class: 'project-card__summary' },
+        `${count} projects · ${group.projects.map((p) => p.title).join(', ')}`
       )
     )
   );
@@ -201,14 +249,20 @@ function render(projects) {
     grid.replaceChildren(el('p', { class: 'pane__msg' }, 'No published work yet.'));
     return;
   }
-  grid.replaceChildren(...projects.map((p, i) => card(p, { eager: i < 4, priority: i === 0 })));
+  const items = groupByClient(projects);
+  grid.replaceChildren(
+    ...items.map((item, i) => {
+      const opts = { eager: i < 4, priority: i === 0 };
+      return item.kind === 'client' ? clientCard(item, opts) : projectCard(item.project, opts);
+    })
+  );
   revealOnScroll(qsa('.project-card', grid));
 }
 
 // --- Boot ----------------------------------------------------------------
 (async () => {
   const grid = qs('#project-grid');
-  if (grid) skeletons(grid);
+  if (grid) grid.replaceChildren(...cardSkeletons());
   // Fire the synopsis alongside the projects rather than before them: the work
   // is the point of the page and must not wait on the copy.
   renderIntro().catch((err) => console.error('[home] synopsis failed:', err));

@@ -66,6 +66,28 @@ rows into the existing `site_content`.
 The left rail is a persistent shell. It is identical on every page. Only the right
 pane changes. Do not re-render the rail on navigation.
 
+## Client grouping (added 2026-07-24)
+Repeat work for one client reads as ONE body of work, in all three surfaces:
+- **Home grid** — a client with 2+ published projects collapses into a single
+  card (client name, count chip, project titles) linking to the client page. One
+  project, or no client at all, still renders as a plain project card.
+- **Rail** — inside its category, such a client becomes a label (linking to the
+  client page) with its projects nested under a rule. NOT a nested `<details>`:
+  that would put two clicks where there used to be one.
+- **Admin → Projects** — the same projects are boxed under the client's name,
+  and the Client dropdown shows each client's project count.
+
+Routing is `client.html?c=<slugify(client.name)>`. `clients` has NO slug column
+and this needed no migration — js/client.js pulls the (small) client list and
+matches on the slugified name, falling back to a raw client id. If a slug column
+is ever added, that resolver is the only place that has to change.
+
+Card markup lives in js/project-card.js and is shared by home.js and client.js —
+home.js boots the homepage on import, so client.js cannot borrow from it.
+
+Picking "+ Add new client…" and typing a name that already exists reuses the
+existing client (matched on slug) instead of minting a duplicate row.
+
 ## Two media modes
 Projects have a `layout` field: 'gallery' | 'deck' | 'reel'.
 - gallery = mixed-aspect posters in a column-count grid, click opens lightbox

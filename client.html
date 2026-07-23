@@ -1,14 +1,11 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script src="/js/theme-init.js"></script>
-    <title>Control Tee · Nairobi design studio</title>
-    <meta
-      name="description"
-      content="Control Tee is a design studio in Nairobi. Brand identity, event branding, motion and video."
-    />
+    <title>Client · Control Tee</title>
+    <meta name="description" content="Work by Control Tee for this client." />
     <link
       rel="preload"
       href="/fonts/CabinetGrotesk-Extrabold.woff2"
@@ -21,9 +18,12 @@
     <link rel="stylesheet" href="/css/tokens.css" />
     <link rel="stylesheet" href="/css/reset.css" />
     <link rel="stylesheet" href="/css/shell.css" />
+    <!-- Deliberately reuses home.css: this page is the home grid, filtered to
+         one client. A separate stylesheet would mean two card designs drifting
+         apart. -->
     <link rel="stylesheet" href="/css/home.css" />
     <script type="module" src="/js/shell.js"></script>
-    <script type="module" src="/js/home.js"></script>
+    <script type="module" src="/js/client.js"></script>
   </head>
   <body>
     <a class="skip-link" href="#pane">Skip to content</a>
@@ -114,50 +114,7 @@
       </aside>
 
       <main class="pane" id="pane" tabindex="-1">
-        <!-- Studio synopsis. Populated by home.js from the same site_content
-             rows the About page uses, so it stays editable in /admin with no
-             redeploy. Starts hidden so an empty band never flashes; if the
-             fetch fails it simply stays hidden and the work still renders. -->
-        <section class="home-intro" id="home-intro" hidden>
-          <!-- The h1's accessible name is set via aria-label by home.js, so the
-               full headline is always announced even though the visible text is
-               typed in and out. The animated spans are hidden from assistive
-               tech: a caret and a partially-typed word are noise to a reader. -->
-          <h1 class="home-intro__title" id="home-intro-title">
-            <span class="home-intro__type" id="home-intro-type" aria-hidden="true"></span
-            ><span class="home-intro__caret" aria-hidden="true"></span>
-          </h1>
-          <!-- Decorative word cycle. aria-hidden: the h1 already names the
-               studio, and a looping animation announced to a screen reader
-               would be noise rather than information. -->
-          <p class="home-intro__cycle" aria-hidden="true">
-            <span class="home-intro__word">Creativity</span>
-            <span class="home-intro__word">Transformation</span>
-          </p>
-          <p class="home-intro__body" id="home-intro-body"></p>
-          <p class="home-intro__actions">
-            <a class="home-intro__cta" href="#work-heading">View selected work</a>
-            <a class="home-intro__more" href="/about.html">More about the studio</a>
-          </p>
-        </section>
-
-        <h2 class="pane__title" id="work-heading">Selected work</h2>
-        <div class="project-grid" id="project-grid" aria-busy="true">
-          <!-- rendered by home.js -->
-        </div>
-
-        <!-- Client logo marquee. Sits BELOW the work: the projects are the
-             point of the page, and the logos read as closing credits rather
-             than something to get past. Populated by home.js from
-             partner_logos and hidden entirely when there are none, so an empty
-             strip never ships. The track is duplicated in JS for a seamless
-             scroll. -->
-        <section class="marquee" id="logo-marquee" hidden aria-labelledby="marquee-heading">
-          <h2 class="marquee__heading" id="marquee-heading">Clients and collaborators</h2>
-          <div class="marquee__viewport">
-            <ul class="marquee__track" id="marquee-track"></ul>
-          </div>
-        </section>
+        <!-- rendered by client.js -->
       </main>
     </div>
   </body>

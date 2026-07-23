@@ -14,9 +14,6 @@
     grid-template-columns: 1fr;
     gap: var(--space-l);
   }
-  .project__meta {
-    position: static;
-  }
 }
 
 /* ---- Meta column ---------------------------------------------------------- */
@@ -26,6 +23,18 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-m);
+}
+
+/* Single-column layout: the meta block sits ABOVE the media rather than beside
+   it, so sticky must be switched off or the title and description ride down
+   over the gallery/deck as you scroll. This override has to live AFTER the base
+   rule — same specificity, so source order is what decides it, and having it up
+   in the earlier media query is exactly why it never took effect. */
+@media (max-width: 1100px) {
+  .project__meta {
+    position: static;
+    top: auto;
+  }
 }
 
 .project__back {

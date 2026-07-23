@@ -214,6 +214,62 @@ body {
   font-weight: 500;
 }
 
+/* ---- Repeat client, nested inside a category ----------------------------
+   The client name is a link to their client page; their projects hang off it on
+   a rule, so two jobs for the same client read as one body of work instead of
+   two unrelated entries. */
+.rail__client + li,
+li + .rail__client {
+  margin-block-start: var(--space-2xs);
+}
+.rail__client-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2xs);
+  padding: var(--space-3xs) 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--step--1);
+  letter-spacing: 0.02em;
+  color: var(--chalk);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.rail__client-label:hover {
+  color: var(--accent-ink);
+}
+.rail__client-label.is-active {
+  color: var(--accent-ink);
+}
+/* Project count. A plain numeral, so it never competes with the client name. */
+.rail__client-count {
+  flex: none;
+  color: var(--chalk-40);
+  font-variant-numeric: tabular-nums;
+}
+.rail__sublist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3xs);
+  margin-inline-start: var(--space-2xs);
+  padding-inline-start: var(--space-2xs);
+  border-inline-start: 1px solid var(--ink-60);
+}
+.rail__sublist a {
+  display: block;
+  padding: var(--space-3xs) 0;
+  font-size: var(--step--1);
+  color: var(--chalk-60);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.rail__sublist a:hover {
+  color: var(--chalk);
+}
+.rail__sublist a.is-active {
+  color: var(--accent-ink);
+  font-weight: 500;
+}
+
 /* A category with no published work yet: dimmed label, muted note. */
 .rail__group--empty > .rail__group-label {
   color: var(--chalk-40);
@@ -465,6 +521,8 @@ body {
   .scrim,
   .skip-link,
   .rail__list a,
+  .rail__sublist a,
+  .rail__client-label,
   .rail__foot a {
     transition: none;
   }

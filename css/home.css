@@ -143,12 +143,13 @@
   border-block-start: 1px solid var(--ink-60);
 }
 .marquee__heading {
-  font-size: var(--step--1);
+  font-size: var(--step-0);
   font-weight: 500;
+  text-align: center;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--chalk-40);
-  margin-block-end: var(--space-s);
+  margin-block-end: var(--space-m);
 }
 .marquee__viewport {
   overflow: hidden;
@@ -174,9 +175,13 @@
   align-items: center;
 }
 .marquee__item img {
-  height: 4.5rem;
+  /* The logos are the whole point of this band, so they are sized as artwork
+     rather than as a footnote. Fluid between phone and desktop: a fixed 12rem
+     would eat a small screen, and a fixed 6rem is what made the strip read as
+     out of focus on a wide one. */
+  height: clamp(6rem, 11vw, 12rem);
   width: auto;
-  max-width: 18rem;
+  max-width: min(34rem, 62vw);
   object-fit: contain;
   /* Logos arrive in mixed colours. brightness(0) crushes every one to solid
      black, then invert(1) lifts it to pure white, so the whole strip is one
@@ -235,6 +240,51 @@
   transform: scale(1.02);
 }
 
+/* ---- Client card ---------------------------------------------------------
+   A repeat client collapses into one card on the grid (see groupByClient in
+   home.js). It reuses the project card wholesale — same picture, same hover —
+   and adds only a count chip, so the grid stays one visual system rather than
+   growing a second card style. */
+.project-card__frame {
+  position: relative;
+}
+.project-card__count {
+  position: absolute;
+  inset-block-end: var(--space-2xs);
+  inset-inline-start: var(--space-2xs);
+  padding: var(--space-3xs) var(--space-2xs);
+  background: var(--ink);
+  color: var(--chalk);
+  border: 1px solid var(--chalk-40);
+  border-radius: 2px;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--step--1);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+/* Two hairlines peeking out behind the picture: the card reads as a stack of
+   work before the count is even read. Offset only, no rotation — nothing in
+   this studio's motion or layout language tilts. */
+.project-card--client .project-card__frame::before,
+.project-card--client .project-card__frame::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: -4px;
+  height: 1px;
+  background: var(--chalk-40);
+}
+.project-card--client .project-card__frame::after {
+  bottom: -8px;
+  inset-inline: var(--space-2xs);
+  background: var(--chalk-40);
+  opacity: 0.5;
+}
+.project-card--client {
+  margin-block-end: var(--space-2xs); /* room for the stacked hairlines */
+}
+
 .project-card__text {
   margin-block-start: var(--space-xs);
 }
@@ -248,6 +298,51 @@
   margin-block-start: var(--space-3xs);
   color: var(--chalk-60);
   font-size: var(--step--1);
+}
+/* The client card's summary lists every project title, which can run long. Two
+   lines is enough to show what's inside; the client page has the full list. */
+.project-card--client .project-card__summary {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ---- Client page header --------------------------------------------------
+   client.html reuses this stylesheet for the grid and cards; this is the only
+   block it adds. */
+.client-head {
+  margin-block-end: var(--space-l);
+}
+.client-head__back {
+  display: inline-block;
+  margin-block-end: var(--space-s);
+  color: var(--chalk-60);
+  font-size: var(--step--1);
+}
+.client-head__back:hover {
+  color: var(--chalk);
+}
+.client-head__eyebrow {
+  color: var(--chalk-40);
+  font-size: var(--step--1);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.client-head__title {
+  margin-block-start: var(--space-3xs);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--step-3);
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--chalk);
+}
+.client-head__count {
+  margin-block-start: var(--space-2xs);
+  color: var(--chalk-60);
+  font-size: var(--step-0);
 }
 
 /* Focus ring on the whole card, clearly visible in both themes. */
