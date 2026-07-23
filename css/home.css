@@ -227,7 +227,14 @@
   background: var(--ink-80); /* holds the space while the image loads */
 }
 
-.project-card__picture img {
+/* Two shapes: pictureFor returns a <picture> wrapping an <img> when it can build
+   a srcset, and a BARE <img> carrying the class itself when the source
+   dimensions are unknown — which is the case for a client banner uploaded by
+   the old admin. Without the second selector that image keeps its natural size
+   (capped only by the reset's max-width) and a narrow banner fails to fill the
+   card while every other card does. */
+.project-card__picture img,
+img.project-card__picture {
   display: block;
   width: 100%;
   height: auto;
@@ -236,7 +243,8 @@
 }
 
 /* The entire hover treatment: the image scales, nothing else moves. */
-.project-card:hover .project-card__picture img {
+.project-card:hover .project-card__picture img,
+.project-card:hover img.project-card__picture {
   transform: scale(1.02);
 }
 
@@ -341,8 +349,34 @@
 }
 .client-head__count {
   margin-block-start: var(--space-2xs);
+  color: var(--chalk-40);
+  font-size: var(--step--1);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+/* The client's own banner, set in the admin's Clients tab. Only rendered when
+   one exists — without it the page opens on the heading, as it did before. */
+.client-head__banner {
+  display: block;
+  margin-block-end: var(--space-m);
+  background: var(--ink-80); /* holds the space while the image loads */
+}
+/* Both shapes: pictureFor returns a <picture> when it can build a srcset, and a
+   bare <img> (carrying the class itself) when the dimensions are unknown. */
+.client-head__banner img,
+img.client-head__banner {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 26rem;
+  object-fit: cover;
+}
+.client-head__summary {
+  max-width: 62ch;
+  margin-block-start: var(--space-xs);
   color: var(--chalk-60);
   font-size: var(--step-0);
+  line-height: 1.5;
 }
 
 /* Focus ring on the whole card, clearly visible in both themes. */
@@ -352,10 +386,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .project-card__picture img {
+  .project-card__picture img,
+  img.project-card__picture {
     transition: none;
   }
-  .project-card:hover .project-card__picture img {
+  .project-card:hover .project-card__picture img,
+  .project-card:hover img.project-card__picture {
     transform: none;
   }
   /* No looping motion: the first word simply stays put. The second is removed

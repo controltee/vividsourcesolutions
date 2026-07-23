@@ -341,6 +341,20 @@ a {
   gap: var(--space-3xs);
   flex-shrink: 0;
 }
+/* Row thumbnail (Clients tab). Fixed box so rows keep a common baseline
+   whatever aspect the banner happens to be. */
+.admin-list__thumb {
+  flex: none;
+  width: 4rem;
+  height: 2.5rem;
+  object-fit: cover;
+  border-radius: 2px;
+  background: var(--ink-80);
+}
+.admin-list__thumb--empty {
+  display: block;
+  border: 1px dashed var(--ink-60);
+}
 .admin-badge {
   font-size: var(--step--1);
   padding: 0.1em 0.5em;

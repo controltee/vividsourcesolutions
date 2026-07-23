@@ -197,6 +197,7 @@ function renderLogin(errorMessage) {
 // --- App shell + tabs ----------------------------------------------------------
 const TABS = [
   { id: 'projects', label: 'Projects' },
+  { id: 'clients', label: 'Clients' },
   { id: 'categories', label: 'Categories' },
   { id: 'logos', label: 'Client logos' },
   { id: 'settings', label: 'Site & Contact' },
@@ -247,6 +248,7 @@ function renderApp() {
   );
 
   if (activeTabId === 'categories') renderCategoriesTab(panel);
+  else if (activeTabId === 'clients') renderClientsTab(panel);
   else if (activeTabId === 'logos') renderLogosTab(panel);
   else if (activeTabId === 'settings') renderSettingsTab(panel);
   else renderProjectsTab(panel);
@@ -1046,6 +1048,239 @@ async function renderGalleryManager(container, project) {
   container.replaceChildren(
     grid,
     el('div', { class: 'admin-dropzone' }, el('label', {}, 'Add images: ', fileInput), uploadStatus)
+  );
+}
+
+// --- Clients tab ----------------------------------------------------------------
+// A client with 2+ published projects collapses into ONE card on the home grid
+// and gets its own page. This tab is where that PARENT card is set: its banner
+// and its subtitle, independent of the projects underneath it. Without this the
+// card could only borrow the first project's cover, so changing how the client
+// reads on the homepage meant re-cropping a project's own banner.
+//
+// Clients are still CREATED from the project form ("+ Add new client…") — there
+// is no add form here on purpose, since a client with no work attached to it
+// renders nowhere and is only a stray row.
+function clientForm(client, projectCount, onSaved) {
+  const name = el('input', { class: 'admin-input', required: true, value: client.name || '' });
+  const summary = el('input', { class: 'admin-input', maxlength: 140, value: client.description || '' });
+
+  const coverInput = el('input', { type: 'file', accept: 'image/*' });
+  const coverPreview = el(
+    'div',
+    {},
+    client.banner_url ? el('img', { src: client.banner_url, alt: '', class: 'admin-cover-preview' }) : null
+  );
+  let pendingCover = null;
+  let clearCover = false;
+  const coverWarning = el('div');
+
+  // A banner uploaded by the OLD codebase has no stored dimensions, so the card
+  // can't reserve its space or build a srcset. Measure it once here and fold the
+  // result into the next save, rather than writing to the row behind Jesse's
+  // back the moment he opens the tab.
+  let measured = null;
+  if (client.banner_url && !client.banner_w) {
+    const probe = new Image();
+    probe.onload = () => {
+      measured = { banner_w: probe.naturalWidth, banner_h: probe.naturalHeight };
+    };
+    probe.src = client.banner_url;
+  }
+
+  coverInput.addEventListener('change', async () => {
+    const file = coverInput.files[0];
+    if (!file) return;
+    clearCover = false;
+    coverWarning.replaceChildren(el('p', { class: 'admin-field__hint' }, 'Compressing…'));
+    pendingCover = await compressImage(file);
+    coverWarning.replaceChildren(fieldSizeWarning(pendingCover.blob.size));
+    // data: URL, not URL.createObjectURL — the CSP's img-src allows data: but
+    // not blob:, and we keep the CSP strict rather than widen it for a preview.
+    const previewSrc = await blobToDataUrl(pendingCover.blob);
+    coverPreview.replaceChildren(el('img', { src: previewSrc, alt: '', class: 'admin-cover-preview' }));
+  });
+
+  // Clearing is a real setting, not a no-op: with no client banner the card
+  // falls back to the first project's cover, which is the old behaviour.
+  const clearBtn = el('button', { class: 'admin-btn', type: 'button' }, 'Clear banner');
+  clearBtn.addEventListener('click', () => {
+    clearCover = true;
+    pendingCover = null;
+    coverInput.value = '';
+    coverWarning.replaceChildren();
+    coverPreview.replaceChildren(
+      el('p', { class: 'admin-field__hint' }, 'Cleared on save — the card will use the first project’s banner.')
+    );
+  });
+
+  const errorEl = el('p', { class: 'admin-error', 'aria-live': 'polite' });
+  const submitBtn = el('button', { class: 'admin-btn admin-btn--primary', type: 'submit' }, 'Save client');
+  const cancelBtn = el('button', { class: 'admin-btn', type: 'button' }, 'Cancel');
+  cancelBtn.addEventListener('click', () => renderClientsTab(qs('#admin-panel')));
+
+  const form = el(
+    'form',
+    { class: 'admin-form' },
+    field(
+      'Name',
+      name,
+      `Shown as the card title and the page heading. The client page URL is built from this name, so renaming changes /client.html?c=${slugify(client.name) || '…'} and any old link to it stops working.`
+    ),
+    field(
+      'Summary (card subtitle)',
+      summary,
+      'Left empty, the card lists the client’s project titles instead.'
+    ),
+    field(
+      'Card banner',
+      [coverInput, coverWarning, coverPreview],
+      `The image for this client’s card on the home page${
+        projectCount ? ` and the header of their page (${projectCount} project${projectCount === 1 ? '' : 's'})` : ''
+      }. Falls back to the first project’s banner when empty. This is the same banner the older control-tee.vercel.app site reads, so changing it changes that site too.`
+    ),
+    errorEl,
+    el('div', { class: 'admin-form__actions' }, submitBtn, client.banner_url ? clearBtn : null, cancelBtn)
+  );
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    errorEl.textContent = '';
+    const nameValue = name.value.trim();
+    if (!nameValue) return;
+    submitBtn.disabled = true;
+
+    try {
+      // `description` and `banner_url` are LIVE columns that predate this
+      // rebuild — reused rather than duplicated, so the banner already on
+      // Riara University from the old codebase shows up instead of having to be
+      // uploaded again. See sql/006 for why cover_url/summary went unused.
+      const payload = { name: nameValue, description: summary.value.trim() || null };
+      if (pendingCover) {
+        const uploaded = await uploadImage(
+          new File([pendingCover.blob], 'cover.webp', { type: 'image/webp' }),
+          `clients/${slugify(nameValue) || client.id}`,
+          'cover'
+        );
+        payload.banner_url = uploaded.url;
+        payload.banner_w = uploaded.width;
+        payload.banner_h = uploaded.height;
+      } else if (clearCover) {
+        payload.banner_url = null;
+        payload.banner_w = null;
+        payload.banner_h = null;
+      } else if (measured) {
+        Object.assign(payload, measured); // backfill dimensions for an old banner
+      }
+      await withSaveState(supabase.from('clients').update(payload).eq('id', client.id).throwOnError());
+      onSaved?.();
+    } catch (err) {
+      // banner_w/banner_h arrive with sql/006. Until that runs, PostgREST
+      // rejects the whole update rather than ignoring the unknown column, so
+      // say which migration is missing instead of leaking the raw error.
+      errorEl.textContent = /column|schema cache/i.test(err.message)
+        ? `${err.message} — this needs sql/006_client_cover.sql run in the Supabase dashboard first.`
+        : err.message;
+      setSaveState('error', errorEl.textContent);
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+
+  return form;
+}
+
+async function deleteClient(client, projectCount, panel) {
+  if (projectCount > 0) {
+    alert(`Can’t delete: ${projectCount} project(s) are still filed under ${client.name}. Move or delete them first.`);
+    return;
+  }
+  if (!confirm(`Delete ${client.name}? This can’t be undone.`)) return;
+  await withSaveState(supabase.from('clients').delete().eq('id', client.id).throwOnError());
+  renderClientsTab(panel);
+}
+
+async function renderClientsTab(panel) {
+  panel.replaceChildren(el('p', {}, 'Loading…'));
+
+  // select('*') rather than a named column list: it keeps this tab working
+  // whether or not sql/006 has been applied yet, instead of erroring on a
+  // column PostgREST hasn't seen.
+  const [{ data: clients, error }, { data: projectRows }] = await Promise.all([
+    supabase.from('clients').select('*').order('name'),
+    supabase.from('projects').select('client_id, is_published'),
+  ]);
+  if (error) {
+    panel.replaceChildren(
+      el('p', { class: 'admin-error', 'aria-live': 'polite' }, `Failed to load clients: ${error.message}`)
+    );
+    return;
+  }
+
+  const total = new Map();
+  const published = new Map();
+  for (const p of projectRows || []) {
+    if (!p.client_id) continue;
+    total.set(p.client_id, (total.get(p.client_id) || 0) + 1);
+    if (p.is_published) published.set(p.client_id, (published.get(p.client_id) || 0) + 1);
+  }
+
+  const rows = (clients || []).map((c) => {
+    const count = total.get(c.id) || 0;
+    const live = published.get(c.id) || 0;
+    const editBtn = el('button', { class: 'admin-btn admin-btn--icon', type: 'button' }, 'Edit');
+    const deleteBtn = el('button', { class: 'admin-btn admin-btn--icon admin-btn--danger', type: 'button' }, 'Delete');
+    deleteBtn.addEventListener('click', () => deleteClient(c, count, panel));
+
+    const row = el(
+      'div',
+      { class: 'admin-list__row' },
+      c.banner_url
+        ? el('img', { src: c.banner_url, alt: '', class: 'admin-list__thumb' })
+        : el('span', { class: 'admin-list__thumb admin-list__thumb--empty', 'aria-hidden': 'true' }),
+      el(
+        'div',
+        { class: 'admin-list__main' },
+        el('span', { class: 'admin-list__title' }, c.name),
+        el(
+          'span',
+          { class: 'admin-list__meta' },
+          `${count} project${count === 1 ? '' : 's'}` +
+            (count ? ` · ${live} live` : '') +
+            (c.banner_url ? ' · own banner' : ' · banner from first project')
+        )
+      ),
+      // Only a client with 2+ PUBLISHED projects actually gets a grouped card
+      // and a page — say so, so an unused banner is never a mystery.
+      el(
+        'span',
+        { class: `admin-badge${live > 1 ? ' admin-badge--live' : ''}` },
+        live > 1 ? 'Grouped card' : 'Single card'
+      ),
+      el('div', { class: 'admin-list__actions' }, editBtn, deleteBtn)
+    );
+
+    editBtn.addEventListener('click', () => {
+      row.replaceWith(
+        el('div', { class: 'admin-list__row' }, clientForm(c, count, () => renderClientsTab(panel)))
+      );
+    });
+
+    return row;
+  });
+
+  panel.replaceChildren(
+    el(
+      'section',
+      {},
+      el('h2', { class: 'admin-section__title' }, 'Clients'),
+      el(
+        'p',
+        { class: 'admin-field__hint' },
+        'A client with two or more published projects becomes one card on the home page and gets its own page. Set that card’s banner and subtitle here. New clients are added from the project form.'
+      ),
+      rows.length ? el('div', { class: 'admin-list' }, ...rows) : el('p', { class: 'admin-field__hint' }, 'No clients yet.')
+    )
   );
 }
 

@@ -9,6 +9,7 @@
 
 import { qs, qsa, el, revealOnScroll, slugify } from './util.js';
 import { supabase } from './supabase.js';
+import { pictureFor } from './image.js';
 import { projectCard, cardSkeletons } from './project-card.js';
 
 const pane = qs('#pane');
@@ -40,8 +41,10 @@ function skeleton() {
   );
 }
 
+// select('*') rather than a named column list, so this page keeps working
+// whether or not sql/006 (the client banner columns) has been applied yet.
 async function resolveClient(key) {
-  const { data, error } = await supabase.from('clients').select('id, name');
+  const { data, error } = await supabase.from('clients').select('*');
   if (error) throw error;
   return (data || []).find((c) => slugify(c.name) === key || String(c.id) === key) || null;
 }
@@ -83,12 +86,29 @@ async function load() {
 
   document.title = `${client.name} · Control Tee`;
 
+  // The same banner the home card uses, when one is set. Decorative: the h1
+  // right below it already names the client, so alt would only repeat it.
+  let banner = null;
+  if (client.banner_url) {
+    banner = pictureFor(client.banner_url, client.banner_w, client.banner_h, {
+      alt: '',
+      sizes: '(max-width: 1100px) 100vw, 70vw',
+      loading: 'eager',
+      priority: true,
+    });
+    banner.classList.add('client-head__banner');
+  }
+
   const head = el(
     'header',
     { class: 'client-head' },
     el('a', { class: 'client-head__back', href: '/' }, '← Back to work'),
+    banner,
     el('p', { class: 'client-head__eyebrow' }, 'Client'),
     el('h1', { class: 'client-head__title' }, client.name),
+    client.description?.trim()
+      ? el('p', { class: 'client-head__summary' }, client.description.trim())
+      : null,
     el(
       'p',
       { class: 'client-head__count' },

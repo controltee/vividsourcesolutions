@@ -7,22 +7,30 @@ import { pictureFor } from './image.js';
 import { CARD_SIZES, projectCard, cardSkeletons } from './project-card.js';
 
 // --- Data ------------------------------------------------------------------
+// Clients are fetched as their own (tiny) table rather than embedded on each
+// project, because the grouped card needs the client's OWN banner and subtitle,
+// not just its name. select('*') keeps this working whether or not sql/006 has
+// been applied — PostgREST errors on a named column it doesn't know, but is
+// happy to return one row shape short.
 async function loadProjects() {
-  const [cats, projs] = await Promise.all([
+  const [cats, projs, clients] = await Promise.all([
     supabase.from('categories').select('id, sort_order'),
     supabase
       .from('projects')
       .select(
-        'id, title, slug, summary, cover_url, banner_w, banner_h, category_id, client_id, sort_order, clients(name)'
+        'id, title, slug, summary, cover_url, banner_w, banner_h, category_id, client_id, sort_order'
       )
       .eq('is_published', true),
+    supabase.from('clients').select('*'),
   ]);
   if (cats.error) throw cats.error;
   if (projs.error) throw projs.error;
 
   const catOrder = new Map(cats.data.map((c) => [c.id, c.sort_order ?? 0]));
+  const clientById = new Map((clients.data || []).map((c) => [c.id, c]));
   return projs.data
     .filter((p) => p.slug)
+    .map((p) => ({ ...p, client: p.client_id ? clientById.get(p.client_id) || null : null }))
     .sort(
       (a, b) =>
         (catOrder.get(a.category_id) ?? 999) - (catOrder.get(b.category_id) ?? 999) ||
@@ -61,8 +69,9 @@ function groupByClient(projects) {
     emitted.add(p.client_id);
     items.push({
       kind: 'client',
-      name: p.clients?.name || 'Client',
-      slug: slugify(p.clients?.name) || p.client_id,
+      client: p.client,
+      name: p.client?.name || 'Client',
+      slug: slugify(p.client?.name) || p.client_id,
       projects: siblings,
     });
   }
@@ -200,11 +209,27 @@ async function renderIntro() {
 }
 
 // --- Render ----------------------------------------------------------------
-// One card standing in for every project a repeat client has. The cover is the
-// first project's banner that actually has one, so the card never falls back to
-// an empty tile just because the top project is missing artwork.
+// One card standing in for every project a repeat client has.
+//
+// The banner is the client's OWN one when set in the admin's Clients tab.
+// `banner_url` is a live column that predates this rebuild, so a client the old
+// codebase already gave a banner to keeps it. Otherwise it falls back to the
+// first project's banner that actually has one, so the card is never an empty
+// tile just because the top project is missing artwork.
+//
+// banner_w/banner_h may be null on a banner uploaded by the old admin; pictureFor
+// then returns a plain <img> with no srcset rather than risking a distorted
+// crop. Opening that client in the admin and saving fills the dimensions in.
+function clientCardMedia(group) {
+  const own = group.client;
+  if (own?.banner_url) {
+    return { cover_url: own.banner_url, banner_w: own.banner_w, banner_h: own.banner_h };
+  }
+  return group.projects.find((p) => p.cover_url) || group.projects[0];
+}
+
 function clientCard(group, { eager, priority }) {
-  const lead = group.projects.find((p) => p.cover_url) || group.projects[0];
+  const lead = clientCardMedia(group);
   const picture = pictureFor(lead.cover_url, lead.banner_w, lead.banner_h, {
     alt: '',
     sizes: CARD_SIZES,
@@ -232,10 +257,14 @@ function clientCard(group, { eager, priority }) {
       'div',
       { class: 'project-card__text' },
       el('h2', { class: 'project-card__title' }, group.name),
+      // The client's own subtitle wins when set; otherwise the card keeps
+      // listing what's inside it, which is what tells a visitor the tile opens
+      // onto more than one thing.
       el(
         'p',
         { class: 'project-card__summary' },
-        `${count} projects · ${group.projects.map((p) => p.title).join(', ')}`
+        group.client?.description?.trim() ||
+          `${count} projects · ${group.projects.map((p) => p.title).join(', ')}`
       )
     )
   );

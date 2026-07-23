@@ -31,9 +31,11 @@ machine. css/js are cached `max-age=3600`, so code changes need a hard-reload
 
 ## Live schema mapping (reconciled + applied, Phase 2)
 
-The new frontend reads the live tables directly. Reuse live column names. All
-migrations in sql/ (001 schema, 002 backfill, 003 RLS, 004 media dimensions,
-005 contact/social rows) are applied — verified against the live DB 2026-07-19.
+The new frontend reads the live tables directly. Reuse live column names.
+Migrations 001 (schema), 002 (backfill), 003 (RLS), 004 (media dimensions) and
+005 (contact/social rows) are applied — verified against the live DB 2026-07-19.
+006 (client banner dimensions) applied 2026-07-24 — read its header first, two
+of its four columns turned out redundant against live ones.
 Note 005 is misnamed: it creates no `site_settings` table, it inserts key-value
 rows into the existing `site_content`.
 
@@ -87,6 +89,25 @@ home.js boots the homepage on import, so client.js cannot borrow from it.
 
 Picking "+ Add new client…" and typing a name that already exists reuses the
 existing client (matched on slug) instead of minting a duplicate row.
+
+**Admin → Clients** edits the PARENT card: its banner (`clients.banner_url` +
+the `banner_w`/`banner_h` added by 006) and subtitle (`clients.description`).
+`banner_url` and `description` are LIVE columns predating this rebuild — reused,
+not duplicated, which is why Riara University's old banner shows on the new card
+with no re-upload. 006's `cover_url`/`summary` are dead; see that file.
+Both fall back to the first project's cover / the list of project titles when
+unset, so a client that has never been touched renders exactly as before.
+Clients are only CREATED from the project form — no add form on this tab, since
+a client with no work renders nowhere.
+
+`banner_url` is also read by the other deployed site sharing this DB, so editing
+a client banner here changes control-tee.vercel.app too. A banner uploaded by
+the old admin has no stored dimensions; opening that client in the Clients tab
+measures the image and folds the result into the next save.
+
+Anything reading `clients` uses `select('*')`, never a named column list:
+PostgREST errors on a column it doesn't know, so a named list would break every
+page until 006 is applied in the dashboard.
 
 ## Two media modes
 Projects have a `layout` field: 'gallery' | 'deck' | 'reel'.
