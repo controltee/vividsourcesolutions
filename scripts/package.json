@@ -5,7 +5,10 @@
   "description": "Offline image optimization for control-tee-site. Dev-only, never runs on the server.",
   "scripts": {
     "img": "node optimize-images.mjs",
-    "check-auth": "node --env-file=.env check-auth.mjs"
+    "check-auth": "node --env-file=.env check-auth.mjs",
+    "inspect": "node --env-file=.env inspect-db.mjs",
+    "scan": "node scan-posters.mjs",
+    "ingest": "node --env-file=.env ingest-posters.mjs"
   },
   "dependencies": {
     "sharp": "^0.33.5"

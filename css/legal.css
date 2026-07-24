@@ -8,14 +8,6 @@
   font-size: var(--step--1);
   margin-block-end: var(--space-l);
 }
-.legal__notice {
-  border: 1px solid var(--moss);
-  border-radius: 2px;
-  padding: var(--space-s);
-  color: var(--chalk-60);
-  font-size: var(--step--1);
-  margin-block-end: var(--space-l);
-}
 .legal h2 {
   font-family: var(--font-display);
   font-weight: 500;

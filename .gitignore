@@ -9,6 +9,10 @@ node_modules/
 scripts/out/
 scripts/raw/
 
+# Reconnaissance output from scan-posters.mjs. Regenerated on demand and it
+# lists absolute paths on whichever machine ran it, so it is never source.
+scripts/scan-result.json
+
 # Vercel
 .vercel/
 

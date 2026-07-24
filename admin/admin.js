@@ -1118,7 +1118,7 @@ function clientForm(client, projectCount, onSaved) {
     coverInput.value = '';
     coverWarning.replaceChildren();
     coverPreview.replaceChildren(
-      el('p', { class: 'admin-field__hint' }, 'Cleared on save — the card will use the first project’s banner.')
+      el('p', { class: 'admin-field__hint' }, 'Cleared on save. The card will use the first project’s banner.')
     );
   });
 
@@ -1199,7 +1199,7 @@ function clientForm(client, projectCount, onSaved) {
       // rejects the whole update rather than ignoring the unknown column, so
       // say which migration is missing instead of leaking the raw error.
       errorEl.textContent = /column|schema cache/i.test(err.message)
-        ? `${err.message} — this needs sql/006_client_cover.sql run in the Supabase dashboard first.`
+        ? `${err.message}. This needs sql/006_client_cover.sql run in the Supabase dashboard first.`
         : err.message;
       setSaveState('error', errorEl.textContent);
     } finally {

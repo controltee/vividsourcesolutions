@@ -1,0 +1,84 @@
+{
+  "_readme": [
+    "Plan for ingest-posters.mjs. Edit this file, then run: npm run ingest -- --dry-run",
+    "Every project is created with is_published=false. Nothing appears on the live",
+    "site until it is switched to Live in /admin. Slugs are the idempotency key:",
+    "a project whose slug already exists is skipped, so re-running is safe.",
+    "categoryId values come from `npm run inspect`."
+  ],
+  "categories": {
+    "poster-designs": "c888ad1b-e66e-4f28-94d9-a0b3233dcb4f",
+    "social-and-marketing-campaigns": "d4257047-484d-40ca-83c4-003c68656494",
+    "brand-identity-systems": "aec78e82-2976-49f4-829d-d9b7e42452cf"
+  },
+  "root": "C:/Users/user/Downloads/Design_Assets/2026 PSDS/January",
+  "projects": [
+    {
+      "title": "Tsukuru",
+      "slug": "tsukuru",
+      "categoryId": "c888ad1b-e66e-4f28-94d9-a0b3233dcb4f",
+      "clientId": null,
+      "layout": "gallery",
+      "dateMade": "January 2026",
+      "summary": "A self initiated poster pair on making work before you feel ready.",
+      "services": ["Poster Design", "Typography", "Art Direction"],
+      "description": "Tsukuru is the Japanese verb to create, to bring into existence from nothing. The pair sets that definition against a line I kept coming back to: I cannot know who sees my work unless I stay creating.\n\nThe treatment is deliberately rough. Type is torn and reprinted until it degrades, the photography is crushed to two channels, and the circular lockup is set to run off the edge rather than sit politely in the margin. Create, build, refine, repeat.",
+      "images": [
+        {
+          "file": "Date One/January-One-2026-Stay-Creating.png",
+          "alt": "Poster reading STAY CREATING in torn white type over a crushed red and blue portrait, with the line I will have to keep doing it, no option about it."
+        },
+        {
+          "file": "Date One/January-One-2026-Stay-Creating-2.png",
+          "alt": "Companion poster titled TSUKURU with the dictionary definition of create, set over a high contrast red and black image and a circular band of text."
+        },
+        {
+          "file": "Date One/January-Posters-Slide-3.png",
+          "alt": "Both posters presented side by side on a deep red textile background under the CTRL and T monogram."
+        }
+      ]
+    },
+    {
+      "title": "Victoria",
+      "slug": "victoria",
+      "categoryId": "c888ad1b-e66e-4f28-94d9-a0b3233dcb4f",
+      "clientId": null,
+      "layout": "gallery",
+      "dateMade": "January 2026",
+      "summary": "An editorial poster on the lighthouse at Mbita, Homabay, and the name it carries.",
+      "services": ["Poster Design", "Editorial Layout", "Photo Treatment"],
+      "description": "The lighthouse at Lake Victoria Safari Village stands at Mbita, Homabay, on the lake that carries Queen Victoria's name. It is not a working navigational beacon. It is a vantage point, which felt like the more interesting thing to design around.\n\nThe layout runs the place name down the full height of the sheet and pins the coordinates to the corner, so the poster reads as a record as much as an image. Two colourways: an electric blue that pushes the structure forward, and a gold that lets the lake take it back.",
+      "images": [
+        {
+          "file": "Date Two/Slide-One.png",
+          "alt": "Poster of the Lake Victoria lighthouse in electric blue duotone, with VICTORIA set vertically down the left edge, portraits of Queen Victoria stacked at the right, and the coordinates of Mbita, Homabay."
+        },
+        {
+          "file": "Date Two/Slide-Two.png",
+          "alt": "The same lighthouse poster in a gold and black colourway, the lit windows reading warm against the dark lake."
+        },
+        {
+          "file": "Date Two/Slide Three.png",
+          "alt": "Both Victoria colourways presented side by side on a deep purple ground under the CTRL and T monogram."
+        }
+      ]
+    },
+    {
+      "title": "Skycraper Live",
+      "slug": "skycraper-live",
+      "categoryId": "c888ad1b-e66e-4f28-94d9-a0b3233dcb4f",
+      "clientId": null,
+      "layout": "gallery",
+      "dateMade": "January 2026",
+      "summary": "An unsolicited event poster for a free solo climb, built on halftone and one hard colour break.",
+      "services": ["Poster Design", "Halftone Treatment", "Type Design"],
+      "description": "A speculative poster for a live broadcast climb of Taipei 101. The brief was self set: sell height without showing the ground.\n\nSo the frame crops to the glass, the climber sits small against the grid, and the whole thing is pushed through a coarse halftone until it reads like newsprint. Two colours only, a signal red against oxidised teal, split so the building and the sky never share a tone.",
+      "images": [
+        {
+          "file": "Date Twenty Five/Date-25.png",
+          "alt": "Event poster in red and teal halftone showing a climber on the glass face of a skyscraper, with the title set vertically down the right edge and the coordinates of Taipei."
+        }
+      ]
+    }
+  ]
+}
