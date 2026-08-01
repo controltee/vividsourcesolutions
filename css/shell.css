@@ -1,6 +1,58 @@
 /* shell.css — the persistent layout: rail + pane, and the mobile drawer.
    This is identical on every page. Only the pane changes. */
 
+/* ---- Page transitions ----------------------------------------------------
+   Navigation used to be a hard cut: this is a multi-page site, so every link
+   tore the document down and painted a new one with no continuity at all.
+   Cross-document view transitions soften that with no JS and no build step.
+
+   This deliberately cross-fades the ROOT rather than giving .pane its own
+   view-transition-name. A named element is snapshotted at its FULL height, and
+   a deck project page is a column of 1920px-wide slides at natural height —
+   tens of thousands of pixels, well past the point where the snapshot texture
+   is reliable. The root snapshot is viewport-sized whatever the page height,
+   so it cannot hit that. Nothing is lost visually: the rail is identical on
+   every page, so cross-fading it is invisible, and opacity-only means it never
+   moves — which is the persistent-shell rule in CLAUDE.md.
+
+   Browsers without view transitions ignore the at-rule and navigate as before;
+   they get the @supports fallback instead, so the two never both run. */
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-old(root) {
+  animation: page-fade-out var(--dur-fast) var(--ease-out) both;
+}
+::view-transition-new(root) {
+  animation: page-fade-in var(--dur-base) var(--ease-out) both;
+}
+
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes page-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+/* Fallback only. Here the pane can lift as well as fade: this is a plain CSS
+   animation on one element, with none of the snapshot constraints above. */
+@supports not (view-transition-name: none) {
+  .pane {
+    animation: pane-enter var(--dur-base) var(--ease-out) both;
+  }
+  @keyframes pane-enter {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+  }
+}
+
 /* ---- Base --------------------------------------------------------------- */
 body {
   background: var(--ink);
@@ -97,11 +149,18 @@ body {
   color: var(--chalk-40);
 }
 
-/* Scroll-reveal: fade + short lift. Reduced-motion removes it entirely. */
+/* Scroll-reveal: fade + short lift. Reduced-motion removes it entirely.
+   Retuned: 12px over --dur-base read as a twitch — too short a distance to be
+   a movement and too quick to be a settle, which is what made it look like a
+   stutter rather than an entrance. A longer lift over --dur-slow, on an ease
+   that decelerates hard, arrives instead of snapping. Opacity leads slightly
+   so the card is legible before it finishes moving. */
 .reveal {
   opacity: 0;
-  transform: translateY(12px);
-  transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
+  transform: translateY(22px);
+  transition:
+    opacity calc(var(--dur-slow) * 0.7) var(--ease-out),
+    transform var(--dur-slow) var(--ease-out);
 }
 .reveal.is-visible {
   opacity: 1;
@@ -150,6 +209,17 @@ body {
     transition: none;
   }
   .skeleton::after {
+    animation: none;
+  }
+  /* Page transitions off, both the real one and its fallback. !important is
+     needed here and only here: the browser applies its own default cross-fade
+     to these pseudo-elements, and a plain declaration does not displace it. */
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+  .pane {
     animation: none;
   }
 }

@@ -85,6 +85,11 @@
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --dur-fast: 160ms;
   --dur-base: 280ms;
+  /* For entrances only — a scroll reveal or a page arriving. Long enough to
+     read as a considered settle rather than a snap, and still short enough
+     that nobody waits on it. Never use it for a hover: --dur-fast/base are
+     what respond to a pointer. */
+  --dur-slow: 560ms;
 
   /* Enable keyword height interpolation (progressive enhancement) */
   interpolate-size: allow-keywords;

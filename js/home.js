@@ -173,8 +173,11 @@ async function renderMarquee() {
   track.replaceChildren(...logos.map((l) => item(l, false)), ...logos.map((l) => item(l, true)));
 
   // Constant pixels-per-second regardless of how many logos there are, so
-  // adding clients slows the loop down rather than making it race.
-  track.style.setProperty('--marquee-duration', `${Math.max(24, logos.length * 6)}s`);
+  // adding clients slows the loop down rather than making it race. The
+  // per-logo figure tracks the rendered logo size: the marks are ~35% smaller
+  // than they were, so the track is ~35% shorter, and holding the old 6s per
+  // logo would have quietly slowed the drift by the same proportion.
+  track.style.setProperty('--marquee-duration', `${Math.max(18, logos.length * 4)}s`);
   section.hidden = false;
 }
 

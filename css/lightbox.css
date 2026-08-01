@@ -1,4 +1,10 @@
-/* lightbox.css — gallery mode only. Native <dialog>, fade only. */
+/* lightbox.css — gallery mode only. Native <dialog>.
+   The whole thing used to be a single 160ms opacity fade on the dialog, which
+   made opening a poster feel like a screenshot being pasted over the page: the
+   backdrop, the image and the chrome all arrived flat and at once, and closing
+   had no animation at all because <dialog> hides the moment .close() is called.
+   Now the backdrop fades on its own while the figure rises into it, and the
+   close is played out before the dialog is actually closed (see lightbox.js). */
 
 .lightbox {
   border: none;
@@ -22,6 +28,26 @@
   justify-content: center;
   animation: lightbox-fade var(--dur-fast) var(--ease-out);
 }
+/* The backdrop is its own element with its own animation — it darkens the page
+   ahead of the figure landing, so the poster arrives onto a settled ground. */
+.lightbox[open]::backdrop {
+  animation: lightbox-fade var(--dur-base) var(--ease-out);
+}
+/* Scale and settle. 0.98 -> 1 over --dur-base with the decelerating ease: the
+   image comes forward and stops, it does not spring. */
+.lightbox[open] .lightbox__figure {
+  animation: lightbox-rise var(--dur-base) var(--ease-out);
+}
+
+/* Held on the dialog by lightbox.js for the length of --dur-fast before
+   .close() actually runs. Without it there is no close animation at all. */
+.lightbox--closing[open],
+.lightbox--closing[open]::backdrop {
+  animation: lightbox-out var(--dur-fast) var(--ease-out) both;
+}
+.lightbox--closing[open] .lightbox__figure {
+  animation: none;
+}
 
 @keyframes lightbox-fade {
   from {
@@ -29,6 +55,17 @@
   }
   to {
     opacity: 1;
+  }
+}
+@keyframes lightbox-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes lightbox-rise {
+  from {
+    opacity: 0;
+    transform: scale(0.98) translateY(8px);
   }
 }
 
@@ -50,6 +87,18 @@
   width: auto;
   height: auto;
   object-fit: contain;
+}
+/* Stepping between slides used to be an instant swap the moment the next file
+   decoded, which at full-screen size reads as a jolt. lightbox.js adds this
+   class on the new image's `load`, so the fade covers the arrival rather than
+   the wait — fading from src-set time would show a gap while it downloads. */
+.lightbox__img.is-swapping {
+  animation: lightbox-swap var(--dur-fast) var(--ease-out);
+}
+@keyframes lightbox-swap {
+  from {
+    opacity: 0;
+  }
 }
 
 .lightbox__caption {
@@ -103,7 +152,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .lightbox[open] {
+  .lightbox[open],
+  .lightbox[open]::backdrop,
+  .lightbox[open] .lightbox__figure,
+  .lightbox__img.is-swapping {
     animation: none;
   }
+  /* lightbox.js also skips the delayed close under reduced motion, so the
+     dialog is never left sitting in a closing state that never animates. */
 }

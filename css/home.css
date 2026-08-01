@@ -160,7 +160,9 @@
 .marquee__track {
   display: flex;
   align-items: center;
-  gap: var(--space-xl);
+  /* Scaled with the logos below. --space-xl beside marks this size left holes
+     big enough to read as gaps in the strip rather than as spacing. */
+  gap: var(--space-l);
   width: max-content;
   animation: marquee-drift var(--marquee-duration, 40s) linear infinite;
 }
@@ -175,14 +177,16 @@
   align-items: center;
 }
 .marquee__item img {
-  /* The logos are the whole point of this band, so they are sized as artwork
-     rather than as a footnote. Fluid between phone and desktop: a fixed 10rem
-     would eat a small screen, and the original 4.5rem is what made the strip
-     read as out of focus on a wide one. Backed off a step from the first pass
-     at 11vw/12rem, which tipped over into shouting. */
-  height: clamp(5rem, 9vw, 10rem);
+  /* Sized as a supporting band, not as artwork. This has been walked down
+     twice now — 11vw/12rem shouted, 9vw/10rem still pulled the eye off the
+     work above it. At 6vw/6.5rem the marks are comfortably legible and the
+     strip reads as what it is: closing credits under the projects. Kept fluid
+     so a phone is not eaten by a fixed size. */
+  height: clamp(3.25rem, 6vw, 6.5rem);
   width: auto;
-  max-width: min(30rem, 58vw);
+  /* Down with the height, so a wide wordmark cannot claim the width the old
+     size allowed it and reintroduce the imbalance from the other direction. */
+  max-width: min(20rem, 44vw);
   object-fit: contain;
   /* Logos arrive in mixed colours. brightness(0) crushes every one to solid
      black, then invert(1) lifts it to pure white, so the whole strip is one
@@ -243,10 +247,18 @@ img.project-card__picture {
   transition: transform var(--dur-base) var(--ease-out);
 }
 
-/* The entire hover treatment: the image scales, nothing else moves. */
+/* Hover: the image pushes in, the text answers.
+   A 1.02 scale on its own was below the threshold where a card reads as
+   responding at all — on a large banner that is two or three pixels of travel.
+   The scale is firmer now, and the title picks up the accent with a rule that
+   wipes in beneath it, so the whole card acknowledges the pointer as one
+   gesture instead of one corner of it twitching. Still only scale, colour and
+   a wipe: nothing bounces, nothing rotates. */
 .project-card:hover .project-card__picture img,
-.project-card:hover img.project-card__picture {
-  transform: scale(1.02);
+.project-card:hover img.project-card__picture,
+.project-card:focus-visible .project-card__picture img,
+.project-card:focus-visible img.project-card__picture {
+  transform: scale(1.04);
 }
 
 /* ---- Client card ---------------------------------------------------------
@@ -302,11 +314,40 @@ img.project-card__picture {
   font-weight: 500;
   font-size: var(--step-1);
   line-height: 1.15;
+  /* inline-block so the rule below is the width of the TEXT, not of the card:
+     a hairline running the full column would read as a divider. */
+  display: inline-block;
+  color: var(--chalk);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+/* The rule that wipes in under the title on hover. transform on a
+   pseudo-element, so it costs nothing and never reflows the card. */
+.project-card__title::after {
+  content: "";
+  display: block;
+  height: 1px;
+  margin-block-start: 2px;
+  background: var(--accent-ink);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--dur-base) var(--ease-out);
+}
+.project-card:hover .project-card__title,
+.project-card:focus-visible .project-card__title {
+  color: var(--accent-ink);
+}
+.project-card:hover .project-card__title::after,
+.project-card:focus-visible .project-card__title::after {
+  transform: scaleX(1);
 }
 .project-card__summary {
   margin-block-start: var(--space-3xs);
   color: var(--chalk-60);
   font-size: var(--step--1);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.project-card:hover .project-card__summary {
+  color: var(--chalk);
 }
 /* The client card's summary lists every project title, which can run long. Two
    lines is enough to show what's inside; the client page has the full list. */
@@ -392,8 +433,19 @@ img.client-head__banner {
     transition: none;
   }
   .project-card:hover .project-card__picture img,
-  .project-card:hover img.project-card__picture {
+  .project-card:hover img.project-card__picture,
+  .project-card:focus-visible .project-card__picture img,
+  .project-card:focus-visible img.project-card__picture {
     transform: none;
+  }
+  /* The colour change stays — it is the hover cue that carries when motion is
+     off — but the rule appears rather than wiping in. */
+  .project-card__title,
+  .project-card__summary {
+    transition: none;
+  }
+  .project-card__title::after {
+    transition: none;
   }
   /* No looping motion: the first word simply stays put. The second is removed
      rather than stacked on top of it, since both would otherwise sit at the

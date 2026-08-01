@@ -133,10 +133,25 @@
   display: block;
   width: 100%;
   height: auto;
-  transition: transform var(--dur-base) var(--ease-out);
+  transition:
+    transform var(--dur-base) var(--ease-out),
+    opacity var(--dur-fast) var(--ease-out);
 }
-.gallery__item:hover img {
-  transform: scale(1.02);
+/* Matched to the home card's hover, which was raised for the same reason: at
+   1.02 a poster this size barely acknowledged the pointer. The slight lift in
+   opacity separates the hovered poster from the column around it, which is the
+   cue that it opens into the lightbox. */
+.gallery__item:hover img,
+.gallery__item:focus-visible img {
+  transform: scale(1.04);
+}
+/* :has(), not .gallery:hover — the grid has 24px column gaps, and hovering the
+   container is also true when the pointer is in a gap, which dimmed every
+   poster at once with nothing picked out. This engages only when an item is
+   actually under the pointer. Browsers without :has() simply skip the rule and
+   keep the scale on its own. */
+.gallery:has(.gallery__item:hover) .gallery__item:not(:hover) img {
+  opacity: 0.72;
 }
 .gallery__item:focus-visible {
   outline: 2px solid var(--accent-ink);
@@ -179,7 +194,10 @@
   .gallery__item img {
     transition: none;
   }
-  .gallery__item:hover img {
+  .gallery__item:hover img,
+  .gallery__item:focus-visible img {
     transform: none;
   }
+  /* The dimming is a state change, not motion, so it stays — it just arrives
+     instantly rather than fading. */
 }

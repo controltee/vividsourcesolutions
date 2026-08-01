@@ -64,13 +64,20 @@ export function revealOnScroll(elements) {
     { threshold: 0.08, rootMargin: '0px 0px -40px 0px' }
   );
   // Stagger: items reveal in sequence rather than snapping in as one block,
-  // which reads calmer on a grid. Capped at 6 steps so a long gallery never
-  // leaves the last images visibly waiting. Set per-property via CSSOM, never
-  // as a style="" string, because the CSP's style-src has no 'unsafe-inline'.
+  // which reads calmer on a grid. Capped so a long gallery never leaves the
+  // last images visibly waiting. Set per-property via CSSOM, never as a
+  // style="" string, because the CSP's style-src has no 'unsafe-inline'.
   // The delay is cleared once the reveal finishes so it cannot slow later
   // transitions on the same element.
+  //
+  // The step is deliberately shorter than it was (60ms -> 45ms) now that the
+  // reveal itself runs longer: the two used to add up to a queue you could
+  // watch working down the grid. Overlapping the reveals instead reads as one
+  // movement with a leading edge, which is the point of a stagger.
+  const STEP_MS = 45;
+  const MAX_STEPS = 8;
   list.forEach((node, i) => {
-    node.style.transitionDelay = `${Math.min(i, 6) * 60}ms`;
+    node.style.transitionDelay = `${Math.min(i, MAX_STEPS) * STEP_MS}ms`;
     node.addEventListener(
       'transitionend',
       () => {

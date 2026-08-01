@@ -202,7 +202,71 @@ const TABS = [
   { id: 'logos', label: 'Client logos' },
   { id: 'settings', label: 'Site & Contact' },
 ];
-let activeTabId = 'projects';
+
+// Where you were survives a genuine RELOAD, not just an in-page tab switch.
+// That distinction matters: browsers discard background tabs to save memory
+// (Chrome's Memory Saver, and any mobile OS reclaiming a suspended app), so
+// coming back to the admin after a while can be a full page load with every
+// bit of in-memory state gone. Keeping this in localStorage is what makes the
+// difference between "it reopened where I was" and "it refreshed on me".
+//
+// localStorage rather than sessionStorage: a discarded tab may be restored
+// into a new session, and a second admin window should open where the first
+// one was left.
+const STATE_KEY = 'ct:admin-view';
+
+function readState() {
+  try {
+    return JSON.parse(localStorage.getItem(STATE_KEY)) || {};
+  } catch {
+    return {}; // private mode, or a value written by an older version
+  }
+}
+
+function writeState(patch) {
+  try {
+    localStorage.setItem(STATE_KEY, JSON.stringify({ ...readState(), ...patch }));
+  } catch {
+    /* private mode / quota — state just won't outlive this page */
+  }
+}
+
+const savedState = readState();
+let activeTabId = TABS.some((t) => t.id === savedState.tab) ? savedState.tab : 'projects';
+
+// Where the Projects tab was left standing. Leaving for Clients and coming back
+// used to drop you on the list with the open project closed; now the editor is
+// reopened on the project you were in. Only a SAVED project is remembered — a
+// half-filled "New project" form has nothing to restore from.
+let projectsView =
+  savedState.project && typeof savedState.project === 'string'
+    ? { mode: 'editor', projectId: savedState.project, showGallery: !!savedState.gallery }
+    : { mode: 'list' };
+
+function setProjectsView(next) {
+  projectsView = next;
+  writeState(
+    next.mode === 'editor'
+      ? { project: String(next.projectId), gallery: !!next.showGallery }
+      : { project: null, gallery: false }
+  );
+}
+
+function showLoading(panel) {
+  // Only paint a placeholder into an EMPTY panel. Replacing already-rendered
+  // content with "Loading…" on every mutation is what made a save or a reorder
+  // read as a page refresh; leaving the current content up until the new one is
+  // ready is both calmer and more honest about what changed.
+  if (!panel.childNodes.length) panel.replaceChildren(el('p', {}, 'Loading…'));
+}
+
+function renderActiveTab(panel) {
+  if (activeTabId === 'categories') renderCategoriesTab(panel);
+  else if (activeTabId === 'clients') renderClientsTab(panel);
+  else if (activeTabId === 'logos') renderLogosTab(panel);
+  else if (activeTabId === 'settings') renderSettingsTab(panel);
+  else enterProjectsTab(panel);
+}
 
 function renderApp() {
   const topbar = el(
@@ -240,18 +304,24 @@ function renderApp() {
   root.replaceChildren(el('div', { class: 'admin-app' }, topbar, tabsNav, panel));
 
   qs('#logout-btn').addEventListener('click', () => supabase.auth.signOut());
+  // Switching tabs swaps the PANEL only. Re-running renderApp() rebuilt the
+  // topbar too, which threw away any in-flight save indicator and made a tab
+  // change flash the whole screen.
   tabButtons.forEach((btn) =>
     btn.addEventListener('click', () => {
+      if (btn.dataset.tab === activeTabId) return;
       activeTabId = btn.dataset.tab;
-      renderApp();
+      writeState({ tab: activeTabId });
+      tabButtons.forEach((b) => {
+        if (b.dataset.tab === activeTabId) b.setAttribute('aria-current', 'page');
+        else b.removeAttribute('aria-current');
+      });
+      panel.replaceChildren();
+      renderActiveTab(panel);
     })
   );
 
-  if (activeTabId === 'categories') renderCategoriesTab(panel);
-  else if (activeTabId === 'clients') renderClientsTab(panel);
-  else if (activeTabId === 'logos') renderLogosTab(panel);
-  else if (activeTabId === 'settings') renderSettingsTab(panel);
-  else renderProjectsTab(panel);
+  renderActiveTab(panel);
 }
 
 // --- Categories tab --------------------------------------------------------------
@@ -335,7 +405,7 @@ async function deleteCategory(id, projectCount, panel) {
 }
 
 async function renderCategoriesTab(panel) {
-  panel.replaceChildren(el('p', {}, 'Loading…'));
+  showLoading(panel);
 
   const [{ data: categories, error }, { data: projectRows }] = await Promise.all([
     supabase.from('categories').select('*').order('sort_order'),
@@ -622,19 +692,67 @@ function projectForm(project, categories, clients, onSaved) {
   return form;
 }
 
+// The data behind whatever the Projects tab last painted. Held so a reorder can
+// redraw from memory instead of refetching: the swap is a pure local operation,
+// and a round trip to the database only to render the same rows back is what
+// made pressing ↑ blank the list and rebuild it.
+let projectsData = null;
+
+// Matches the ordering of the tab's query (.order('category_id').order('sort_order'))
+// so a repaint after a local swap groups exactly as a fresh fetch would.
+function compareProjects(a, b) {
+  return (
+    String(a.category_id).localeCompare(String(b.category_id)) ||
+    (a.sort_order ?? 0) - (b.sort_order ?? 0)
+  );
+}
+
 async function moveProject(projectsInCategory, id, direction) {
   const i = projectsInCategory.findIndex((p) => p.id === id);
   const j = i + direction;
   if (j < 0 || j >= projectsInCategory.length) return;
   const a = projectsInCategory[i];
   const b = projectsInCategory[j];
-  await withSaveState(
-    Promise.all([
-      supabase.from('projects').update({ sort_order: b.sort_order }).eq('id', a.id).throwOnError(),
-      supabase.from('projects').update({ sort_order: a.sort_order }).eq('id', b.id).throwOnError(),
-    ])
+
+  // Swap locally and repaint FIRST. These are the same object references the
+  // tab was painted from, so the new order is on screen in the same frame the
+  // button was pressed, and the write below just catches up.
+  const aSort = a.sort_order;
+  const bSort = b.sort_order;
+  const role = direction < 0 ? 'up' : 'down';
+  a.sort_order = bSort;
+  b.sort_order = aSort;
+  repaintProjects(a.id, role);
+
+  try {
+    await withSaveState(
+      Promise.all([
+        supabase.from('projects').update({ sort_order: bSort }).eq('id', a.id).throwOnError(),
+        supabase.from('projects').update({ sort_order: aSort }).eq('id', b.id).throwOnError(),
+      ])
+    );
+  } catch {
+    // Put the rows back where they were rather than leaving the screen showing
+    // an order the database does not have. setSaveState already said "Error".
+    a.sort_order = aSort;
+    b.sort_order = bSort;
+    repaintProjects(a.id, role);
+  }
+}
+
+// Re-sort from the local rows and redraw, then hand focus back to the button
+// that was just pressed on the project that moved.
+function repaintProjects(focusId, role) {
+  if (!projectsData) return;
+  const panel = qs('#admin-panel');
+  if (!panel) return;
+  projectsData.projects.sort(compareProjects);
+  paintProjectsTab(panel, projectsData);
+  const btn = qs(
+    `.admin-list__row[data-project-id="${CSS.escape(String(focusId))}"] [data-role="${role}"]`,
+    panel
   );
-  renderProjectsTab(qs('#admin-panel'));
+  if (btn && !btn.disabled) btn.focus();
 }
 
 async function deleteProject(project) {
@@ -656,7 +774,7 @@ async function deleteProject(project) {
 }
 
 async function renderProjectsTab(panel, focusProjectId) {
-  panel.replaceChildren(el('p', {}, 'Loading…'));
+  showLoading(panel);
 
   const [{ data: categories }, { data: projects, error }, clients] = await Promise.all([
     supabase.from('categories').select('*').order('sort_order'),
@@ -667,6 +785,23 @@ async function renderProjectsTab(panel, focusProjectId) {
     panel.replaceChildren(el('p', { class: 'admin-error', 'aria-live': 'polite' }, `Failed to load projects: ${error.message}`));
     return;
   }
+
+  projectsData = { categories: categories || [], projects: projects || [], clients };
+
+  if (focusProjectId) {
+    const project = projects.find((p) => p.id === focusProjectId);
+    if (project) {
+      renderProjectEditor(panel, project, categories, clients, { showGallery: true });
+      return;
+    }
+  }
+  paintProjectsTab(panel, projectsData);
+}
+
+// Synchronous. Builds the whole tab from data already in hand, so a reorder is
+// a repaint rather than a reload.
+function paintProjectsTab(panel, { categories, projects, clients }) {
+  setProjectsView({ mode: 'list' });
 
   const categoryById = new Map((categories || []).map((c) => [c.id, c]));
   const clientById = new Map(clients.map((c) => [c.id, c]));
@@ -684,8 +819,11 @@ async function renderProjectsTab(panel, focusProjectId) {
     const row = (p, i) => {
       const editBtn = el('button', { class: 'admin-btn admin-btn--icon', type: 'button' }, 'Edit');
       const galleryBtn = el('button', { class: 'admin-btn admin-btn--icon', type: 'button' }, 'Gallery');
-      const upBtn = el('button', { class: 'admin-btn admin-btn--icon', type: 'button', disabled: i === 0 }, '↑');
-      const downBtn = el('button', { class: 'admin-btn admin-btn--icon', type: 'button', disabled: i === list.length - 1 }, '↓');
+      // data-role + the row's data-project-id let moveProject put the keyboard
+      // back on the same button after the repaint, so ↑ ↑ ↑ walks a project up
+      // the list instead of dropping focus to the body on the first press.
+      const upBtn = el('button', { class: 'admin-btn admin-btn--icon', type: 'button', 'data-role': 'up', disabled: i === 0 }, '↑');
+      const downBtn = el('button', { class: 'admin-btn admin-btn--icon', type: 'button', 'data-role': 'down', disabled: i === list.length - 1 }, '↓');
       const deleteBtn = el('button', { class: 'admin-btn admin-btn--icon admin-btn--danger', type: 'button' }, 'Delete');
 
       upBtn.addEventListener('click', () => moveProject(list, p.id, -1));
@@ -697,7 +835,7 @@ async function renderProjectsTab(panel, focusProjectId) {
       const clientName = p.client_id ? clientById.get(p.client_id)?.name : null;
       return el(
         'div',
-        { class: 'admin-list__row' },
+        { class: 'admin-list__row', 'data-project-id': p.id },
         el(
           'div',
           { class: 'admin-list__main' },
@@ -761,14 +899,39 @@ async function renderProjectsTab(panel, focusProjectId) {
   newBtn.addEventListener('click', () => renderProjectEditor(panel, null, categories, clients));
 
   panel.replaceChildren(el('div', { class: 'admin-form__actions' }, newBtn), ...sections);
+}
 
-  if (focusProjectId) {
-    const project = projects.find((p) => p.id === focusProjectId);
-    if (project) renderProjectEditor(panel, project, categories, clients, { showGallery: true });
+// Entry point for the Projects tab. Reopens the editor the tab was left on
+// instead of always landing on the list.
+async function enterProjectsTab(panel) {
+  const { mode, projectId, showGallery } = projectsView;
+  if (mode !== 'editor' || !projectId) {
+    renderProjectsTab(panel);
+    return;
   }
+  showLoading(panel);
+  const [{ data: categories }, { data: project }, clients] = await Promise.all([
+    supabase.from('categories').select('*').order('sort_order'),
+    supabase.from('projects').select('*').eq('id', projectId).maybeSingle(),
+    fetchClients(),
+  ]);
+  // Deleted from another window, or the row is simply gone: fall back to the
+  // list rather than showing an editor for nothing.
+  if (!project) {
+    setProjectsView({ mode: 'list' });
+    renderProjectsTab(panel);
+    return;
+  }
+  renderProjectEditor(panel, project, categories || [], clients, { showGallery });
 }
 
 function renderProjectEditor(panel, project, categories, clients, { showGallery = false } = {}) {
+  // Remembered so a trip to another tab (or a browser tab switch) comes back to
+  // this project rather than to the list.
+  setProjectsView(
+    project?.id ? { mode: 'editor', projectId: project.id, showGallery } : { mode: 'list' }
+  );
+
   const form = projectForm(project, categories, clients, (savedId) => renderProjectsTab(panel, savedId));
   const heading = el('h2', { class: 'admin-section__title' }, project ? `Edit: ${project.title}` : 'New project');
   const sections = [el('section', {}, heading, form)];
@@ -785,20 +948,6 @@ function renderProjectEditor(panel, project, categories, clients, { showGallery 
 }
 
 // --- Gallery manager (project_media) ------------------------------------------
-async function moveAsset(assets, id, direction) {
-  const i = assets.findIndex((a) => a.id === id);
-  const j = i + direction;
-  if (j < 0 || j >= assets.length) return;
-  const a = assets[i];
-  const b = assets[j];
-  await withSaveState(
-    Promise.all([
-      supabase.from('project_media').update({ sort_order: b.sort_order }).eq('id', a.id).throwOnError(),
-      supabase.from('project_media').update({ sort_order: a.sort_order }).eq('id', b.id).throwOnError(),
-    ])
-  );
-}
-
 // Rewrite sort_order to match array position after a drag. Only rows that
 // actually moved are sent, so nudging one image up a slot is a couple of
 // updates rather than one per image in the gallery.
@@ -815,19 +964,7 @@ async function persistAssetOrder(assets) {
   for (const { a, i } of changed) a.sort_order = i;
 }
 
-// Reads the grid's final DOM order and persists it. Bails out if the DOM and
-// the data have drifted apart, rather than writing a half-correct order.
-async function persistOrderFromDom(grid, assets) {
-  const byId = new Map(assets.map((a) => [String(a.id), a]));
-  const ordered = qsa('.admin-asset', grid)
-    .map((n) => byId.get(n.dataset.assetId))
-    .filter(Boolean);
-  if (ordered.length !== assets.length) return;
-  await persistAssetOrder(ordered);
-}
-
 async function deleteAsset(asset) {
-  if (!confirm('Remove this image from the gallery?')) return;
   const path = storagePathFromUrl(asset.media_url);
   await withSaveState(
     (async () => {
@@ -837,9 +974,18 @@ async function deleteAsset(asset) {
   );
 }
 
+// The gallery updates IN PLACE. Every mutation used to end with a call back
+// into this function, which refetched the rows and rebuilt every card — so
+// dropping a dragged image, or finishing an upload, made the whole gallery
+// blank and redraw. It reads as the page refreshing under you, and it throws
+// away scroll position and any half-typed alt text in a sibling card.
+//
+// So: this runs ONCE per project. After that, uploads append cards, deletes
+// remove them, and reorders move the existing nodes. The DOM is the source of
+// truth for order; `byId` holds the row data.
 async function renderGalleryManager(container, project) {
-  container.replaceChildren(el('p', {}, 'Loading gallery…'));
-  const { data: assets, error } = await supabase
+  if (!container.childNodes.length) container.replaceChildren(el('p', {}, 'Loading gallery…'));
+  const { data, error } = await supabase
     .from('project_media')
     .select('*')
     .eq('project_id', project.id)
@@ -849,7 +995,37 @@ async function renderGalleryManager(container, project) {
     return;
   }
 
+  const assets = data || [];
+  const byId = new Map(assets.map((a) => [String(a.id), a]));
   const grid = el('div', { class: 'admin-asset-grid' });
+
+  const nodes = () => qsa('.admin-asset', grid);
+  const orderedAssets = () => nodes().map((n) => byId.get(n.dataset.assetId)).filter(Boolean);
+
+  // The only thing that goes stale when cards move: which arrows are at the
+  // ends, and the handle's "image 3 of 9". Refreshed by walking the DOM, which
+  // costs nothing at this size and cannot disagree with what is on screen.
+  function refreshControls() {
+    const list = nodes();
+    list.forEach((node, i) => {
+      qs('[data-role="up"]', node).disabled = i === 0;
+      qs('[data-role="down"]', node).disabled = i === list.length - 1;
+      qs('.admin-asset__handle', node).setAttribute(
+        'aria-label',
+        `Drag to reorder image ${i + 1} of ${list.length}`
+      );
+    });
+  }
+
+  async function saveOrder(errorEl) {
+    try {
+      await persistAssetOrder(orderedAssets());
+      if (errorEl) errorEl.textContent = '';
+    } catch (err) {
+      if (errorEl) errorEl.textContent = `Could not save the new order: ${err.message}`;
+      console.error('[admin] reorder failed:', err);
+    }
+  }
 
   // Reordering is driven by geometry on the GRID, not by a drop landing on a
   // particular card. The grid is multi-column with gaps between cards, so
@@ -858,7 +1034,7 @@ async function renderGalleryManager(container, project) {
   let draggingEl = null;
 
   function insertionTarget(x, y) {
-    const others = qsa('.admin-asset', grid).filter((n) => n !== draggingEl);
+    const others = nodes().filter((n) => n !== draggingEl);
     let best = null;
     let bestDistance = Infinity;
     for (const node of others) {
@@ -889,7 +1065,7 @@ async function renderGalleryManager(container, project) {
   });
   grid.addEventListener('drop', (e) => e.preventDefault());
 
-  assets.forEach((asset, i) => {
+  function assetCard(asset) {
     const altInput = el('input', {
       class: 'admin-input',
       placeholder: 'Alt text (required)',
@@ -903,8 +1079,8 @@ async function renderGalleryManager(container, project) {
       value: asset.caption || '',
     });
     const saveBtn = el('button', { class: 'admin-btn admin-btn--icon', type: 'button' }, 'Save');
-    const upBtn = el('button', { class: 'admin-btn admin-btn--icon', type: 'button', disabled: i === 0 }, '↑');
-    const downBtn = el('button', { class: 'admin-btn admin-btn--icon', type: 'button', disabled: i === assets.length - 1 }, '↓');
+    const upBtn = el('button', { class: 'admin-btn admin-btn--icon', type: 'button', 'data-role': 'up' }, '↑');
+    const downBtn = el('button', { class: 'admin-btn admin-btn--icon', type: 'button', 'data-role': 'down' }, '↓');
     const deleteBtn = el('button', { class: 'admin-btn admin-btn--icon admin-btn--danger', type: 'button' }, 'Delete');
     const errorEl = el('p', { class: 'admin-error', 'aria-live': 'polite' });
 
@@ -915,25 +1091,48 @@ async function renderGalleryManager(container, project) {
         return;
       }
       errorEl.textContent = '';
+      const caption = captionInput.value.trim() || null;
       await withSaveState(
-        supabase
-          .from('project_media')
-          .update({ alt, caption: captionInput.value.trim() || null })
-          .eq('id', asset.id)
-          .throwOnError()
+        supabase.from('project_media').update({ alt, caption }).eq('id', asset.id).throwOnError()
       );
+      asset.alt = alt;
+      asset.caption = caption;
     });
+
+    // Move the NODE, then save. Same path the drag takes, so both routes end up
+    // writing exactly what is on screen.
     upBtn.addEventListener('click', async () => {
-      await moveAsset(assets, asset.id, -1);
-      renderGalleryManager(container, project);
+      const prev = figure.previousElementSibling;
+      if (!prev) return;
+      grid.insertBefore(figure, prev);
+      refreshControls();
+      upBtn.focus(); // the button moved with the card; keep the keyboard on it
+      await saveOrder(errorEl);
     });
     downBtn.addEventListener('click', async () => {
-      await moveAsset(assets, asset.id, 1);
-      renderGalleryManager(container, project);
+      const next = figure.nextElementSibling;
+      if (!next) return;
+      grid.insertBefore(next, figure);
+      refreshControls();
+      downBtn.focus();
+      await saveOrder(errorEl);
     });
+
     deleteBtn.addEventListener('click', async () => {
-      await deleteAsset(asset);
-      renderGalleryManager(container, project);
+      if (!confirm('Remove this image from the gallery?')) return;
+      try {
+        await deleteAsset(asset);
+      } catch (err) {
+        errorEl.textContent = `Could not delete: ${err.message}`;
+        return;
+      }
+      byId.delete(String(asset.id));
+      figure.remove();
+      refreshControls();
+      // The rows below it just closed a gap in sort_order. Harmless to the site
+      // (it orders by sort_order, not by its exact values) but tidied anyway so
+      // the numbers stay a straight 0..n-1.
+      await saveOrder(null);
     });
 
     // Drag to reorder. The arrow buttons stay: dragging is pointer-only, so
@@ -944,7 +1143,7 @@ async function renderGalleryManager(container, project) {
       {
         class: 'admin-asset__handle',
         type: 'button',
-        'aria-label': `Drag to reorder image ${i + 1} of ${assets.length}`,
+        'aria-label': 'Drag to reorder',
         title: 'Drag to reorder',
       },
       '⠿'
@@ -997,52 +1196,77 @@ async function renderGalleryManager(container, project) {
       figure.draggable = false;
       figure.classList.remove('admin-asset--dragging');
       draggingEl = null;
-      try {
-        await persistOrderFromDom(grid, assets);
-      } catch (err) {
-        errorEl.textContent = `Could not save the new order: ${err.message}`;
-        console.error('[admin] reorder failed:', err);
-      }
-      renderGalleryManager(container, project);
+      refreshControls();
+      await saveOrder(errorEl);
     });
 
-    grid.append(figure);
-  });
+    return figure;
+  }
+
+  grid.append(...assets.map(assetCard));
+  refreshControls();
 
   const fileInput = el('input', { type: 'file', accept: 'image/*', multiple: true });
   const uploadStatus = el('p', { class: 'admin-field__hint', 'aria-live': 'polite' });
   fileInput.addEventListener('change', async () => {
     const files = [...fileInput.files];
     if (!files.length) return;
-    const { data: maxRow } = await supabase
-      .from('project_media')
-      .select('sort_order')
-      .eq('project_id', project.id)
-      .order('sort_order', { ascending: false })
-      .limit(1);
-    let nextSort = (maxRow?.[0]?.sort_order ?? -1) + 1;
+    fileInput.disabled = true;
+    const oversize = [];
+    // Position in the grid, not a re-read of the table: the cards already on
+    // screen are the order, and appending after them is what the eye expects.
+    let nextSort = nodes().length;
 
-    for (const [i, file] of files.entries()) {
-      uploadStatus.textContent = `Uploading ${i + 1} of ${files.length}…`;
-      const uploaded = await uploadImage(file, project.slug, `gallery-${nextSort}`);
-      await supabase.from('project_media').insert({
-        project_id: project.id,
-        media_url: uploaded.url,
-        width: uploaded.width,
-        height: uploaded.height,
-        kind: 'image',
-        alt: '',
-        sort_order: nextSort,
-      });
-      if (uploaded.bytes > WARN_BYTES) {
+    try {
+      for (const [i, file] of files.entries()) {
+        uploadStatus.textContent = `Uploading ${i + 1} of ${files.length}…`;
+        const uploaded = await uploadImage(file, project.slug, `gallery-${nextSort}`);
+        // .select() so the new row comes back with its id and can be turned
+        // straight into a card. Without it the only way to learn the id was to
+        // refetch the whole gallery, which is what forced the full redraw.
+        const { data: row, error: insertError } = await supabase
+          .from('project_media')
+          .insert({
+            project_id: project.id,
+            media_url: uploaded.url,
+            width: uploaded.width,
+            height: uploaded.height,
+            kind: 'image',
+            alt: '',
+            sort_order: nextSort,
+          })
+          .select('*')
+          .single();
+        if (insertError) throw insertError;
+
+        byId.set(String(row.id), row);
+        grid.append(assetCard(row));
+        refreshControls();
+        if (uploaded.bytes > WARN_BYTES) {
+          oversize.push(`${file.name}: ${(uploaded.bytes / 1024).toFixed(0)}KB`);
+        }
+        nextSort += 1;
+      }
+      // replaceChildren is a native DOM call, not el(): it stringifies a null
+      // child into the literal text "null" rather than skipping it.
+      uploadStatus.replaceChildren('Done. Add alt text below before publishing.');
+      if (oversize.length) {
         uploadStatus.append(
-          el('span', { class: 'admin-error', 'aria-live': 'polite' }, ` ${file.name}: ${(uploaded.bytes / 1024).toFixed(0)}KB after compression.`)
+          el('span', { class: 'admin-error' }, ` Over the 500KB target after compression: ${oversize.join(', ')}.`)
         );
       }
-      nextSort += 1;
+      try {
+        localStorage.setItem(CONTENT_STAMP_KEY, String(Date.now()));
+      } catch {
+        /* private mode / quota — the rail cache's TTL still expires on its own */
+      }
+    } catch (err) {
+      uploadStatus.replaceChildren(el('span', { class: 'admin-error' }, `Upload failed: ${err.message}`));
+      setSaveState('error', err.message);
+    } finally {
+      fileInput.disabled = false;
+      fileInput.value = ''; // so re-picking the same file fires `change` again
     }
-    uploadStatus.textContent = 'Done. Add alt text below before publishing.';
-    renderGalleryManager(container, project);
   });
 
   container.replaceChildren(
@@ -1221,7 +1445,7 @@ async function deleteClient(client, projectCount, panel) {
 }
 
 async function renderClientsTab(panel) {
-  panel.replaceChildren(el('p', {}, 'Loading…'));
+  showLoading(panel);
 
   // select('*') rather than a named column list: it keeps this tab working
   // whether or not sql/006 has been applied yet, instead of erroring on a
@@ -1339,7 +1563,7 @@ async function uploadLogoFile(file) {
 }
 
 async function renderLogosTab(panel) {
-  panel.replaceChildren(el('p', {}, 'Loading…'));
+  showLoading(panel);
   const { data: logos, error } = await supabase
     .from('partner_logos')
     .select('*')
@@ -1512,7 +1736,7 @@ function logoUploader(currentUrl, onChange) {
 }
 
 async function renderSettingsTab(panel) {
-  panel.replaceChildren(el('p', {}, 'Loading…'));
+  showLoading(panel);
   const ids = [...SETTINGS_FIELDS.map((f) => f.id), 'logo_url'];
   const { data, error } = await supabase.from('site_content').select('id, content').in('id', ids);
   if (error) {
@@ -1553,13 +1777,48 @@ async function renderSettingsTab(panel) {
 }
 
 // --- Boot ------------------------------------------------------------------------
-supabase.auth.onAuthStateChange((event) => {
-  if (event === 'SIGNED_IN') renderApp();
-  else if (event === 'SIGNED_OUT') renderLogin();
+// The app is mounted ONCE per sign-in, not once per auth event. supabase-js
+// re-emits SIGNED_IN whenever a background tab regains focus and its token is
+// refreshed, so calling renderApp() straight from the listener tore the panel
+// down and rebuilt it from scratch every time Jesse came back from another
+// browser tab — losing the open project, the active tab and the scroll
+// position. mountApp() is idempotent, so a refresh is now invisible.
+let appMounted = false;
+
+function mountApp() {
+  if (appMounted) return;
+  appMounted = true;
+  renderApp();
+}
+
+function mountLogin(errorMessage) {
+  appMounted = false;
+  renderLogin(errorMessage);
+}
+
+supabase.auth.onAuthStateChange(async (event, session) => {
+  // Only an explicit SIGNED_OUT tears the panel down. Returning to a tab that
+  // has been backgrounded for a while fires a refresh, and a refresh can
+  // briefly report no session before it settles — treating that as a sign-out
+  // threw the whole app away and rebuilt it, which is the "it logged me out of
+  // the project" symptom coming back by another route. So when an event
+  // arrives without a session and isn't SIGNED_OUT, ask what the session
+  // actually is before doing anything destructive.
+  if (event === 'SIGNED_OUT') {
+    mountLogin();
+    return;
+  }
+  if (session) {
+    mountApp();
+    return;
+  }
+  const { data } = await supabase.auth.getSession();
+  if (data?.session) mountApp();
+  else mountLogin();
 });
 
 const {
   data: { session },
 } = await supabase.auth.getSession();
-if (session) renderApp();
-else renderLogin();
+if (session) mountApp();
+else mountLogin();
