@@ -1,0 +1,484 @@
+/* home.css — the project grid and its banner cards. */
+
+.pane__title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--step-2);
+  letter-spacing: -0.01em;
+  color: var(--chalk);
+  margin-block-end: var(--space-l);
+}
+
+/* Empty / error state inside the pane. */
+.pane__msg {
+  color: var(--chalk-40);
+  font-size: var(--step-0);
+}
+
+/* ---- Studio synopsis -------------------------------------------------------
+   A compact band above the grid: enough to say who the studio is without
+   pushing the work below the fold. Measure is capped so the paragraph stays
+   readable on wide screens. No new tokens. */
+/* The measure cap lives on the paragraph, not the whole band: 62ch keeps prose
+   readable but would needlessly box in display type this large. */
+.home-intro {
+  margin-block-end: var(--space-l);
+}
+.home-intro__title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  /* Scaled up from --step-3 rather than adding a new type token. --step-3 is
+     already fluid, so multiplying it keeps the headline proportional at every
+     width instead of overflowing small screens at a fixed size. */
+  font-size: calc(var(--step-3) * 2.2);
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--chalk);
+  /* Reserve the line so the band does not grow and shrink as the headline
+     types in and out, which would shove the rest of the page around. */
+  min-height: 1.05em;
+}
+
+/* Typed caret. A steady block that blinks only while idle would read as two
+   competing rhythms, so it simply blinks throughout at a slow, even rate. */
+.home-intro__caret {
+  display: inline-block;
+  width: 0.06em;
+  height: 0.78em;
+  margin-inline-start: 0.06em;
+  vertical-align: baseline;
+  background: var(--accent-ink);
+  animation: caret-blink 1.1s steps(1, end) infinite;
+}
+@keyframes caret-blink {
+  0%, 50% { opacity: 1; }
+  50.01%, 100% { opacity: 0; }
+}
+
+/* Two words crossfading in place, one at a time. Fade plus a 6px translation
+   only: nothing bounces, nothing spins, per the studio's motion rules. The
+   words are stacked absolutely so the band's height never shifts as they
+   swap, which would otherwise nudge the whole grid on every cycle. */
+.home-intro__cycle {
+  position: relative;
+  height: 1.3em;
+  margin-block-start: var(--space-2xs);
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--step-1);
+  letter-spacing: -0.01em;
+  color: var(--accent-ink);
+}
+.home-intro__word {
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0;
+  opacity: 0;
+  animation: word-cycle 7s var(--ease-out) infinite;
+}
+.home-intro__word:nth-child(2) {
+  animation-delay: 3.5s;
+}
+@keyframes word-cycle {
+  0%   { opacity: 0; transform: translateY(6px); }
+  6%   { opacity: 1; transform: translateY(0); }
+  44%  { opacity: 1; transform: translateY(0); }
+  50%  { opacity: 0; transform: translateY(-6px); }
+  100% { opacity: 0; transform: translateY(-6px); }
+}
+
+.home-intro__body {
+  max-width: 62ch;
+  margin-block-start: var(--space-xs);
+  color: var(--chalk-60);
+  font-size: var(--step-0);
+  line-height: 1.5;
+}
+.home-intro__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-m);
+  margin-block-start: var(--space-s);
+  font-size: var(--step--1);
+}
+.home-intro__cta {
+  color: var(--chalk);
+  border-block-end: 1px solid var(--chalk);
+  padding-block-end: 2px;
+}
+.home-intro__more {
+  color: var(--chalk-60);
+}
+.home-intro__more:hover,
+.home-intro__cta:hover {
+  color: var(--accent-ink);
+  border-color: var(--accent-ink);
+}
+.home-intro__cta:focus-visible,
+.home-intro__more:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 3px;
+}
+
+/* The grid heading is secondary to the synopsis now, so it sits smaller than
+   the band's title while keeping the same family and spacing rhythm. */
+.home-intro + .pane__title {
+  font-size: var(--step-1);
+  color: var(--chalk-60);
+}
+
+/* ---- Client logo marquee ---------------------------------------------------
+   One continuous drift. The track holds the logo list TWICE (duplicated in
+   home.js) and translates by exactly -50%, so the second copy lands where the
+   first began and the loop has no visible seam or jump.
+
+   Speed is set from --marquee-duration, which home.js computes from the number
+   of logos so the pixels-per-second rate stays constant whether there are four
+   logos or forty. A fixed duration would make a long list race. */
+/* Sits below the work grid, so the separation it needs is above it, not below.
+   A top border makes it read as a closing band rather than a stray strip. */
+.marquee {
+  margin-block-start: var(--space-xl);
+  padding-block-start: var(--space-l);
+  border-block-start: 1px solid var(--ink-60);
+}
+.marquee__heading {
+  font-size: var(--step-0);
+  font-weight: 500;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--chalk-40);
+  margin-block-end: var(--space-m);
+}
+.marquee__viewport {
+  overflow: hidden;
+  /* Fades the logos out at both edges instead of clipping them mid-mark. */
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+.marquee__track {
+  display: flex;
+  align-items: center;
+  /* Scaled with the logos below. --space-xl beside marks this size left holes
+     big enough to read as gaps in the strip rather than as spacing. */
+  gap: var(--space-l);
+  width: max-content;
+  animation: marquee-drift var(--marquee-duration, 40s) linear infinite;
+}
+/* Pausing on hover lets someone actually look at a logo they recognised. */
+.marquee__viewport:hover .marquee__track,
+.marquee__track:focus-within {
+  animation-play-state: paused;
+}
+.marquee__item {
+  flex: none;
+  display: flex;
+  align-items: center;
+}
+.marquee__item img {
+  /* Sized as a supporting band, not as artwork. This has been walked down
+     twice now — 11vw/12rem shouted, 9vw/10rem still pulled the eye off the
+     work above it. At 6vw/6.5rem the marks are comfortably legible and the
+     strip reads as what it is: closing credits under the projects. Kept fluid
+     so a phone is not eaten by a fixed size. */
+  height: clamp(3.25rem, 6vw, 6.5rem);
+  width: auto;
+  /* Down with the height, so a wide wordmark cannot claim the width the old
+     size allowed it and reintroduce the imbalance from the other direction. */
+  max-width: min(20rem, 44vw);
+  object-fit: contain;
+  /* Logos arrive in mixed colours. brightness(0) crushes every one to solid
+     black, then invert(1) lifts it to pure white, so the whole strip is one
+     flat colour no matter what was uploaded. Alpha is preserved, so
+     transparent backgrounds stay transparent. Full opacity: these read as
+     white, not grey. */
+  filter: brightness(0) invert(1);
+  opacity: 1;
+  transition: transform var(--dur-base) var(--ease-out);
+}
+/* On the pale ground white would disappear, so the same trick stops at black.
+   Both the OS preference and the explicit toggle are covered, matching how
+   every other themed rule in this project is written. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) .marquee__item img {
+    filter: brightness(0);
+  }
+}
+:root[data-theme='light'] .marquee__item img {
+  filter: brightness(0);
+}
+@keyframes marquee-drift {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+/* ---- Grid --------------------------------------------------------------- */
+.project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-m);
+}
+
+/* ---- Card --------------------------------------------------------------- */
+.project-card {
+  display: block;
+  color: var(--chalk);
+}
+
+.project-card__picture {
+  display: block;
+  overflow: hidden; /* clips the hover scale */
+  background: var(--ink-80); /* holds the space while the image loads */
+}
+
+/* Two shapes: pictureFor returns a <picture> wrapping an <img> when it can build
+   a srcset, and a BARE <img> carrying the class itself when the source
+   dimensions are unknown — which is the case for a client banner uploaded by
+   the old admin. Without the second selector that image keeps its natural size
+   (capped only by the reset's max-width) and a narrow banner fails to fill the
+   card while every other card does. */
+.project-card__picture img,
+img.project-card__picture {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  transition: transform var(--dur-base) var(--ease-out);
+}
+
+/* Hover: the image pushes in, the text answers.
+   A 1.02 scale on its own was below the threshold where a card reads as
+   responding at all — on a large banner that is two or three pixels of travel.
+   The scale is firmer now, and the title picks up the accent with a rule that
+   wipes in beneath it, so the whole card acknowledges the pointer as one
+   gesture instead of one corner of it twitching. Still only scale, colour and
+   a wipe: nothing bounces, nothing rotates. */
+.project-card:hover .project-card__picture img,
+.project-card:hover img.project-card__picture,
+.project-card:focus-visible .project-card__picture img,
+.project-card:focus-visible img.project-card__picture {
+  transform: scale(1.04);
+}
+
+/* ---- Client card ---------------------------------------------------------
+   A repeat client collapses into one card on the grid (see groupByClient in
+   home.js). It reuses the project card wholesale — same picture, same hover —
+   and adds only a count chip, so the grid stays one visual system rather than
+   growing a second card style. */
+.project-card__frame {
+  position: relative;
+}
+.project-card__count {
+  position: absolute;
+  inset-block-end: var(--space-2xs);
+  inset-inline-start: var(--space-2xs);
+  padding: var(--space-3xs) var(--space-2xs);
+  background: var(--ink);
+  color: var(--chalk);
+  border: 1px solid var(--chalk-40);
+  border-radius: 2px;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--step--1);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+/* Two hairlines peeking out behind the picture: the card reads as a stack of
+   work before the count is even read. Offset only, no rotation — nothing in
+   this studio's motion or layout language tilts. */
+.project-card--client .project-card__frame::before,
+.project-card--client .project-card__frame::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: -4px;
+  height: 1px;
+  background: var(--chalk-40);
+}
+.project-card--client .project-card__frame::after {
+  bottom: -8px;
+  inset-inline: var(--space-2xs);
+  background: var(--chalk-40);
+  opacity: 0.5;
+}
+.project-card--client {
+  margin-block-end: var(--space-2xs); /* room for the stacked hairlines */
+}
+
+.project-card__text {
+  margin-block-start: var(--space-xs);
+}
+.project-card__title {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--step-1);
+  line-height: 1.15;
+  /* inline-block so the rule below is the width of the TEXT, not of the card:
+     a hairline running the full column would read as a divider. */
+  display: inline-block;
+  color: var(--chalk);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+/* The rule that wipes in under the title on hover. transform on a
+   pseudo-element, so it costs nothing and never reflows the card. */
+.project-card__title::after {
+  content: "";
+  display: block;
+  height: 1px;
+  margin-block-start: 2px;
+  background: var(--accent-ink);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--dur-base) var(--ease-out);
+}
+.project-card:hover .project-card__title,
+.project-card:focus-visible .project-card__title {
+  color: var(--accent-ink);
+}
+.project-card:hover .project-card__title::after,
+.project-card:focus-visible .project-card__title::after {
+  transform: scaleX(1);
+}
+.project-card__summary {
+  margin-block-start: var(--space-3xs);
+  color: var(--chalk-60);
+  font-size: var(--step--1);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.project-card:hover .project-card__summary {
+  color: var(--chalk);
+}
+/* The client card's summary lists every project title, which can run long. Two
+   lines is enough to show what's inside; the client page has the full list. */
+.project-card--client .project-card__summary {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ---- Client page header --------------------------------------------------
+   client.html reuses this stylesheet for the grid and cards; this is the only
+   block it adds. */
+.client-head {
+  margin-block-end: var(--space-l);
+}
+.client-head__back {
+  display: inline-block;
+  margin-block-end: var(--space-s);
+  color: var(--chalk-60);
+  font-size: var(--step--1);
+}
+.client-head__back:hover {
+  color: var(--chalk);
+}
+.client-head__eyebrow {
+  color: var(--chalk-40);
+  font-size: var(--step--1);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.client-head__title {
+  margin-block-start: var(--space-3xs);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--step-3);
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--chalk);
+}
+.client-head__count {
+  margin-block-start: var(--space-2xs);
+  color: var(--chalk-40);
+  font-size: var(--step--1);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+/* The client's own banner, set in the admin's Clients tab. Only rendered when
+   one exists — without it the page opens on the heading, as it did before. */
+.client-head__banner {
+  display: block;
+  margin-block-end: var(--space-m);
+  background: var(--ink-80); /* holds the space while the image loads */
+}
+/* Both shapes: pictureFor returns a <picture> when it can build a srcset, and a
+   bare <img> (carrying the class itself) when the dimensions are unknown. */
+.client-head__banner img,
+img.client-head__banner {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 26rem;
+  object-fit: cover;
+}
+.client-head__summary {
+  max-width: 62ch;
+  margin-block-start: var(--space-xs);
+  color: var(--chalk-60);
+  font-size: var(--step-0);
+  line-height: 1.5;
+}
+
+/* Focus ring on the whole card, clearly visible in both themes. */
+.project-card:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .project-card__picture img,
+  img.project-card__picture {
+    transition: none;
+  }
+  .project-card:hover .project-card__picture img,
+  .project-card:hover img.project-card__picture,
+  .project-card:focus-visible .project-card__picture img,
+  .project-card:focus-visible img.project-card__picture {
+    transform: none;
+  }
+  /* The colour change stays — it is the hover cue that carries when motion is
+     off — but the rule appears rather than wiping in. */
+  .project-card__title,
+  .project-card__summary {
+    transition: none;
+  }
+  .project-card__title::after {
+    transition: none;
+  }
+  /* No looping motion: the first word simply stays put. The second is removed
+     rather than stacked on top of it, since both would otherwise sit at the
+     same absolute position and overlap. */
+  .home-intro__word {
+    animation: none;
+    position: static;
+    opacity: 1;
+    transform: none;
+  }
+  .home-intro__word:nth-child(2) {
+    display: none;
+  }
+  .home-intro__cycle {
+    height: auto;
+  }
+  /* No typing and no blink: home.js writes the full headline straight out. */
+  .home-intro__caret {
+    display: none;
+  }
+  /* The marquee stops drifting and becomes a plain wrapped row, so every logo
+     is still reachable rather than parked off-screen mid-scroll. */
+  .marquee__track {
+    animation: none;
+    flex-wrap: wrap;
+    width: auto;
+    gap: var(--space-m) var(--space-l);
+  }
+  .marquee__viewport {
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
+  .marquee__item img {
+    transition: none;
+  }
+}

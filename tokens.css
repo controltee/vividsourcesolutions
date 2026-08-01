@@ -1,0 +1,127 @@
+/* tokens.css — the single source of truth for color, type, space, motion.
+   Nothing else in the codebase may hardcode a color or a font. */
+
+/* ---- Self-hosted faces (woff2 only, swap) ------------------------------- */
+@font-face {
+  font-family: "Cabinet Grotesk";
+  src: url("/fonts/CabinetGrotesk-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Cabinet Grotesk";
+  src: url("/fonts/CabinetGrotesk-Extrabold.woff2") format("woff2");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "DM Sans";
+  src: url("/fonts/DMSans-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "DM Sans";
+  src: url("/fonts/DMSans-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* Core palette */
+  --ink:          #000000;
+  --paper:        #f7d54f;  /* signature yellow */
+  --moss:         #0e4c0b;  /* green, borders and accents */
+
+  /* Derived neutrals — do not add more without asking */
+  --ink-80:       #1a1a1a;
+  --ink-60:       #2e2e2e;
+  --chalk:        #ffffff;
+  --chalk-60:     rgba(255, 255, 255, 0.6);
+  --chalk-40:     rgba(255, 255, 255, 0.4);
+
+  /* Accent used as TEXT or an OUTLINE (active link, focus ring, links). On the
+     dark ground the signature yellow has strong contrast; the light theme
+     swaps it for the moss green, which stays legible on a pale ground. Fill
+     uses of --paper (buttons, skip link) keep the yellow in both themes. */
+  --accent-ink:   var(--paper);
+
+  /* PROPOSED, admin panel only — not yet confirmed with Jesse (spec §15: any
+     new token needs sign-off). Danger/error states have no color in the core
+     palette to draw from. Used by delete buttons and error text in admin.css. */
+  --danger:       #ff8a8a;
+  --danger-border:#7a2020;
+  --danger-bg:    #2a1010;
+
+  /* Type */
+  --font-display: "Cabinet Grotesk", system-ui, sans-serif;
+  --font-body:    "DM Sans", system-ui, sans-serif;
+
+  /* Scale — fluid, clamp-based */
+  --step--1: clamp(0.78rem, 0.76rem + 0.10vw, 0.84rem);
+  --step-0:  clamp(0.94rem, 0.90rem + 0.20vw, 1.06rem);
+  --step-1:  clamp(1.20rem, 1.10rem + 0.50vw, 1.50rem);
+  --step-2:  clamp(1.60rem, 1.40rem + 1.00vw, 2.30rem);
+  --step-3:  clamp(2.20rem, 1.80rem + 2.00vw, 3.60rem);
+
+  /* Space */
+  --space-3xs: 0.25rem;
+  --space-2xs: 0.5rem;
+  --space-xs:  0.75rem;
+  --space-s:   1rem;
+  --space-m:   1.5rem;
+  --space-l:   2.5rem;
+  --space-xl:  4rem;
+
+  /* Layout */
+  --rail-width: 260px;
+  --rail-breakpoint: 900px;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 160ms;
+  --dur-base: 280ms;
+  /* For entrances only — a scroll reveal or a page arriving. Long enough to
+     read as a considered settle rather than a snap, and still short enough
+     that nobody waits on it. Never use it for a hover: --dur-fast/base are
+     what respond to a pointer. */
+  --dur-slow: 560ms;
+
+  /* Enable keyword height interpolation (progressive enhancement) */
+  interpolate-size: allow-keywords;
+}
+
+/* ---- Light theme -------------------------------------------------------- */
+/* The neutrals flip (dark ground -> pale ground, light text -> dark text) so
+   every component that reads --ink as a surface and --chalk as text just works.
+   --paper / --moss (brand accents) stay; --accent-ink moves to moss for legible
+   accent text/outlines on the pale ground.
+
+   Applied when the OS prefers light AND the visitor hasn't forced dark, or when
+   the visitor explicitly chooses light. The theme toggle stamps data-theme on
+   <html>, which wins over the OS preference in both directions. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --ink:      #f7f5ee; /* warm off-white ground */
+    --ink-80:   #ece9df; /* raised surfaces (cards, inputs, skeletons) */
+    --ink-60:   #e0ddd1;
+    --chalk:    #141414; /* primary text */
+    --chalk-60: rgba(0, 0, 0, 0.62);
+    --chalk-40: rgba(0, 0, 0, 0.42);
+    --accent-ink: var(--moss);
+  }
+}
+
+:root[data-theme="light"] {
+  --ink:      #f7f5ee;
+  --ink-80:   #ece9df;
+  --ink-60:   #e0ddd1;
+  --chalk:    #141414;
+  --chalk-60: rgba(0, 0, 0, 0.62);
+  --chalk-40: rgba(0, 0, 0, 0.42);
+  --accent-ink: var(--moss);
+}

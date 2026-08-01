@@ -1,0 +1,615 @@
+/* shell.css — the persistent layout: rail + pane, and the mobile drawer.
+   This is identical on every page. Only the pane changes. */
+
+/* ---- Page transitions ----------------------------------------------------
+   Navigation used to be a hard cut: this is a multi-page site, so every link
+   tore the document down and painted a new one with no continuity at all.
+   Cross-document view transitions soften that with no JS and no build step.
+
+   This deliberately cross-fades the ROOT rather than giving .pane its own
+   view-transition-name. A named element is snapshotted at its FULL height, and
+   a deck project page is a column of 1920px-wide slides at natural height —
+   tens of thousands of pixels, well past the point where the snapshot texture
+   is reliable. The root snapshot is viewport-sized whatever the page height,
+   so it cannot hit that. Nothing is lost visually: the rail is identical on
+   every page, so cross-fading it is invisible, and opacity-only means it never
+   moves — which is the persistent-shell rule in CLAUDE.md.
+
+   Browsers without view transitions ignore the at-rule and navigate as before;
+   they get the @supports fallback instead, so the two never both run. */
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-old(root) {
+  animation: page-fade-out var(--dur-fast) var(--ease-out) both;
+}
+::view-transition-new(root) {
+  animation: page-fade-in var(--dur-base) var(--ease-out) both;
+}
+
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes page-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+/* Fallback only. Here the pane can lift as well as fade: this is a plain CSS
+   animation on one element, with none of the snapshot constraints above. */
+@supports not (view-transition-name: none) {
+  .pane {
+    animation: pane-enter var(--dur-base) var(--ease-out) both;
+  }
+  @keyframes pane-enter {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+  }
+}
+
+/* ---- Base --------------------------------------------------------------- */
+body {
+  background: var(--ink);
+  color: var(--chalk);
+  font-family: var(--font-body);
+  font-size: var(--step-0);
+  font-weight: 400;
+}
+
+/* Keyboard-only skip link. */
+.skip-link {
+  position: absolute;
+  left: var(--space-2xs);
+  top: -5rem;
+  z-index: 100;
+  background: var(--paper);
+  color: var(--ink);
+  padding: var(--space-2xs) var(--space-s);
+  font-family: var(--font-display);
+  font-weight: 500;
+  transition: top var(--dur-fast) var(--ease-out);
+}
+.skip-link:focus {
+  top: var(--space-2xs);
+}
+
+/* ---- Shell grid --------------------------------------------------------- */
+.shell {
+  display: grid;
+  grid-template-columns: var(--rail-width) 1fr;
+  min-height: 100dvh;
+}
+
+.rail {
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-right: 1px solid var(--moss);
+  padding: var(--space-m);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-l);
+}
+
+.pane {
+  padding: var(--space-m);
+  min-width: 0; /* load-bearing: lets grid children shrink. Do not remove. */
+}
+
+/* ---- Brand -------------------------------------------------------------- */
+.rail__head {
+  display: flex;
+  flex-direction: column;
+}
+.rail__brand {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--step-1);
+  letter-spacing: -0.01em;
+  line-height: 1;
+  color: var(--chalk);
+}
+/* Sized by max-height AND max-width so both shapes work: a square mark renders
+   at its full height, a wide wordmark hits the rail width first and scales
+   down proportionally. */
+.brand-logo {
+  display: block;
+  max-height: 5.5rem;
+  max-width: 100%;
+  width: auto;
+  height: auto;
+}
+.topbar__brand .brand-logo {
+  max-height: 2.5rem; /* the mobile bar is slim */
+}
+
+/* A monochrome WHITE logo (the current one) would disappear on the light
+   ground, so invert it there — white mark becomes a black mark. This assumes a
+   monochrome logo; a full-colour logo would need a second light-mode upload
+   instead of a filter. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .brand-logo {
+    filter: invert(1);
+  }
+}
+:root[data-theme="light"] .brand-logo {
+  filter: invert(1);
+}
+.rail__tagline {
+  margin-block-start: var(--space-3xs);
+  font-size: var(--step--1);
+  color: var(--chalk-40);
+}
+
+/* Scroll-reveal: fade + short lift. Reduced-motion removes it entirely.
+   Retuned: 12px over --dur-base read as a twitch — too short a distance to be
+   a movement and too quick to be a settle, which is what made it look like a
+   stutter rather than an entrance. A longer lift over --dur-slow, on an ease
+   that decelerates hard, arrives instead of snapping. Opacity leads slightly
+   so the card is legible before it finishes moving. */
+.reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition:
+    opacity calc(var(--dur-slow) * 0.7) var(--ease-out),
+    transform var(--dur-slow) var(--ease-out);
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Loading skeletons (used on the home grid and the project page). */
+.skeleton {
+  background: var(--ink-80);
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+.skeleton--banner {
+  aspect-ratio: 4 / 3;
+  width: 100%;
+}
+.skeleton--line {
+  height: 1.1em;
+  width: 60%;
+  margin-block-start: var(--space-s);
+}
+.skeleton--title {
+  height: 1.8em;
+  width: 80%;
+  margin-block-start: var(--space-s);
+}
+@keyframes skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .skeleton::after {
+    animation: none;
+  }
+  /* Page transitions off, both the real one and its fallback. !important is
+     needed here and only here: the browser applies its own default cross-fade
+     to these pseudo-elements, and a plain declaration does not displace it. */
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+  .pane {
+    animation: none;
+  }
+}
+
+/* ---- Nav ---------------------------------------------------------------- */
+.rail__nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  flex: 1 1 auto;
+}
+
+.rail__group {
+  border-block-end: 1px solid var(--ink-80);
+  padding-block-end: var(--space-2xs);
+}
+
+.rail__group-label {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2xs);
+  padding-block: var(--space-2xs);
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--step-0);
+  color: var(--chalk);
+}
+.rail__group-label::-webkit-details-marker {
+  display: none;
+}
+.rail__group-label::after {
+  content: "\25BE"; /* ▾ */
+  font-size: 0.7em;
+  color: var(--chalk-60);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.rail__group[open] > .rail__group-label::after {
+  transform: rotate(180deg);
+}
+
+.rail__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3xs);
+  padding-block: var(--space-2xs) var(--space-xs);
+}
+.rail__list a {
+  display: block;
+  padding: var(--space-3xs) 0;
+  font-size: var(--step--1);
+  color: var(--chalk-60);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.rail__list a:hover {
+  color: var(--chalk);
+}
+.rail__list a.is-active {
+  color: var(--accent-ink);
+  font-weight: 500;
+}
+
+/* ---- Repeat client, nested inside a category ----------------------------
+   The client name is a link to their client page; their projects hang off it on
+   a rule, so two jobs for the same client read as one body of work instead of
+   two unrelated entries. */
+.rail__client + li,
+li + .rail__client {
+  margin-block-start: var(--space-2xs);
+}
+.rail__client-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2xs);
+  padding: var(--space-3xs) 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--step--1);
+  letter-spacing: 0.02em;
+  color: var(--chalk);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.rail__client-label:hover {
+  color: var(--accent-ink);
+}
+.rail__client-label.is-active {
+  color: var(--accent-ink);
+}
+/* Project count. A plain numeral, so it never competes with the client name. */
+.rail__client-count {
+  flex: none;
+  color: var(--chalk-40);
+  font-variant-numeric: tabular-nums;
+}
+.rail__sublist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3xs);
+  margin-inline-start: var(--space-2xs);
+  padding-inline-start: var(--space-2xs);
+  border-inline-start: 1px solid var(--ink-60);
+}
+.rail__sublist a {
+  display: block;
+  padding: var(--space-3xs) 0;
+  font-size: var(--step--1);
+  color: var(--chalk-60);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.rail__sublist a:hover {
+  color: var(--chalk);
+}
+.rail__sublist a.is-active {
+  color: var(--accent-ink);
+  font-weight: 500;
+}
+
+/* A category with no published work yet: dimmed label, muted note. */
+.rail__group--empty > .rail__group-label {
+  color: var(--chalk-40);
+}
+.rail__empty {
+  padding-block: var(--space-2xs) var(--space-xs);
+  font-size: var(--step--1);
+  color: var(--chalk-40);
+  font-style: italic;
+}
+
+/* Empty / error state for the nav (graceful degradation). */
+.rail__msg {
+  font-size: var(--step--1);
+  color: var(--chalk-40);
+}
+
+/* Height animation for the disclosure. Progressive enhancement: browsers
+   without ::details-content simply open instantly. No JS height hack. */
+.rail__group::details-content {
+  block-size: 0;
+  overflow: hidden;
+  transition: block-size var(--dur-base) var(--ease-out),
+              content-visibility var(--dur-base) allow-discrete;
+}
+.rail__group[open]::details-content {
+  block-size: auto;
+}
+
+/* ---- Foot --------------------------------------------------------------- */
+.rail__foot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  font-size: var(--step--1);
+}
+.rail__foot a {
+  color: var(--chalk-60);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.rail__foot a:hover {
+  color: var(--chalk);
+}
+.rail__social {
+  display: flex;
+  gap: var(--space-s);
+}
+/* The clock was easy to miss at 40% opacity. Raised to the same contrast as the
+   footer links and given a live dot, so it reads as current studio time rather
+   than decoration. */
+.rail__clock {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  margin-block-start: var(--space-2xs);
+  font-size: var(--step--1);
+  color: var(--chalk-60);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+.rail__clock::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-ink);
+  flex: none;
+  animation: clock-pulse 2.4s var(--ease-out) infinite;
+}
+@keyframes clock-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+/* Given a real button outline so it is discoverable as a control. Previously it
+   read as another footer link and users did not know the theme could change. */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  align-self: flex-start;
+  padding: var(--space-3xs) var(--space-2xs);
+  border: 1px solid var(--chalk-40);
+  border-radius: 2px;
+  color: var(--chalk);
+  font-size: var(--step--1);
+  transition: color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
+}
+.theme-toggle:hover {
+  color: var(--ink);
+  background: var(--accent-ink);
+  border-color: var(--accent-ink);
+}
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 2px;
+}
+.theme-toggle__icon {
+  font-size: 1.1em;
+  line-height: 1;
+}
+
+.rail__legal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+  margin-block-start: var(--space-2xs);
+  font-size: var(--step--1);
+}
+.rail__legal a {
+  color: var(--chalk-40);
+}
+.rail__legal a:hover {
+  color: var(--chalk-60);
+}
+
+/* ---- Cookie notice (site-wide) ------------------------------------------ */
+.cookie-notice {
+  position: fixed;
+  inset-inline: var(--space-m);
+  bottom: var(--space-m);
+  z-index: 60;
+  max-width: 34rem;
+  margin-inline: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-s);
+  padding: var(--space-s);
+  background: var(--ink-80);
+  border: 1px solid var(--moss);
+  border-radius: 2px;
+  font-size: var(--step--1);
+  color: var(--chalk-60);
+}
+.cookie-notice[hidden] {
+  display: none;
+}
+.cookie-notice__text {
+  flex: 1 1 16rem;
+}
+.cookie-notice__text a {
+  color: var(--accent-ink);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+.cookie-notice__accept {
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--paper);
+  font: inherit;
+  font-weight: 500;
+  padding: var(--space-3xs) var(--space-s);
+  border-radius: 2px;
+}
+.cookie-notice__accept:hover {
+  background: var(--chalk);
+  border-color: var(--chalk);
+}
+
+/* ---- Mobile top bar + scrim (hidden on desktop) ------------------------- */
+.topbar {
+  display: none;
+}
+.scrim {
+  display: none;
+}
+
+/* ---- Mobile: the rail becomes a drawer ---------------------------------- */
+@media (max-width: 899.98px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-s);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    padding: var(--space-xs) var(--space-m);
+    background: var(--ink);
+    border-block-end: 1px solid var(--moss);
+  }
+  .topbar__brand {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: var(--step-1);
+    line-height: 1;
+    color: var(--chalk);
+  }
+  .topbar__toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    margin-inline-end: calc(var(--space-2xs) * -1);
+    color: var(--chalk);
+  }
+  .topbar__toggle svg {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  .rail {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 40;
+    width: min(82vw, 320px);
+    height: 100dvh;
+    background: var(--ink);
+    transform: translateX(-100%);
+    transition: transform var(--dur-base) var(--ease-out);
+  }
+  body.rail-open .rail {
+    transform: none;
+  }
+
+  .scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background: rgba(0, 0, 0, 0.6);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--dur-base) var(--ease-out);
+  }
+  body.rail-open .scrim {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Lock background scroll while the drawer is open. */
+  body.rail-open {
+    overflow: hidden;
+  }
+}
+
+/* Reduced motion: the drawer appears, it does not slide; the marker does not
+   rotate. */
+@media (prefers-reduced-motion: reduce) {
+  .rail,
+  .scrim,
+  .skip-link,
+  .rail__list a,
+  .rail__sublist a,
+  .rail__client-label,
+  .rail__foot a {
+    transition: none;
+  }
+  /* The dot still marks the clock, it just stops pulsing. */
+  .rail__clock::before {
+    animation: none;
+  }
+  .theme-toggle {
+    transition: none;
+  }
+  .rail__group::details-content {
+    transition: none;
+  }
+  .rail__group-label::after {
+    transition: none;
+  }
+  .rail__group[open] > .rail__group-label::after {
+    transform: none;
+  }
+}
