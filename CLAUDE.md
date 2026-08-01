@@ -103,10 +103,21 @@ move a project past its next sibling FROM THE SAME CLIENT and then renumber that
 whole category 0..n-1, which also resolves the sort_order ties the seed data has.
 Editing a project from here opens the same project editor the Projects tab uses —
 one form, not a second to keep in step — and Save/Cancel return to the client
-rather than to the projects list. No migration: ordering still rides on the
-existing category-scoped `projects.sort_order`. A client's projects spanning two
-categories therefore cannot be interleaved; that would need a client-scoped order
-column, which is deliberately not added.
+rather than to the projects list.
+
+**Ordering has two modes, decided by whether sql/008 has run.** That migration
+adds `projects.client_sort_order`, a position within the CLIENT that is
+independent of category. Applied (it is, on the live DB), the client's work is
+ONE list it can order freely, category becomes a label on the row, and the
+arrows write `client_sort_order`, renumbering the client's run 0..n-1. Not
+applied, everything falls back to the category-scoped `projects.sort_order`: the
+view groups by category and the arrows only move a project among its
+category-mates. Both paths are live in the code and tested; the probe is
+`'client_sort_order' in row`, since PostgREST omits a column it does not have.
+`js/client.js` sorts the same way, preferring the client position and falling
+back to category order, and a project with no position sorts last so newly added
+work lands at the end. Saving a project under a client assigns it the next free
+position; moving it to another client re-positions it; detaching clears it.
 
 The client editor's card section edits the PARENT card: its banner
 (`clients.banner_url` + the `banner_w`/`banner_h` added by 006) and subtitle
