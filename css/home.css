@@ -27,10 +27,13 @@
 .home-intro__title {
   font-family: var(--font-display);
   font-weight: 800;
-  /* Scaled up from --step-3 rather than adding a new type token. --step-3 is
+  /* Scaled from --step-3 rather than adding a new type token. --step-3 is
      already fluid, so multiplying it keeps the headline proportional at every
-     width instead of overflowing small screens at a fixed size. */
-  font-size: calc(var(--step-3) * 2.2);
+     width instead of overflowing small screens at a fixed size.
+     The multiplier came down with the scale: at 2.2 against the old --step-3
+     this landed near 125px, which is what made the page read as zoomed in
+     before anything else on it did. */
+  font-size: calc(var(--step-3) * 2);
   letter-spacing: -0.02em;
   line-height: 1.05;
   color: var(--chalk);
@@ -182,11 +185,11 @@
      work above it. At 6vw/6.5rem the marks are comfortably legible and the
      strip reads as what it is: closing credits under the projects. Kept fluid
      so a phone is not eaten by a fixed size. */
-  height: clamp(3.25rem, 6vw, 6.5rem);
+  height: clamp(2.25rem, 4vw, 4.5rem);
   width: auto;
   /* Down with the height, so a wide wordmark cannot claim the width the old
      size allowed it and reintroduce the imbalance from the other direction. */
-  max-width: min(20rem, 44vw);
+  max-width: min(14rem, 32vw);
   object-fit: contain;
   /* Logos arrive in mixed colours. brightness(0) crushes every one to solid
      black, then invert(1) lifts it to pure white, so the whole strip is one
@@ -216,7 +219,11 @@
 /* ---- Grid --------------------------------------------------------------- */
 .project-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  /* 320px fitted three cards across a desktop pane, which is what left the
+     grid looking like a few oversized tiles rather than a body of work. At
+     200px the same pane holds five, which is the density the studio's work
+     actually reads best at. */
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: var(--space-m);
 }
 
