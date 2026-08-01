@@ -252,6 +252,18 @@ function setProjectsView(next) {
   );
 }
 
+// Same idea for the Clients tab, which now opens onto a client rather than
+// staying a flat list.
+let clientsView =
+  savedState.client && typeof savedState.client === 'string'
+    ? { mode: 'editor', clientId: savedState.client }
+    : { mode: 'list' };
+
+function setClientsView(next) {
+  clientsView = next;
+  writeState(next.mode === 'editor' ? { client: String(next.clientId) } : { client: null });
+}
+
 function showLoading(panel) {
   // Only paint a placeholder into an EMPTY panel. Replacing already-rendered
   // content with "Loading…" on every mutation is what made a save or a reorder
@@ -262,7 +274,7 @@ function showLoading(panel) {
 
 function renderActiveTab(panel) {
   if (activeTabId === 'categories') renderCategoriesTab(panel);
-  else if (activeTabId === 'clients') renderClientsTab(panel);
+  else if (activeTabId === 'clients') enterClientsTab(panel);
   else if (activeTabId === 'logos') renderLogosTab(panel);
   else if (activeTabId === 'settings') renderSettingsTab(panel);
   else enterProjectsTab(panel);
@@ -482,7 +494,7 @@ function clientOptionLabel(client) {
   return `${client.name} (${client.projectCount} project${client.projectCount === 1 ? '' : 's'})`;
 }
 
-function projectForm(project, categories, clients, onSaved) {
+function projectForm(project, categories, clients, onSaved, onCancel) {
   const isNew = !project;
   const title = el('input', { class: 'admin-input', required: true, value: project?.title || '' });
   const slug = el('input', { class: 'admin-input', value: project?.slug || '' });
@@ -611,7 +623,11 @@ function projectForm(project, categories, clients, onSaved) {
     el('div', { class: 'admin-form__actions' }, submitBtn, cancelBtn)
   );
 
-  cancelBtn?.addEventListener('click', () => renderProjectsTab(qs('#admin-panel')));
+  // onCancel lets the Clients tab reuse this form and send Cancel back to the
+  // client it was opened from, instead of dumping you in the Projects list.
+  cancelBtn?.addEventListener('click', () =>
+    onCancel ? onCancel() : renderProjectsTab(qs('#admin-panel'))
+  );
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -925,14 +941,24 @@ async function enterProjectsTab(panel) {
   renderProjectEditor(panel, project, categories || [], clients, { showGallery });
 }
 
-function renderProjectEditor(panel, project, categories, clients, { showGallery = false } = {}) {
+function renderProjectEditor(panel, project, categories, clients, { showGallery = false, returnTo } = {}) {
   // Remembered so a trip to another tab (or a browser tab switch) comes back to
-  // this project rather than to the list.
-  setProjectsView(
-    project?.id ? { mode: 'editor', projectId: project.id, showGallery } : { mode: 'list' }
-  );
+  // this project rather than to the list. Skipped when the editor was opened
+  // from the Clients tab (returnTo is set): the Projects tab should still be
+  // wherever IT was left, not follow a detour taken somewhere else.
+  if (!returnTo) {
+    setProjectsView(
+      project?.id ? { mode: 'editor', projectId: project.id, showGallery } : { mode: 'list' }
+    );
+  }
 
-  const form = projectForm(project, categories, clients, (savedId) => renderProjectsTab(panel, savedId));
+  const form = projectForm(
+    project,
+    categories,
+    clients,
+    (savedId) => (returnTo ? returnTo() : renderProjectsTab(panel, savedId)),
+    returnTo
+  );
   const heading = el('h2', { class: 'admin-section__title' }, project ? `Edit: ${project.title}` : 'New project');
   const sections = [el('section', {}, heading, form)];
 
@@ -1434,6 +1460,282 @@ function clientForm(client, projectCount, onSaved) {
   return form;
 }
 
+// --- Client editor: one client, its card and all its work ----------------------
+// Repeat work for a client reads as ONE body of work on the site, so it should
+// be editable as one too. Before this the card lived in this tab while the
+// projects under it lived in Projects, and joining the two up was a matter of
+// remembering which was which. Opening a client here now shows both: the card
+// at the top, the work beneath it.
+//
+// The breakdown only becomes the POINT once a client has a second project —
+// the same threshold the site uses to collapse them into one card and give
+// them a page. With one project it still lists, with a note saying it renders
+// as a plain project card until there is a second published one.
+
+// Every project is fetched, not just this client's: sort_order is scoped to a
+// CATEGORY across all projects in it, so reordering safely means knowing the
+// whole category, not one client's slice of it.
+async function loadClientEditorData(clientId) {
+  const [{ data: client }, { data: projects }, { data: categories }] = await Promise.all([
+    supabase.from('clients').select('*').eq('id', clientId).maybeSingle(),
+    supabase.from('projects').select('*'),
+    supabase.from('categories').select('*').order('sort_order'),
+  ]);
+  return { client, projects: projects || [], categories: categories || [] };
+}
+
+// The same ordering the public client page uses (js/client.js): category order
+// first, then position within the category. Keeping the two in step is what
+// stops the admin showing an order the site does not.
+function orderedForCategory(projects, categoryId) {
+  return projects
+    .filter((p) => p.category_id === categoryId)
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.title.localeCompare(b.title));
+}
+
+/**
+ * Move one of a client's projects up or down PAST ITS NEXT SIBLING FROM THE SAME
+ * CLIENT, which is what the ↑/↓ mean in a view that only lists that client. The
+ * whole category is then renumbered 0..n-1, so ties in sort_order (which the
+ * seed data has) are resolved permanently instead of leaving the order
+ * ambiguous. Returns the rows whose sort_order actually changed, or null when
+ * the project is already at the end of its client's run.
+ */
+function reorderWithinCategory(projects, project, direction) {
+  const list = orderedForCategory(projects, project.category_id);
+  const i = list.findIndex((p) => p.id === project.id);
+  if (i === -1) return null;
+
+  let j = i + direction;
+  while (j >= 0 && j < list.length && list[j].client_id !== project.client_id) j += direction;
+  if (j < 0 || j >= list.length) return null;
+
+  [list[i], list[j]] = [list[j], list[i]];
+
+  const changed = [];
+  list.forEach((p, idx) => {
+    if (p.sort_order !== idx) {
+      p.sort_order = idx;
+      changed.push(p);
+    }
+  });
+  return changed;
+}
+
+async function persistProjectOrder(changed) {
+  if (!changed?.length) return;
+  await withSaveState(
+    Promise.all(
+      changed.map((p) =>
+        supabase.from('projects').update({ sort_order: p.sort_order }).eq('id', p.id).throwOnError()
+      )
+    )
+  );
+}
+
+async function enterClientsTab(panel) {
+  const { mode, clientId } = clientsView;
+  if (mode !== 'editor' || !clientId) {
+    renderClientsTab(panel);
+    return;
+  }
+  showLoading(panel);
+  const data = await loadClientEditorData(clientId);
+  // Deleted from another window, or the row is simply gone.
+  if (!data.client) {
+    setClientsView({ mode: 'list' });
+    renderClientsTab(panel);
+    return;
+  }
+  paintClientEditor(panel, data);
+}
+
+async function openClientEditor(panel, clientId) {
+  setClientsView({ mode: 'editor', clientId });
+  showLoading(panel);
+  const data = await loadClientEditorData(clientId);
+  if (!data.client) {
+    setClientsView({ mode: 'list' });
+    renderClientsTab(panel);
+    return;
+  }
+  paintClientEditor(panel, data);
+}
+
+// Synchronous, like paintProjectsTab: a reorder or a publish toggle repaints
+// from data already in hand rather than refetching, so the panel never blanks.
+function paintClientEditor(panel, data, focus) {
+  const { client, projects, categories } = data;
+  const mine = projects.filter((p) => String(p.client_id) === String(client.id));
+  const live = mine.filter((p) => p.is_published).length;
+  const heading = client.card_title?.trim() || client.name;
+
+  const backBtn = el('button', { class: 'admin-btn', type: 'button' }, '← All clients');
+  backBtn.addEventListener('click', () => {
+    setClientsView({ mode: 'list' });
+    renderClientsTab(panel);
+  });
+
+  const repaint = (f) => paintClientEditor(panel, data, f);
+
+  // --- one project row -------------------------------------------------------
+  const projectRow = (p, indexInClientCategory, clientCategoryCount) => {
+    const upBtn = el('button', {
+      class: 'admin-btn admin-btn--icon',
+      type: 'button',
+      'data-role': 'up',
+      disabled: indexInClientCategory === 0,
+    }, '↑');
+    const downBtn = el('button', {
+      class: 'admin-btn admin-btn--icon',
+      type: 'button',
+      'data-role': 'down',
+      disabled: indexInClientCategory === clientCategoryCount - 1,
+    }, '↓');
+    const galleryBtn = el('button', { class: 'admin-btn admin-btn--icon', type: 'button' }, 'Gallery');
+    const editBtn = el('button', { class: 'admin-btn admin-btn--icon', type: 'button' }, 'Edit');
+    const publishBtn = el('button', { class: 'admin-btn admin-btn--icon', type: 'button', 'data-role': 'publish' },
+      p.is_published ? 'Unpublish' : 'Publish');
+    const errorEl = el('p', { class: 'admin-error', 'aria-live': 'polite' });
+
+    const move = async (direction, role) => {
+      const before = new Map(projects.map((q) => [q.id, q.sort_order]));
+      const changed = reorderWithinCategory(projects, p, direction);
+      if (!changed) return;
+      repaint({ id: p.id, role });
+      try {
+        await persistProjectOrder(changed);
+      } catch (err) {
+        for (const q of projects) q.sort_order = before.get(q.id);
+        repaint({ id: p.id, role });
+        console.error('[admin] client reorder failed:', err);
+      }
+    };
+    upBtn.addEventListener('click', () => move(-1, 'up'));
+    downBtn.addEventListener('click', () => move(1, 'down'));
+
+    publishBtn.addEventListener('click', async () => {
+      const next = !p.is_published;
+      p.is_published = next;
+      repaint({ id: p.id, role: 'publish' });
+      try {
+        await withSaveState(
+          supabase
+            .from('projects')
+            .update({ is_published: next, updated_at: new Date().toISOString() })
+            .eq('id', p.id)
+            .throwOnError()
+        );
+      } catch (err) {
+        p.is_published = !next;
+        repaint({ id: p.id, role: 'publish' });
+        console.error('[admin] publish toggle failed:', err);
+      }
+    });
+
+    // Edits open the SAME project editor the Projects tab uses — one form, not
+    // a second one to keep in step. returnTo brings Save and Cancel back here.
+    const openProject = async (showGallery) => {
+      const clients = await fetchClients();
+      renderProjectEditor(panel, p, categories, clients, {
+        showGallery,
+        returnTo: () => openClientEditor(panel, client.id),
+      });
+    };
+    editBtn.addEventListener('click', () => openProject(false));
+    galleryBtn.addEventListener('click', () => openProject(true));
+
+    return el(
+      'div',
+      { class: 'admin-list__row', 'data-project-id': p.id },
+      el(
+        'div',
+        { class: 'admin-list__main' },
+        el('span', { class: 'admin-list__title' }, p.title),
+        el('span', { class: 'admin-list__meta' }, `/${p.slug || '(no slug)'} · ${p.layout}`),
+        errorEl
+      ),
+      el('span', { class: `admin-badge${p.is_published ? ' admin-badge--live' : ''}` },
+        p.is_published ? 'Live' : 'Draft'),
+      el('div', { class: 'admin-list__actions' }, upBtn, downBtn, publishBtn, galleryBtn, editBtn)
+    );
+  };
+
+  // --- the work, grouped by category ----------------------------------------
+  // Grouped because that is what decides the order on the client's own page:
+  // category first, then position inside it. Showing the groups makes it
+  // obvious why one project sits above another.
+  const catById = new Map(categories.map((c) => [c.id, c]));
+  const usedCategories = [...new Set(mine.map((p) => p.category_id))].sort(
+    (a, b) => (catById.get(a)?.sort_order ?? 999) - (catById.get(b)?.sort_order ?? 999)
+  );
+
+  const groups = usedCategories.map((categoryId) => {
+    const inCategory = orderedForCategory(projects, categoryId).filter(
+      (p) => String(p.client_id) === String(client.id)
+    );
+    return el(
+      'div',
+      { class: 'admin-client-group' },
+      el('p', { class: 'admin-client-group__label' },
+        `${catById.get(categoryId)?.name || 'Uncategorized'} · ${inCategory.length} project${inCategory.length === 1 ? '' : 's'}`),
+      ...inCategory.map((p, i) => projectRow(p, i, inCategory.length))
+    );
+  });
+
+  const workSection = el(
+    'section',
+    {},
+    el('h2', { class: 'admin-section__title' }, 'Work'),
+    el(
+      'p',
+      { class: 'admin-field__hint' },
+      mine.length
+        ? `${mine.length} project${mine.length === 1 ? '' : 's'} filed under this client, ${live} live. ↑ ↓ set the order they appear in on the client's page; category order decides which group comes first. Projects are filed under a client from the project's own form.`
+        : 'No projects are filed under this client yet. Open a project in the Projects tab and pick this client to add one.'
+    ),
+    live > 1
+      ? null
+      : el(
+          'p',
+          { class: 'admin-field__hint' },
+          live === 1
+            ? 'With one published project this client renders as a plain project card on the home page — no grouped card and no client page. Publish a second and it switches over automatically.'
+            : 'Nothing is published for this client yet, so it does not render on the site at all.'
+        ),
+    ...groups
+  );
+
+  panel.replaceChildren(
+    el('div', { class: 'admin-form__actions' }, backBtn),
+    el(
+      'section',
+      {},
+      el('h2', { class: 'admin-section__title' }, `Client: ${heading}`),
+      clientForm(client, mine.length, () => openClientEditor(panel, client.id))
+    ),
+    workSection
+  );
+
+  // Put the keyboard back on the control that was just used. Moving a project
+  // to the end of its run DISABLES the arrow that got it there, so fall back to
+  // the opposite arrow rather than dropping focus to the body and stranding a
+  // keyboard user mid-reorder.
+  if (focus) {
+    const row = qs(`.admin-list__row[data-project-id="${CSS.escape(String(focus.id))}"]`, panel);
+    if (row) {
+      const preferred = [focus.role, focus.role === 'up' ? 'down' : 'up', 'publish'];
+      for (const role of preferred) {
+        const btn = qs(`[data-role="${role}"]`, row);
+        if (btn && !btn.disabled) {
+          btn.focus();
+          break;
+        }
+      }
+    }
+  }
+}
+
 async function deleteClient(client, projectCount, panel) {
   if (projectCount > 0) {
     alert(`Can’t delete: ${projectCount} project(s) are still filed under ${client.name}. Move or delete them first.`);
@@ -1446,6 +1748,7 @@ async function deleteClient(client, projectCount, panel) {
 
 async function renderClientsTab(panel) {
   showLoading(panel);
+  setClientsView({ mode: 'list' });
 
   // select('*') rather than a named column list: it keeps this tab working
   // whether or not sql/006 has been applied yet, instead of erroring on a
@@ -1472,13 +1775,14 @@ async function renderClientsTab(panel) {
   const rows = (clients || []).map((c) => {
     const count = total.get(c.id) || 0;
     const live = published.get(c.id) || 0;
-    const editBtn = el('button', { class: 'admin-btn admin-btn--icon', type: 'button' }, 'Edit');
+    const openBtn = el('button', { class: 'admin-btn admin-btn--icon', type: 'button', 'data-role': 'open' }, 'Open');
     const deleteBtn = el('button', { class: 'admin-btn admin-btn--icon admin-btn--danger', type: 'button' }, 'Delete');
     deleteBtn.addEventListener('click', () => deleteClient(c, count, panel));
+    openBtn.addEventListener('click', () => openClientEditor(panel, c.id));
 
-    const row = el(
+    return el(
       'div',
-      { class: 'admin-list__row' },
+      { class: 'admin-list__row', 'data-client-id': c.id },
       c.banner_url
         ? el('img', { src: c.banner_url, alt: '', class: 'admin-list__thumb' })
         : el('span', { class: 'admin-list__thumb admin-list__thumb--empty', 'aria-hidden': 'true' }),
@@ -1502,16 +1806,8 @@ async function renderClientsTab(panel) {
         { class: `admin-badge${live > 1 ? ' admin-badge--live' : ''}` },
         live > 1 ? 'Grouped card' : 'Single card'
       ),
-      el('div', { class: 'admin-list__actions' }, editBtn, deleteBtn)
+      el('div', { class: 'admin-list__actions' }, openBtn, deleteBtn)
     );
-
-    editBtn.addEventListener('click', () => {
-      row.replaceWith(
-        el('div', { class: 'admin-list__row' }, clientForm(c, count, () => renderClientsTab(panel)))
-      );
-    });
-
-    return row;
   });
 
   panel.replaceChildren(
@@ -1522,7 +1818,7 @@ async function renderClientsTab(panel) {
       el(
         'p',
         { class: 'admin-field__hint' },
-        'A client with two or more published projects becomes one card on the home page and gets its own page. Set that card’s banner and subtitle here. New clients are added from the project form.'
+        'A client with two or more published projects becomes one card on the home page and gets its own page. Open a client to set that card and to arrange the work underneath it. New clients are added from the project form.'
       ),
       rows.length ? el('div', { class: 'admin-list' }, ...rows) : el('p', { class: 'admin-field__hint' }, 'No clients yet.')
     )

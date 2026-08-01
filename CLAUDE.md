@@ -96,8 +96,21 @@ home.js boots the homepage on import, so client.js cannot borrow from it.
 Picking "+ Add new client…" and typing a name that already exists reuses the
 existing client (matched on slug) instead of minting a duplicate row.
 
-**Admin → Clients** edits the PARENT card: its banner (`clients.banner_url` +
-the `banner_w`/`banner_h` added by 006) and subtitle (`clients.description`).
+**Admin → Clients** opens ONE CLIENT at a time: its card at the top, all its
+work beneath. The work is grouped by category, because that is what decides the
+order on the client's own page (category first, then position within it). ↑/↓
+move a project past its next sibling FROM THE SAME CLIENT and then renumber that
+whole category 0..n-1, which also resolves the sort_order ties the seed data has.
+Editing a project from here opens the same project editor the Projects tab uses —
+one form, not a second to keep in step — and Save/Cancel return to the client
+rather than to the projects list. No migration: ordering still rides on the
+existing category-scoped `projects.sort_order`. A client's projects spanning two
+categories therefore cannot be interleaved; that would need a client-scoped order
+column, which is deliberately not added.
+
+The client editor's card section edits the PARENT card: its banner
+(`clients.banner_url` + the `banner_w`/`banner_h` added by 006) and subtitle
+(`clients.description`).
 `banner_url` and `description` are LIVE columns predating this rebuild — reused,
 not duplicated, which is why Riara University's old banner shows on the new card
 with no re-upload. 006's `cover_url`/`summary` are dead; see that file.
