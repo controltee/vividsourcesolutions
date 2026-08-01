@@ -62,27 +62,42 @@ async function load() {
     return;
   }
 
-  // Category order decides the sequence here exactly as it does on the home
-  // grid, so a client's work is not silently reshuffled between the two pages.
+  // select('*') rather than a named column list, for the same reason the client
+  // query above uses it: `client_sort_order` arrives with sql/008, and PostgREST
+  // errors on a column it has not seen rather than ignoring it. Naming it would
+  // break this page outright wherever that migration has not run. This is one
+  // client's projects — a handful of rows — so the extra columns cost nothing.
   const [cats, projs] = await Promise.all([
     supabase.from('categories').select('id, sort_order'),
-    supabase
-      .from('projects')
-      .select('id, title, slug, summary, cover_url, banner_w, banner_h, category_id, sort_order')
-      .eq('is_published', true)
-      .eq('client_id', client.id),
+    supabase.from('projects').select('*').eq('is_published', true).eq('client_id', client.id),
   ]);
   if (projs.error) throw projs.error;
 
   const catOrder = new Map((cats.data || []).map((c) => [c.id, c.sort_order ?? 0]));
-  const projects = (projs.data || [])
-    .filter((p) => p.slug)
-    .sort(
-      (a, b) =>
-        (catOrder.get(a.category_id) ?? 999) - (catOrder.get(b.category_id) ?? 999) ||
-        (a.sort_order ?? 0) - (b.sort_order ?? 0) ||
-        a.title.localeCompare(b.title)
+
+  // Order of preference:
+  //   1. client_sort_order — a position within THIS client, set in the admin.
+  //      Independent of category, so a client's work can be sequenced the way
+  //      the story reads rather than the way it happens to be filed.
+  //   2. category order, then position within the category — what this page
+  //      did before sql/008, and still the answer for any project that has no
+  //      client position yet (a new one, or a database without the migration).
+  // A project with no client position sorts AFTER the ones that have one, so a
+  // newly added project lands at the end instead of jumping to the front.
+  const byClientOrder = (a, b) => {
+    const ao = a.client_sort_order;
+    const bo = b.client_sort_order;
+    if (ao != null && bo != null) return ao - bo;
+    if (ao != null) return -1;
+    if (bo != null) return 1;
+    return (
+      (catOrder.get(a.category_id) ?? 999) - (catOrder.get(b.category_id) ?? 999) ||
+      (a.sort_order ?? 0) - (b.sort_order ?? 0) ||
+      a.title.localeCompare(b.title)
     );
+  };
+
+  const projects = (projs.data || []).filter((p) => p.slug).sort(byClientOrder);
 
   // The heading matches the home card (card_title when set); the tab title and
   // the URL stay on the canonical name.

@@ -674,6 +674,36 @@ function projectForm(project, categories, clients, onSaved, onCancel) {
         updated_at: new Date().toISOString(),
       };
 
+      // A project filed under a client needs a position in THAT CLIENT's run
+      // (sql/008), or it has no place in an order the client owns. Appended to
+      // the end, so adding work never displaces what is already arranged.
+      //
+      // The probe keeps this entirely optional: a database without sql/008
+      // returns an error for the unknown column, the field is left out of the
+      // payload, and the client page falls back to category order exactly as
+      // it did before. Moving a project to a DIFFERENT client re-positions it,
+      // since its old position belonged to someone else's run; detaching it
+      // clears the position rather than leaving a dangling one.
+      const { error: probeError } = await supabase
+        .from('projects')
+        .select('client_sort_order')
+        .limit(1);
+      if (!probeError) {
+        const clientChanged = String(project?.client_id ?? '') !== String(clientId ?? '');
+        if (!clientId) {
+          payload.client_sort_order = null;
+        } else if (clientChanged || project?.client_sort_order == null) {
+          const { data: last } = await supabase
+            .from('projects')
+            .select('client_sort_order')
+            .eq('client_id', clientId)
+            .not('client_sort_order', 'is', null)
+            .order('client_sort_order', { ascending: false })
+            .limit(1);
+          payload.client_sort_order = (last?.[0]?.client_sort_order ?? -1) + 1;
+        }
+      }
+
       if (pendingCover) {
         const uploaded = await uploadImage(
           new File([pendingCover.blob], 'cover.webp', { type: 'image/webp' }),
@@ -1493,6 +1523,62 @@ function orderedForCategory(projects, categoryId) {
     .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.title.localeCompare(b.title));
 }
 
+// sql/008 adds projects.client_sort_order — a position within the CLIENT,
+// independent of category. PostgREST returns every column of a row, so the key
+// being present is a reliable probe for whether that migration has run. Before
+// it, ordering falls back to the category-scoped sort_order and the view groups
+// by category; after it, the client's work is one list it can order freely.
+function hasClientOrder(projects) {
+  return projects.length > 0 && 'client_sort_order' in projects[0];
+}
+
+function byClientPosition(a, b) {
+  const ao = a.client_sort_order;
+  const bo = b.client_sort_order;
+  if (ao != null && bo != null) return ao - bo;
+  if (ao != null) return -1;
+  if (bo != null) return 1;
+  return a.title.localeCompare(b.title);
+}
+
+/**
+ * Move a project up or down within its CLIENT, across categories. Renumbers the
+ * client's whole run 0..n-1 so positions never collide or drift, and returns the
+ * rows that actually changed. Only used once sql/008 is applied.
+ */
+function reorderWithinClient(mine, project, direction) {
+  const list = [...mine].sort(byClientPosition);
+  const i = list.findIndex((p) => p.id === project.id);
+  const j = i + direction;
+  if (i === -1 || j < 0 || j >= list.length) return null;
+
+  [list[i], list[j]] = [list[j], list[i]];
+
+  const changed = [];
+  list.forEach((p, idx) => {
+    if (p.client_sort_order !== idx) {
+      p.client_sort_order = idx;
+      changed.push(p);
+    }
+  });
+  return changed;
+}
+
+async function persistClientOrder(changed) {
+  if (!changed?.length) return;
+  await withSaveState(
+    Promise.all(
+      changed.map((p) =>
+        supabase
+          .from('projects')
+          .update({ client_sort_order: p.client_sort_order })
+          .eq('id', p.id)
+          .throwOnError()
+      )
+    )
+  );
+}
+
 /**
  * Move one of a client's projects up or down PAST ITS NEXT SIBLING FROM THE SAME
  * CLIENT, which is what the ↑/↓ mean in a view that only lists that client. The
@@ -1500,6 +1586,9 @@ function orderedForCategory(projects, categoryId) {
  * seed data has) are resolved permanently instead of leaving the order
  * ambiguous. Returns the rows whose sort_order actually changed, or null when
  * the project is already at the end of its client's run.
+ *
+ * This is the PRE-sql/008 path, kept so the tab still works against a database
+ * without that migration.
  */
 function reorderWithinCategory(projects, project, direction) {
   const list = orderedForCategory(projects, project.category_id);
@@ -1578,19 +1667,25 @@ function paintClientEditor(panel, data, focus) {
 
   const repaint = (f) => paintClientEditor(panel, data, f);
 
+  const catById = new Map(categories.map((c) => [c.id, c]));
+  const categoryLabel = (p) => catById.get(p.category_id)?.name || '';
+  // sql/008 applied? Decides both how the arrows behave and how the work is laid
+  // out below. Probed once here so the two can never disagree.
+  const clientScoped = hasClientOrder(mine);
+
   // --- one project row -------------------------------------------------------
-  const projectRow = (p, indexInClientCategory, clientCategoryCount) => {
+  const projectRow = (p, indexInList, listLength) => {
     const upBtn = el('button', {
       class: 'admin-btn admin-btn--icon',
       type: 'button',
       'data-role': 'up',
-      disabled: indexInClientCategory === 0,
+      disabled: indexInList === 0,
     }, '↑');
     const downBtn = el('button', {
       class: 'admin-btn admin-btn--icon',
       type: 'button',
       'data-role': 'down',
-      disabled: indexInClientCategory === clientCategoryCount - 1,
+      disabled: indexInList === listLength - 1,
     }, '↓');
     const galleryBtn = el('button', { class: 'admin-btn admin-btn--icon', type: 'button' }, 'Gallery');
     const editBtn = el('button', { class: 'admin-btn admin-btn--icon', type: 'button' }, 'Edit');
@@ -1598,15 +1693,21 @@ function paintClientEditor(panel, data, focus) {
       p.is_published ? 'Unpublish' : 'Publish');
     const errorEl = el('p', { class: 'admin-error', 'aria-live': 'polite' });
 
+    // With sql/008 the arrows move a project within the CLIENT and can cross
+    // categories; without it they fall back to moving it among its
+    // category-mates, which is all the category-scoped sort_order can express.
     const move = async (direction, role) => {
-      const before = new Map(projects.map((q) => [q.id, q.sort_order]));
-      const changed = reorderWithinCategory(projects, p, direction);
+      const field = clientScoped ? 'client_sort_order' : 'sort_order';
+      const before = new Map(projects.map((q) => [q.id, q[field]]));
+      const changed = clientScoped
+        ? reorderWithinClient(mine, p, direction)
+        : reorderWithinCategory(projects, p, direction);
       if (!changed) return;
       repaint({ id: p.id, role });
       try {
-        await persistProjectOrder(changed);
+        await (clientScoped ? persistClientOrder(changed) : persistProjectOrder(changed));
       } catch (err) {
-        for (const q of projects) q.sort_order = before.get(q.id);
+        for (const q of projects) q[field] = before.get(q.id);
         repaint({ id: p.id, role });
         console.error('[admin] client reorder failed:', err);
       }
@@ -1652,7 +1753,9 @@ function paintClientEditor(panel, data, focus) {
         'div',
         { class: 'admin-list__main' },
         el('span', { class: 'admin-list__title' }, p.title),
-        el('span', { class: 'admin-list__meta' }, `/${p.slug || '(no slug)'} · ${p.layout}`),
+        el('span', { class: 'admin-list__meta' },
+          `/${p.slug || '(no slug)'} · ${p.layout}` +
+            (clientScoped && categoryLabel(p) ? ` · ${categoryLabel(p)}` : '')),
         errorEl
       ),
       el('span', { class: `admin-badge${p.is_published ? ' admin-badge--live' : ''}` },
@@ -1661,27 +1764,43 @@ function paintClientEditor(panel, data, focus) {
     );
   };
 
-  // --- the work, grouped by category ----------------------------------------
-  // Grouped because that is what decides the order on the client's own page:
-  // category first, then position inside it. Showing the groups makes it
-  // obvious why one project sits above another.
-  const catById = new Map(categories.map((c) => [c.id, c]));
-  const usedCategories = [...new Set(mine.map((p) => p.category_id))].sort(
-    (a, b) => (catById.get(a)?.sort_order ?? 999) - (catById.get(b)?.sort_order ?? 999)
-  );
-
-  const groups = usedCategories.map((categoryId) => {
-    const inCategory = orderedForCategory(projects, categoryId).filter(
-      (p) => String(p.client_id) === String(client.id)
+  // --- the work ---------------------------------------------------------------
+  // Two shapes, decided by whether sql/008 has been applied.
+  //
+  // WITH client_sort_order: ONE list the client owns outright. Category becomes
+  // a label on the row rather than a boundary, because it no longer constrains
+  // the order — which is the whole point of that migration.
+  //
+  // WITHOUT it: grouped by category, because category order is then what
+  // actually decides the sequence on the client's page and hiding that would
+  // only make the arrows look broken when they refuse to cross a boundary.
+  let groups;
+  if (clientScoped) {
+    const ordered = [...mine].sort(byClientPosition);
+    groups = [
+      el(
+        'div',
+        { class: 'admin-client-group' },
+        ...ordered.map((p, i) => projectRow(p, i, ordered.length))
+      ),
+    ];
+  } else {
+    const usedCategories = [...new Set(mine.map((p) => p.category_id))].sort(
+      (a, b) => (catById.get(a)?.sort_order ?? 999) - (catById.get(b)?.sort_order ?? 999)
     );
-    return el(
-      'div',
-      { class: 'admin-client-group' },
-      el('p', { class: 'admin-client-group__label' },
-        `${catById.get(categoryId)?.name || 'Uncategorized'} · ${inCategory.length} project${inCategory.length === 1 ? '' : 's'}`),
-      ...inCategory.map((p, i) => projectRow(p, i, inCategory.length))
-    );
-  });
+    groups = usedCategories.map((categoryId) => {
+      const inCategory = orderedForCategory(projects, categoryId).filter(
+        (p) => String(p.client_id) === String(client.id)
+      );
+      return el(
+        'div',
+        { class: 'admin-client-group' },
+        el('p', { class: 'admin-client-group__label' },
+          `${catById.get(categoryId)?.name || 'Uncategorized'} · ${inCategory.length} project${inCategory.length === 1 ? '' : 's'}`),
+        ...inCategory.map((p, i) => projectRow(p, i, inCategory.length))
+      );
+    });
+  }
 
   const workSection = el(
     'section',
@@ -1691,7 +1810,10 @@ function paintClientEditor(panel, data, focus) {
       'p',
       { class: 'admin-field__hint' },
       mine.length
-        ? `${mine.length} project${mine.length === 1 ? '' : 's'} filed under this client, ${live} live. ↑ ↓ set the order they appear in on the client's page; category order decides which group comes first. Projects are filed under a client from the project's own form.`
+        ? `${mine.length} project${mine.length === 1 ? '' : 's'} filed under this client, ${live} live. ↑ ↓ set the order they appear in on the client's page` +
+          (clientScoped
+            ? ', in one run across every category. Projects are filed under a client from the project’s own form.'
+            : '; category order decides which group comes first, so the arrows only move a project among its category-mates. Run sql/008 to order them freely. Projects are filed under a client from the project’s own form.')
         : 'No projects are filed under this client yet. Open a project in the Projects tab and pick this client to add one.'
     ),
     live > 1
