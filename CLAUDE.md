@@ -22,8 +22,15 @@ Decisions (2026-07-17):
 
 Jesse repurposed the `vividsourcesolutions` GitHub repo to host this site. This
 repo's `origin` is `github.com/controltee/vividsourcesolutions`; Vercel deploys
-from its main → live at **controlteestudios.vercel.app**. The old flat-file site
-is preserved on the remote branch `pre-rebuild-old-site`.
+from its main → live at **controlteestudios.com**. The old flat-file site is
+preserved on the remote branch `pre-rebuild-old-site`.
+
+The Vercel-issued `controlteestudios.vercel.app` no longer serves the site: a
+301 in vercel.json bounces it to the custom domain, so old links keep working
+and only one hostname is canonical. That redirect needs the domain to stay
+ATTACHED in Vercel — removing it from Settings → Domains instead makes the old
+URL a dead end. Per-deployment `*.vercel.app` URLs cannot be removed at all;
+only Deployment Protection hides them.
 
 Deploy by pushing to origin. Neither `vercel` nor `gh` is installed on this
 machine. css/js are cached `max-age=3600`, so code changes need a hard-reload
@@ -146,8 +153,51 @@ Projects have a `layout` field: 'gallery' | 'deck' | 'reel'.
             between them (seamless Behance-style vertical flow), no lightbox, no
             captions rendered. Height is natural, NOT locked to 16:9 — forcing an
             aspect would crop multi-panel artwork. Upload 1920px wide, any height.
-- reel    = video, poster frame + click to play
+- reel    = video. EVERY video row on the project, in order — a showreel is
+            rarely one film. Images on a reel project are ignored.
 One template (project.html), three renderers. Never fork the template.
+
+## Video (added 2026-08-02, sql/009)
+
+A video is never an embedded player. Both sources render identically: a still
+WE host, then one button under it reading "Press to see full video". A YouTube
+row's button is a link out; an uploaded file's button swaps the still for a
+`<video>` in place, so no video bytes download until asked for. Embedding
+YouTube would pull in their script, their cookies and their chrome, and need
+youtube.com added to the CSP's frame-src — see `js/video.js`, which owns URL
+parsing for both the site and the admin. `videoBlock()` in js/project.js is
+shared by reel and deck.
+
+`project_media.kind` is now 'image' | 'video' | 'youtube'. On a video row
+`width`/`height` describe the POSTER, not the footage — that is the box the
+page reserves, and the video fills exactly it. `poster_url` null means "borrow
+projects.cover_url", so a video added without a poster still renders.
+
+Video files upload AS-IS: there is no browser-side transcode, because doing it
+properly means ffmpeg, and in a page that is a ~30MB wasm build (a new runtime
+dependency, which is banned) or a server we don't have. Compress offline first:
+`npm run vid -- <file-or-folder>` inside /scripts, which needs system ffmpeg
+(free, not an npm package) and emits mp4 + webm + a poster jpg. The admin
+refuses uploads over 45MB and warns over 6MB.
+
+**Anything longer than a few seconds belongs on YouTube, not Supabase Storage.**
+The free tier's monthly egress is spent by one 40MB file served a few hundred
+times. That is the whole reason the YouTube path exists.
+
+## What "protecting" the site can and cannot do
+
+`js/protect.js` blocks right-click and drag ON MEDIA ONLY. It is a deterrent
+and is documented as one — anything the browser renders is already in the
+visitor's cache, every Storage URL is in the page source, and disabling JS
+disables all of it. Do NOT extend it to block devtools, F12, Ctrl+U, or the
+context menu page-wide: those checks are bypassed just as easily, fire on
+innocent shortcuts, and break assistive tech. The only real measure for an
+image that must not circulate is not shipping it at full resolution.
+
+The Supabase URL and anon key in js/config.js are PUBLIC BY DESIGN and cannot
+be hidden from a browser or from anyone pasting the site into an AI tool. RLS
+(sql/003) is the actual security boundary. Hiding the key is not a goal; keeping
+RLS correct is.
 
 ## Commands
 - npm run img -- <folder>   (inside /scripts) — optimize a batch of images

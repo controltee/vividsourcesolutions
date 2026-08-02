@@ -431,6 +431,47 @@ a {
   background: var(--ink-80);
 }
 
+/* A video card shows its poster in the same 140px box an image card uses, so a
+   mixed gallery stays one grid. With no poster set yet the box says so rather
+   than collapsing — the card still has to be draggable and deletable. */
+.admin-asset__poster {
+  display: grid;
+  place-items: center;
+  height: 140px;
+  background: var(--ink-80);
+}
+.admin-asset__poster img {
+  height: 140px;
+}
+.admin-asset__poster-empty {
+  padding: var(--space-2xs);
+  color: var(--chalk-40);
+  font-size: var(--step--1);
+  text-align: center;
+}
+.admin-asset__poster-field {
+  display: block;
+  color: var(--chalk-60);
+  font-size: var(--step--1);
+}
+.admin-asset__poster-field input {
+  display: block;
+  margin-top: var(--space-3xs);
+  max-width: 100%;
+}
+
+/* The YouTube adder: one line on a wide panel, stacked when there is no room. */
+.admin-dropzone__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+  align-items: center;
+  margin-top: var(--space-2xs);
+}
+.admin-dropzone__row .admin-input {
+  flex: 1 1 260px;
+}
+
 /* Logos are marks, not photographs: `contain` so nothing is cropped, on the
    brand black because most of them are white on transparency and would vanish
    against the panel. */

@@ -28,6 +28,10 @@ canvas,
 svg {
   display: block;
   max-width: 100%;
+  /* Pairs with js/protect.js: stops an image being dragged out of the page to
+     the desktop. A deterrent only — read that file before relying on it. */
+  -webkit-user-drag: none;
+  user-select: none;
 }
 
 input,

@@ -5,7 +5,8 @@ node_modules/
 .env
 .env.*
 
-# Image pipeline working dirs
+# Image + video pipeline working dirs. Source video especially: a single raw
+# clip is bigger than the entire rest of this repo.
 scripts/out/
 scripts/raw/
 

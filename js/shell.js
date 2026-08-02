@@ -3,6 +3,7 @@
 
 import { qs, qsa, el, slugify } from './util.js';
 import { supabase } from './supabase.js';
+import { installMediaProtection } from './protect.js';
 
 const OPEN_KEY = 'ct:rail:open';
 const NAV_KEY = 'ct:nav:v4'; // v4: client labels follow card_title — bump invalidates old caches
@@ -452,6 +453,10 @@ async function init() {
   // can highlight a client label as the current page too.
   const params = new URLSearchParams(location.search);
   const active = { project: params.get('p'), client: params.get('c') };
+  // Public pages only — shell.js is not loaded by the admin, which needs a
+  // working right-click. Read protect.js before assuming this secures anything.
+  installMediaProtection();
+
   try {
     const groups = await loadNav();
     if (!groups.length) {

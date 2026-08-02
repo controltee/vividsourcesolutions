@@ -5,6 +5,7 @@ import { qs, qsa, el, revealOnScroll } from './util.js';
 import { supabase } from './supabase.js';
 import { pictureFor } from './image.js';
 import { openLightbox } from './lightbox.js';
+import { isVideoKind, youtubeId, youtubeWatchUrl } from './video.js';
 
 const pane = qs('#pane');
 
@@ -102,18 +103,87 @@ function renderGallery(media, title) {
   return container;
 }
 
+// --- Video block (shared by reel and deck) -----------------------------------
+// One shape for every video the site shows, whoever hosts it: a still, then one
+// button. YouTube rows link out (no embed — see video.js); uploaded files swap
+// the still for a real <video> in place, so not a byte of video downloads until
+// somebody asks for it.
+//
+// On a video row width/height describe the POSTER, not the footage (sql/009).
+// With no poster of its own the row borrows the project banner, which is why a
+// reel added in a hurry still renders something.
+function videoBlock(m, project, label, { showCaption = true } = {}) {
+  const ownPoster = Boolean(m.poster_url);
+  const posterUrl = ownPoster ? m.poster_url : project.cover_url || null;
+  const posterW = ownPoster ? m.width : project.banner_w;
+  const posterH = ownPoster ? m.height : project.banner_h;
+
+  const frame = el('div', { class: 'reel__frame' });
+  frame.append(
+    posterUrl
+      ? pictureFor(posterUrl, posterW, posterH, {
+          alt: m.alt || `${label} — still`,
+          sizes: '(max-width: 1100px) 100vw, 70vw',
+          loading: 'lazy',
+        })
+      : el('div', { class: 'reel__placeholder' }, label)
+  );
+
+  const ytId = m.kind === 'youtube' ? youtubeId(m.media_url) : null;
+  let cta;
+  if (ytId) {
+    cta = el(
+      'a',
+      {
+        class: 'reel__cta',
+        href: youtubeWatchUrl(ytId),
+        target: '_blank',
+        rel: 'noopener noreferrer',
+        'aria-label': `Press to see the full video for ${label} on YouTube (opens in a new tab)`,
+      },
+      'Press to see full video',
+      el('span', { class: 'reel__cta-glyph', 'aria-hidden': 'true' }, '↗')
+    );
+  } else {
+    cta = el('button', { class: 'reel__cta', type: 'button' }, 'Press to see full video');
+    cta.addEventListener('click', () => {
+      const video = el('video', {
+        src: m.media_url,
+        poster: posterUrl || false,
+        controls: true,
+        playsinline: true,
+        autoplay: true,
+        preload: 'metadata',
+      });
+      frame.replaceChildren(video);
+      cta.remove();
+      video.focus();
+    });
+  }
+
+  return el(
+    'div',
+    { class: 'reel__item' },
+    frame,
+    cta,
+    showCaption && m.caption ? el('p', { class: 'reel__caption' }, m.caption) : null
+  );
+}
+
 // --- Mode: deck --------------------------------------------------------------
-function renderDeck(media, title) {
+function renderDeck(media, project) {
+  const title = project.title;
   const container = el('div', { class: 'deck' });
   media.forEach((m, i) => {
-    const media_el =
-      m.kind === 'video'
-        ? el('video', { src: m.media_url, controls: true, playsinline: true, preload: 'none' })
-        : pictureFor(m.media_url, m.width, m.height, {
-            alt: m.alt || `${title}, slide ${i + 1} of ${media.length}`,
-            sizes: '(max-width: 1100px) 100vw, 70vw',
-            loading: i < 2 ? 'eager' : 'lazy',
-          });
+    const media_el = isVideoKind(m.kind)
+      ? // No caption here: deck renders none at all (see below), and the button
+        // under the still is the only chrome this layout tolerates.
+        videoBlock(m, project, `${title}, slide ${i + 1} of ${media.length}`, { showCaption: false })
+      : pictureFor(m.media_url, m.width, m.height, {
+          alt: m.alt || `${title}, slide ${i + 1} of ${media.length}`,
+          sizes: '(max-width: 1100px) 100vw, 70vw',
+          loading: i < 2 ? 'eager' : 'lazy',
+        });
     // No figcaption in deck mode: captions between slides break the seamless
     // flow this layout exists for. The caption stays in the DB and still shows
     // in gallery mode; alt above carries the accessible description either way.
@@ -124,27 +194,23 @@ function renderDeck(media, title) {
 }
 
 // --- Mode: reel ----------------------------------------------------------------
+// A reel is every video on the project, in order — a motion showreel is rarely
+// one film. Images on a reel project are ignored rather than half-rendered
+// between the videos; put them on a gallery project instead.
 function renderReel(media, project) {
-  const videoRow = media.find((m) => m.kind === 'video');
-  if (!videoRow) {
-    return el(
-      'div',
-      { class: 'reel' },
-      el('p', { class: 'pane__msg' }, 'Video coming soon.')
-    );
+  const videos = media.filter((m) => isVideoKind(m.kind));
+  if (!videos.length) {
+    return el('div', { class: 'reel' }, el('p', { class: 'pane__msg' }, 'Video coming soon.'));
   }
-  // Hosting a real video file from Supabase Storage is explicitly out of
-  // scope (see CLAUDE.md / build spec §8) until Cloudflare Stream or Mux is
-  // set up — this renderer is built and wired, the source is pluggable.
   return el(
     'div',
     { class: 'reel' },
-    el('video', {
-      src: videoRow.media_url,
-      poster: project.cover_url || false,
-      controls: true,
-      playsinline: true,
-      preload: 'none',
+    ...videos.map((m, i) => {
+      const label =
+        videos.length > 1 ? `${project.title}, video ${i + 1} of ${videos.length}` : project.title;
+      const block = videoBlock(m, project, label);
+      block.classList.add('reveal');
+      return block;
     })
   );
 }
@@ -170,9 +236,12 @@ async function loadProject() {
 
   document.title = `${project.title} · Control Tee`;
 
+  // select('*') rather than a named list: PostgREST errors on a column it does
+  // not know, so naming poster_url here would break every project page until
+  // sql/009 is applied in the dashboard. Same reasoning as `clients` (CLAUDE.md).
   const { data: media, error: mediaError } = await supabase
     .from('project_media')
-    .select('media_url, width, height, alt, caption, kind, sort_order')
+    .select('*')
     .eq('project_id', project.id)
     .order('sort_order');
 
@@ -180,7 +249,7 @@ async function loadProject() {
 
   const mediaList = media || [];
   let mediaEl;
-  if (project.layout === 'deck') mediaEl = renderDeck(mediaList, project.title);
+  if (project.layout === 'deck') mediaEl = renderDeck(mediaList, project);
   else if (project.layout === 'reel') mediaEl = renderReel(mediaList, project);
   else mediaEl = renderGallery(mediaList, project.title);
   mediaEl.classList.add('project__media');

@@ -5,6 +5,7 @@
   "description": "Offline image optimization for control-tee-site. Dev-only, never runs on the server.",
   "scripts": {
     "img": "node optimize-images.mjs",
+    "vid": "node optimize-video.mjs",
     "check-auth": "node --env-file=.env check-auth.mjs",
     "inspect": "node --env-file=.env inspect-db.mjs",
     "scan": "node scan-posters.mjs",

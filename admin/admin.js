@@ -7,11 +7,21 @@
 
 import { supabase } from '../js/supabase.js';
 import { el, qs, qsa, slugify } from '../js/util.js';
+import { isVideoKind, youtubeId, youtubeWatchUrl } from '../js/video.js';
 
 const root = qs('#admin-root');
 const BUCKET = 'portfolio_assets';
 const MAX_UPLOAD_DIMENSION = 1920;
 const WARN_BYTES = 500 * 1024;
+
+// Video budget. Supabase Storage on this plan rejects uploads over 50MB
+// outright, and the free tier's monthly egress is measured in gigabytes — a
+// single 40MB film served a few hundred times spends the whole month. So the
+// panel warns early and refuses well before the hard limit, and points at the
+// two ways out: run it through scripts/optimize-video.mjs, or put it on
+// YouTube and add the link instead.
+const WARN_VIDEO_BYTES = 6 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 45 * 1024 * 1024;
 
 /** A labeled field. Wraps the control inside the <label> so the association
  * is implicit — no id/for bookkeeping needed across forms that get rebuilt
@@ -130,6 +140,43 @@ async function uploadImage(file, pathPrefix, label) {
   if (error) throw error;
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
   return { url: data.publicUrl, width, height, bytes: blob.size };
+}
+
+/** Uploads a video file AS-IS. There is no browser-side transcode here on
+ * purpose: doing it properly means ffmpeg, and the only honest ways to run
+ * ffmpeg in a page are a ~30MB wasm build or a server — both of which this
+ * project has ruled out. Compression happens before upload, offline, via
+ * `npm run vid`. This function's job is to refuse anything that skipped it. */
+async function uploadVideo(file, pathPrefix, label) {
+  if (file.size > MAX_VIDEO_BYTES) {
+    throw new Error(
+      `${file.name} is ${(file.size / 1024 / 1024).toFixed(1)}MB. Compress it first ` +
+        `(npm run vid -- "${file.name}" inside /scripts), or upload it to YouTube and paste the link instead.`
+    );
+  }
+  const ext = (file.name.split('.').pop() || 'mp4').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const path = `${pathPrefix}/${label}-${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
+    contentType: file.type || 'video/mp4',
+    upsert: false,
+  });
+  if (error) throw error;
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+  return { url: data.publicUrl, bytes: file.size };
+}
+
+/** sql/009 adds project_media.poster_url and widens the kind constraint. Until
+ * it is applied, PostgREST rejects the column and Postgres rejects the check —
+ * two opaque errors for one missing migration. Name the file instead. */
+function migrationHint(err) {
+  const msg = String(err?.message || '');
+  const code = String(err?.code || '');
+  const missing =
+    /poster_url/i.test(msg) ||
+    /project_media_kind_check/i.test(msg) ||
+    code === '23514' ||
+    code === 'PGRST204';
+  return missing ? ' Run sql/009_project_media_video.sql in the Supabase SQL editor first.' : '';
 }
 
 function fieldSizeWarning(bytes) {
@@ -470,7 +517,11 @@ async function renderCategoriesTab(panel) {
 const LAYOUT_OPTIONS = [
   { value: 'gallery', label: 'Gallery', hint: 'Mixed-aspect posters in a grid. Click an image to open it full-size.' },
   { value: 'deck', label: 'Deck', hint: 'Full-width slides in a seamless vertical flow, with no gaps and no lightbox. Upload at 1920px wide; any height works and nothing gets cropped.' },
-  { value: 'reel', label: 'Reel', hint: 'A single video, poster frame + click to play.' },
+  {
+    value: 'reel',
+    label: 'Reel',
+    hint: 'Video. Each one shows as a still with a "Press to see full video" button under it — uploaded files play in place, YouTube links open on YouTube. Add as many as the piece needs.',
+  },
 ];
 
 // Clients carry their project count so the dropdown can say "RUSA (2 projects)".
@@ -560,6 +611,9 @@ function projectForm(project, categories, clients, onSaved, onCancel) {
   // an existing project's saved layout is never overwritten, and one manual
   // change to the dropdown stops it adjusting again.
   const DECK_DEFAULT_CATEGORY_SLUG = 'brand-identity-systems';
+  // Motion Design and Video Editing are video categories by definition, so they
+  // start on Reel for the same reason brand identity starts on Deck.
+  const REEL_DEFAULT_CATEGORY_SLUGS = new Set(['motion-design', 'video-editing']);
   let layoutTouched = !isNew;
   layoutSelect.addEventListener('change', () => {
     layoutTouched = true;
@@ -567,7 +621,9 @@ function projectForm(project, categories, clients, onSaved, onCancel) {
   const suggestLayoutForCategory = () => {
     if (layoutTouched) return;
     const category = categories.find((c) => c.id === categorySelect.value);
-    const suggested = category?.slug === DECK_DEFAULT_CATEGORY_SLUG ? 'deck' : 'gallery';
+    let suggested = 'gallery';
+    if (category?.slug === DECK_DEFAULT_CATEGORY_SLUG) suggested = 'deck';
+    else if (REEL_DEFAULT_CATEGORY_SLUGS.has(category?.slug)) suggested = 'reel';
     if (layoutSelect.value === suggested) return;
     layoutSelect.value = suggested;
     layoutHint.textContent = LAYOUT_OPTIONS.find((o) => o.value === suggested).hint;
@@ -805,8 +861,16 @@ async function deleteProject(project) {
   if (!confirm(`Delete "${project.title}"? This removes its gallery images and can’t be undone.`)) return;
   await withSaveState(
     (async () => {
-      const { data: media } = await supabase.from('project_media').select('media_url').eq('project_id', project.id);
-      const paths = (media || []).map((m) => storagePathFromUrl(m.media_url)).filter(Boolean);
+      // select('*') so poster_url comes along without naming it — PostgREST
+      // errors on a column it doesn't have, and this has to keep working
+      // whether or not sql/009 has been applied. A video row's poster is ours
+      // and would otherwise be orphaned in the bucket; its media_url may point
+      // at YouTube, where storagePathFromUrl correctly yields nothing.
+      const { data: media } = await supabase.from('project_media').select('*').eq('project_id', project.id);
+      const paths = (media || [])
+        .flatMap((m) => [m.media_url, m.poster_url])
+        .map((url) => url && storagePathFromUrl(url))
+        .filter(Boolean);
       if (project.cover_url) {
         const p = storagePathFromUrl(project.cover_url);
         if (p) paths.push(p);
@@ -1021,10 +1085,15 @@ async function persistAssetOrder(assets) {
 }
 
 async function deleteAsset(asset) {
-  const path = storagePathFromUrl(asset.media_url);
+  // A YouTube row's media_url points at youtube.com, so storagePathFromUrl
+  // returns null and nothing is removed from the bucket — but its poster IS
+  // ours, and used to be left behind paying rent forever.
+  const paths = [storagePathFromUrl(asset.media_url), asset.poster_url && storagePathFromUrl(asset.poster_url)].filter(
+    Boolean
+  );
   await withSaveState(
     (async () => {
-      if (path) await supabase.storage.from(BUCKET).remove([path]);
+      if (paths.length) await supabase.storage.from(BUCKET).remove(paths);
       await supabase.from('project_media').delete().eq('id', asset.id).throwOnError();
     })()
   );
@@ -1205,6 +1274,74 @@ async function renderGalleryManager(container, project) {
       '⠿'
     );
 
+    // An image row previews as itself. A video row previews as its POSTER —
+    // the still the site shows before anyone presses play — with a control to
+    // set one, because a video with no poster borrows the project banner and
+    // every video on the project then looks identical in this list.
+    const isVideoRow = isVideoKind(asset.kind);
+    const previewImg = (src) =>
+      el('img', { src, alt: '', width: asset.width || false, height: asset.height || false });
+
+    let preview;
+    let sourceLine = null;
+    let posterField = null;
+
+    if (isVideoRow) {
+      const ytId = asset.kind === 'youtube' ? youtubeId(asset.media_url) : null;
+      preview = el('div', { class: 'admin-asset__poster' });
+      const paintPoster = () =>
+        preview.replaceChildren(
+          asset.poster_url
+            ? previewImg(asset.poster_url)
+            : el('span', { class: 'admin-asset__poster-empty' }, 'No poster — the project banner stands in')
+        );
+      paintPoster();
+
+      sourceLine = el(
+        'p',
+        { class: 'admin-field__hint' },
+        ytId
+          ? `YouTube · ${ytId}`
+          : `Uploaded file · ${decodeURIComponent(asset.media_url.split('/').pop() || '')}`
+      );
+
+      const posterInput = el('input', { type: 'file', accept: 'image/*' });
+      posterInput.addEventListener('change', async () => {
+        const file = posterInput.files[0];
+        if (!file) return;
+        posterInput.disabled = true;
+        errorEl.textContent = '';
+        const previousPoster = asset.poster_url;
+        try {
+          const uploaded = await uploadImage(file, project.slug, `poster-${asset.sort_order}`);
+          await withSaveState(
+            supabase
+              .from('project_media')
+              .update({ poster_url: uploaded.url, width: uploaded.width, height: uploaded.height })
+              .eq('id', asset.id)
+              .throwOnError()
+          );
+          asset.poster_url = uploaded.url;
+          asset.width = uploaded.width;
+          asset.height = uploaded.height;
+          paintPoster();
+          // Only after the row points at the NEW file. Deleting first would
+          // leave the row addressing a poster that no longer exists if the
+          // update then failed.
+          const stale = previousPoster && storagePathFromUrl(previousPoster);
+          if (stale) await supabase.storage.from(BUCKET).remove([stale]);
+        } catch (err) {
+          errorEl.textContent = `Could not set the poster: ${err.message}${migrationHint(err)}`;
+        } finally {
+          posterInput.disabled = false;
+          posterInput.value = '';
+        }
+      });
+      posterField = el('label', { class: 'admin-asset__poster-field' }, 'Poster still: ', posterInput);
+    } else {
+      preview = previewImg(asset.media_url);
+    }
+
     // NOT draggable by default. A permanently-draggable figure makes the browser
     // claim the pointer gesture inside the alt/caption inputs, so text cannot be
     // selected and a drag started from the handle button behaves inconsistently.
@@ -1213,7 +1350,9 @@ async function renderGalleryManager(container, project) {
       'figure',
       { class: 'admin-asset', draggable: 'false', 'data-asset-id': asset.id },
       dragHandle,
-      el('img', { src: asset.media_url, alt: '', width: asset.width || false, height: asset.height || false }),
+      preview,
+      sourceLine,
+      posterField,
       altInput,
       captionInput,
       errorEl,
@@ -1262,7 +1401,7 @@ async function renderGalleryManager(container, project) {
   grid.append(...assets.map(assetCard));
   refreshControls();
 
-  const fileInput = el('input', { type: 'file', accept: 'image/*', multiple: true });
+  const fileInput = el('input', { type: 'file', accept: 'image/*,video/*', multiple: true });
   const uploadStatus = el('p', { class: 'admin-field__hint', 'aria-live': 'polite' });
   fileInput.addEventListener('change', async () => {
     const files = [...fileInput.files];
@@ -1276,7 +1415,10 @@ async function renderGalleryManager(container, project) {
     try {
       for (const [i, file] of files.entries()) {
         uploadStatus.textContent = `Uploading ${i + 1} of ${files.length}…`;
-        const uploaded = await uploadImage(file, project.slug, `gallery-${nextSort}`);
+        const isVideo = file.type.startsWith('video/');
+        const uploaded = isVideo
+          ? await uploadVideo(file, project.slug, `video-${nextSort}`)
+          : await uploadImage(file, project.slug, `gallery-${nextSort}`);
         // .select() so the new row comes back with its id and can be turned
         // straight into a card. Without it the only way to learn the id was to
         // refetch the whole gallery, which is what forced the full redraw.
@@ -1285,9 +1427,13 @@ async function renderGalleryManager(container, project) {
           .insert({
             project_id: project.id,
             media_url: uploaded.url,
-            width: uploaded.width,
-            height: uploaded.height,
-            kind: 'image',
+            // On a video row width/height describe the POSTER (sql/009), and no
+            // poster has been chosen yet. Left null, the page falls back to the
+            // project banner and ITS dimensions, so there is still no layout
+            // shift before a poster is set.
+            width: isVideo ? null : uploaded.width,
+            height: isVideo ? null : uploaded.height,
+            kind: isVideo ? 'video' : 'image',
             alt: '',
             sort_order: nextSort,
           })
@@ -1298,8 +1444,12 @@ async function renderGalleryManager(container, project) {
         byId.set(String(row.id), row);
         grid.append(assetCard(row));
         refreshControls();
-        if (uploaded.bytes > WARN_BYTES) {
-          oversize.push(`${file.name}: ${(uploaded.bytes / 1024).toFixed(0)}KB`);
+        if (uploaded.bytes > (isVideo ? WARN_VIDEO_BYTES : WARN_BYTES)) {
+          oversize.push(
+            isVideo
+              ? `${file.name}: ${(uploaded.bytes / 1024 / 1024).toFixed(1)}MB`
+              : `${file.name}: ${(uploaded.bytes / 1024).toFixed(0)}KB`
+          );
         }
         nextSort += 1;
       }
@@ -1308,7 +1458,11 @@ async function renderGalleryManager(container, project) {
       uploadStatus.replaceChildren('Done. Add alt text below before publishing.');
       if (oversize.length) {
         uploadStatus.append(
-          el('span', { class: 'admin-error' }, ` Over the 500KB target after compression: ${oversize.join(', ')}.`)
+          el(
+            'span',
+            { class: 'admin-error' },
+            ` Over target (500KB per image, 6MB per video): ${oversize.join(', ')}.`
+          )
         );
       }
       try {
@@ -1317,7 +1471,9 @@ async function renderGalleryManager(container, project) {
         /* private mode / quota — the rail cache's TTL still expires on its own */
       }
     } catch (err) {
-      uploadStatus.replaceChildren(el('span', { class: 'admin-error' }, `Upload failed: ${err.message}`));
+      uploadStatus.replaceChildren(
+        el('span', { class: 'admin-error' }, `Upload failed: ${err.message}${migrationHint(err)}`)
+      );
       setSaveState('error', err.message);
     } finally {
       fileInput.disabled = false;
@@ -1325,9 +1481,85 @@ async function renderGalleryManager(container, project) {
     }
   });
 
+  // A YouTube link is the OTHER way to add a video, and for anything longer
+  // than a few seconds it is the right one: the file never touches Supabase
+  // Storage, so it costs no storage and no egress however often it is watched.
+  // The site still shows only our own poster and a button — it does not embed
+  // their player (js/video.js).
+  const ytInput = el('input', {
+    class: 'admin-input',
+    type: 'url',
+    placeholder: 'https://www.youtube.com/watch?v=…',
+    'aria-label': 'YouTube link',
+  });
+  const ytBtn = el('button', { class: 'admin-btn', type: 'button' }, 'Add YouTube link');
+  const ytStatus = el('p', { class: 'admin-field__hint', 'aria-live': 'polite' });
+
+  ytBtn.addEventListener('click', async () => {
+    const id = youtubeId(ytInput.value);
+    if (!id) {
+      ytStatus.replaceChildren(
+        el(
+          'span',
+          { class: 'admin-error' },
+          'That is not a YouTube link. Paste the address from the browser bar, or the one the Share button gives you.'
+        )
+      );
+      return;
+    }
+    ytBtn.disabled = true;
+    ytStatus.textContent = 'Adding…';
+    try {
+      const { data: row, error } = await supabase
+        .from('project_media')
+        .insert({
+          project_id: project.id,
+          // The canonical watch URL, never a bare id: every reader then has a
+          // working link without having to know how to rebuild one.
+          media_url: youtubeWatchUrl(id),
+          kind: 'youtube',
+          alt: '',
+          sort_order: nodes().length,
+        })
+        .select('*')
+        .single();
+      if (error) throw error;
+
+      byId.set(String(row.id), row);
+      grid.append(assetCard(row));
+      refreshControls();
+      ytInput.value = '';
+      ytStatus.textContent = 'Added. Set a poster still and alt text on its card above.';
+      try {
+        localStorage.setItem(CONTENT_STAMP_KEY, String(Date.now()));
+      } catch {
+        /* private mode / quota — the rail cache's TTL still expires on its own */
+      }
+    } catch (err) {
+      ytStatus.replaceChildren(
+        el('span', { class: 'admin-error' }, `Could not add it: ${err.message}${migrationHint(err)}`)
+      );
+      setSaveState('error', err.message);
+    } finally {
+      ytBtn.disabled = false;
+    }
+  });
+
   container.replaceChildren(
     grid,
-    el('div', { class: 'admin-dropzone' }, el('label', {}, 'Add images: ', fileInput), uploadStatus)
+    el(
+      'div',
+      { class: 'admin-dropzone' },
+      el('label', {}, 'Add images or video: ', fileInput),
+      uploadStatus,
+      el(
+        'p',
+        { class: 'admin-field__hint' },
+        'Video files are uploaded as-is — compress them first with npm run vid (inside /scripts). Anything longer than about 10 seconds belongs on YouTube instead:'
+      ),
+      el('div', { class: 'admin-dropzone__row' }, ytInput, ytBtn),
+      ytStatus
+    )
   );
 }
 
