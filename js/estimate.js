@@ -1,39 +1,57 @@
-// estimate.js — the project estimator. This is the site's single call to
+// estimate.js — the project qualifier. This is the site's single call to
 // action: the hero points here and nothing else competes with it.
 //
-// Shape, and why: three questions, then a RANGE shown immediately with no email
-// asked for. The contact capture comes after the number. Asking for an address
-// before showing anything is what makes most "get a quote" tools feel like a
-// toll gate — the visitor pays first and finds out second. Here they get
-// something real for free, and the detailed breakdown is a fair trade after.
+// IT PUBLISHES NO PRICES, DELIBERATELY. An earlier draft showed a range. The
+// problem with that is anchoring: a client with three million budgeted who
+// reads "from four hundred thousand" negotiates from four hundred thousand, and
+// the studio never finds out what it left on the table. A published floor caps
+// your ceiling on every job, invisibly.
+//
+// So the number goes the other way. The visitor names THEIR budget, the studio
+// names none, and the quote happens in the discovery call once the project is
+// actually understood. Three consequences, all good: nothing anchors the studio
+// down, no-budget enquiries filter themselves out, and after a few dozen
+// submissions there is real data on what this market pays — which is the only
+// thing that ever fixes pricing confidence.
 
 import { qs, el, cacheWrite, cacheRead } from './util.js';
 import { recordEvent } from './analytics.js';
 import { WEB3FORMS_ACCESS_KEY, WEB3FORMS_ENDPOINT } from './config.js';
 
 // ===========================================================================
-// PRICING — THIS IS THE PART JESSE FILLS IN
+// BUDGET BANDS — PLACEHOLDER NUMBERS, JESSE REPLACES THESE
 // ===========================================================================
-// While PLACEHOLDER_PRICING is true the estimator runs end to end, records the
-// funnel and captures leads, but shows NO numbers — it says a figure follows
-// within one working day instead. That is deliberate: a made-up range published
-// on a live site is worse than no estimator at all, because the first lead who
-// quotes it and gets a different answer has learned the studio's prices are not
-// real.
+// These four boundaries are STRUCTURAL PLACEHOLDERS so the flow can be
+// previewed. They are not a recommendation and they are not researched — I do
+// not know what Nairobi studio work bills at, and guessing at it here is the
+// exact mistake this file exists to avoid.
 //
-// To switch it on: replace every `low`/`high` below with real figures, set
-// CURRENCY, then set PLACEHOLDER_PRICING to false. Nothing else has to change.
+// Set them where your own projects actually cluster, so the answer tells you
+// something. Two rules:
+//   1. The top band stays OPEN-ENDED ("and above"). That is where the upside
+//      is, and you want that client raising their hand rather than being
+//      squeezed into a bracket with a ceiling.
+//   2. "Not sure yet" stays. Plenty of first-time buyers of brand work
+//      genuinely have no figure, and without this option they abandon at the
+//      last question instead of becoming a lead.
 //
-// Three rules for the numbers, from bitter industry experience:
-//   1. Keep each range inside roughly 2x low-to-high. "80,000 – 1,600,000"
-//      reads as evasion and destroys the trust the tool exists to build. If the
-//      work genuinely spans that much, add a tier — do not widen a band.
-//   2. You must honour the bottom of every range. Quoting above your own
-//      published floor costs you the lead at the exact moment they were ready.
-//   3. These are published to the world, competitors included. That is the
-//      trade for the conversion lift.
-const PLACEHOLDER_PRICING = true;
-const CURRENCY = 'KES';
+// These bands are visible to visitors. They disclose the range you will
+// ENTERTAIN, which is a much cheaper disclosure than what you CHARGE.
+const BUDGET_BANDS_ARE_PLACEHOLDER = true;
+const BUDGET_BANDS = [
+  { id: 'band-1', label: 'Under KES 250,000' },
+  { id: 'band-2', label: 'KES 250,000 – 750,000' },
+  { id: 'band-3', label: 'KES 750,000 – 2,000,000' },
+  { id: 'band-4', label: 'KES 2,000,000 and above' },
+  { id: 'unsure', label: 'Not sure yet', note: 'Fine — we’ll work it out on the call.' },
+];
+
+// The Google Appointment Schedule already used on /contact.html. Same calendar,
+// same CSP allowance (frame-src calendar.google.com) — no new dependency and no
+// second booking system to keep in step.
+const BOOKING_EMBED =
+  'https://calendar.google.com/calendar/appointments/schedules/AcZssZ1Pp0n-nkuiI7-U85fburHPhb0qw3ir6a5lzVc_SWhqw277ACblxHpR8PlwclLw6OuxkjtphgMf?gv=true';
+const BOOKING_LINK = 'https://calendar.app.google/8iF7VTC8a88wDPkJA';
 
 const TIERS = {
   branding: [
@@ -41,8 +59,6 @@ const TIERS = {
       id: 'identity-essentials',
       name: 'Identity essentials',
       deliverables: ['Logo system', 'Type and colour', 'One-page brand sheet'],
-      low: 0,
-      high: 0,
     },
     {
       id: 'full-identity',
@@ -53,8 +69,6 @@ const TIERS = {
         'Brand guidelines',
         'Launch asset set',
       ],
-      low: 0,
-      high: 0,
     },
     {
       id: 'rollout',
@@ -65,8 +79,6 @@ const TIERS = {
         'Templates your team can run',
         'Three months of design support',
       ],
-      low: 0,
-      high: 0,
     },
   ],
   content: [
@@ -74,8 +86,6 @@ const TIERS = {
       id: 'single-campaign',
       name: 'Single campaign',
       deliverables: ['One concept', 'Up to 10 assets', 'Sized for two platforms'],
-      low: 0,
-      high: 0,
     },
     {
       id: 'content-sprint',
@@ -86,8 +96,6 @@ const TIERS = {
         '30+ assets a month',
         'Motion and static',
       ],
-      low: 0,
-      high: 0,
     },
     {
       id: 'retained-production',
@@ -98,18 +106,9 @@ const TIERS = {
         'Video, motion and stills',
         'Priority turnaround',
       ],
-      low: 0,
-      high: 0,
     },
   ],
 };
-
-// "Both" is not the two ranges added together: a client buying identity and
-// production in one engagement shares strategy, research and a single
-// onboarding across them. Charging twice for that work would be dishonest, and
-// visitors notice when the combined price is exactly the sum.
-const BOTH_DISCOUNT = 0.85;
-const RUSH_MULTIPLIER = 1.3;
 
 const PROJECT_TYPES = [
   { id: 'branding', label: 'Branding', note: 'Strategy, identity, the system itself.' },
@@ -121,78 +120,30 @@ const PROJECT_TYPES = [
   { id: 'both', label: 'Both', note: 'Build the brand, then keep it fed.' },
 ];
 
-const TIMELINES = [
-  { id: 'standard', label: 'Standard', note: 'The normal schedule for the scope.' },
-  { id: 'rush', label: 'Rush', note: 'Compressed timeline, prioritised over other work.' },
-];
-
 const STORE_KEY = 'ct:estimate';
 const app = qs('#estimate-app');
 
-// A visitor who wanders off into a project page and comes back should not have
-// to start again — that is a meaningful share of abandoned attempts recovered
-// for about six lines. Guarded, so private browsing cannot throw here.
-let state = cacheRead(STORE_KEY) || { type: null, tier: null, timeline: null };
+// A visitor who wanders into a project page and comes back should not have to
+// start again — a meaningful share of abandoned attempts recovered for about
+// six lines. Guarded, so private browsing cannot throw here.
+let state = cacheRead(STORE_KEY) || { type: null, tier: null, budget: null };
 let startRecorded = false;
 let completeRecorded = false;
 
-function persist() {
-  cacheWrite(STORE_KEY, state);
-}
+const persist = () => cacheWrite(STORE_KEY, state);
 
-const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-// The tiers on offer depend on the type. "Both" is priced off the branding
-// ladder, because the identity is what sets the size of the engagement.
+// "Both" is priced and scoped off the branding ladder: the identity is what
+// sets the size of the engagement.
 const tiersFor = (type) => (type === 'content' ? TIERS.content : TIERS.branding);
-
-function selectedTier() {
-  return tiersFor(state.type)?.find((t) => t.id === state.tier) || null;
-}
-
-function priceRange() {
-  const tier = selectedTier();
-  if (!tier) return null;
-  let { low, high } = tier;
-  if (state.type === 'both') {
-    const partner = TIERS.content[tiersFor('branding').indexOf(tier)] || TIERS.content[1];
-    low = (low + partner.low) * BOTH_DISCOUNT;
-    high = (high + partner.high) * BOTH_DISCOUNT;
-  }
-  if (state.timeline === 'rush') {
-    low *= RUSH_MULTIPLIER;
-    high *= RUSH_MULTIPLIER;
-  }
-  return { low: Math.round(low), high: Math.round(high) };
-}
-
-const money = (n) => `${CURRENCY} ${n.toLocaleString('en-KE')}`;
-
-/** Counts a number up on reveal. The one place on this site where motion earns
- * its keep: it puts the eye on the figure that decides whether they enquire.
- * Still a fade and a settle — nothing bounces. */
-function countUp(node, target, format) {
-  if (prefersReducedMotion()) {
-    node.textContent = format(target);
-    return;
-  }
-  const DURATION = 400;
-  const start = performance.now();
-  const tick = (now) => {
-    const t = Math.min(1, (now - start) / DURATION);
-    // Same curve as --ease-out, so it settles like everything else here.
-    const eased = 1 - Math.pow(1 - t, 3);
-    node.textContent = format(Math.round(target * eased));
-    if (t < 1) requestAnimationFrame(tick);
-  };
-  requestAnimationFrame(tick);
-}
+const selectedTier = () => tiersFor(state.type)?.find((t) => t.id === state.tier) || null;
+const selectedBand = () => BUDGET_BANDS.find((b) => b.id === state.budget) || null;
+const typeLabel = () => PROJECT_TYPES.find((t) => t.id === state.type)?.label || '';
 
 // --- Question rendering ------------------------------------------------------
-// An answered question collapses to one line you can click to reopen. The
-// alternative — every option staying on screen — turns three questions into a
-// wall of twelve buttons, which is the "bloated form" feeling in a different
-// costume.
+// An answered question collapses to one line you can click to reopen, and the
+// next question only appears once the last is answered. Every option on screen
+// at once would be fourteen buttons, which is the "bloated form" feeling in a
+// different costume.
 function question({ number, legend, options, value, onPick, open }) {
   const answered = value != null;
   const chosen = options.find((o) => o.id === value);
@@ -247,50 +198,35 @@ function question({ number, legend, options, value, onPick, open }) {
 }
 
 // --- Result ------------------------------------------------------------------
-// Deliverables sit BESIDE the number, not under it. A price alone invites
-// sticker shock; the same price next to a concrete list of what lands in the
-// client's hands reads as value. Identical data, materially different response.
+// No number here. What the visitor gets for their three answers is the sense of
+// having been understood — their brief read back to them, and exactly what the
+// engagement contains — followed by the shortest possible route to a human.
 function resultPanel() {
   const tier = selectedTier();
 
-  const figure = PLACEHOLDER_PRICING
-    ? el(
-        'div',
-        { class: 'estimate__pending' },
-        el('p', { class: 'estimate__pending-lead' }, 'We’ll send your figure within one working day.'),
-        el(
-          'p',
-          { class: 'estimate__pending-note' },
-          'Every project at this scope is quoted on its specifics rather than off a table — leave your details and we’ll come back with a real number, not a bracket.'
-        )
-      )
-    : el(
-        'div',
-        { class: 'estimate__figure' },
-        el('p', { class: 'estimate__figure-label' }, 'Indicative range'),
-        el(
-          'p',
-          { class: 'estimate__figure-value' },
-          el('span', { class: 'estimate__amount', id: 'estimate-low' }, money(0)),
-          el('span', { class: 'estimate__figure-dash', 'aria-hidden': 'true' }, '–'),
-          el('span', { class: 'estimate__amount', id: 'estimate-high' }, money(0))
-        ),
-        el(
-          'p',
-          { class: 'estimate__figure-note' },
-          state.timeline === 'rush'
-            ? 'Includes the rush schedule. Final figure confirmed after a short call.'
-            : 'Final figure confirmed after a short call.'
-        )
-      );
-
-  const panel = el(
+  return el(
     'div',
     { class: 'estimate__result' },
     el(
       'div',
       { class: 'estimate__result-grid' },
-      figure,
+      el(
+        'div',
+        { class: 'estimate__brief' },
+        el('p', { class: 'estimate__figure-label' }, 'Your brief'),
+        el(
+          'ul',
+          { class: 'estimate__brief-list' },
+          el('li', {}, el('span', {}, 'Need'), el('strong', {}, typeLabel())),
+          el('li', {}, el('span', {}, 'Scope'), el('strong', {}, tier.name)),
+          el('li', {}, el('span', {}, 'Budget'), el('strong', {}, selectedBand()?.label || '—'))
+        ),
+        el(
+          'p',
+          { class: 'estimate__figure-note' },
+          'We quote on the call, once we understand the project properly. A figure guessed from three answers would only have to be revised — and you would have anchored on it by then.'
+        )
+      ),
       el(
         'div',
         { class: 'estimate__included' },
@@ -304,8 +240,45 @@ function resultPanel() {
     ),
     captureForm()
   );
+}
 
-  return panel;
+// The booking calendar, revealed only AFTER the details are captured. Booking is
+// deliberately never the only route out of this page: a visitor who is
+// interested but cannot commit half an hour right now — evenings, a phone
+// between meetings — would otherwise leave no trace at all. Capture is the
+// floor, a booked call is the upside.
+function bookingPanel() {
+  return el(
+    'div',
+    { class: 'estimate__booking' },
+    el('h2', { class: 'estimate__booking-title' }, 'Now pick a time'),
+    el(
+      'p',
+      { class: 'estimate__booking-lede' },
+      'Thirty minutes. We’ll have read your brief before you join, and you’ll leave the call with a real figure.'
+    ),
+    el(
+      'div',
+      { class: 'booking__frame' },
+      el('iframe', {
+        src: BOOKING_EMBED,
+        title: 'Book a discovery call with Control Tee',
+        loading: 'lazy',
+        referrerpolicy: 'no-referrer-when-downgrade',
+      })
+    ),
+    el(
+      'p',
+      { class: 'booking__fallback' },
+      'Trouble loading? ',
+      el(
+        'a',
+        { href: BOOKING_LINK, target: '_blank', rel: 'noopener noreferrer' },
+        'Open the booking page in a new tab'
+      ),
+      '.'
+    )
+  );
 }
 
 function captureForm() {
@@ -327,24 +300,21 @@ function captureForm() {
     'aria-label': 'Email',
     placeholder: 'Email',
   });
-  const submit = el(
-    'button',
-    { class: 'estimate__submit', type: 'submit' },
-    'Send me the full breakdown'
-  );
+  const submit = el('button', { class: 'estimate__submit', type: 'submit' }, 'Send brief & book a call');
   const status = el('p', { class: 'estimate__status', role: 'status', 'aria-live': 'polite' });
 
   const form = el(
     'form',
     { class: 'estimate__capture' },
+    el('h2', { class: 'estimate__capture-title' }, 'Send this brief and pick a time'),
     el(
-      'h2',
-      { class: 'estimate__capture-title' },
-      'Want the full breakdown of what’s included?'
+      'p',
+      { class: 'estimate__capture-note' },
+      'Your answers reach us either way — booking a slot is optional, and you can always reply to the email instead.'
     ),
     el('div', { class: 'estimate__capture-fields' }, nameInput, emailInput, submit),
     // Honeypot, same device the contact form uses: real people never see it,
-    // and anything that fills it in is not a person.
+    // and anything filling it in is not a person.
     el('input', {
       class: 'estimate__botcheck',
       type: 'checkbox',
@@ -365,23 +335,17 @@ function captureForm() {
     }
 
     const tier = selectedTier();
-    const range = priceRange();
     const data = new FormData(form);
     data.append('access_key', WEB3FORMS_ACCESS_KEY);
-    data.append('subject', `Estimate request — ${tier.name} (${state.type})`);
+    data.append('subject', `Discovery request — ${tier.name} (${typeLabel()})`);
     data.append('from_name', 'Control Tee estimator');
     // So hitting Reply in the inbox answers the CLIENT, not the form service.
-    // Without it, replying to a lead means copying their address out by hand,
-    // which is exactly the friction that turns a same-day reply into a
-    // next-week one.
     data.append('replyto', emailInput.value.trim());
-    data.append('Project type', state.type);
+    data.append('Project type', typeLabel());
     data.append('Scope', tier.name);
-    data.append('Timeline', state.timeline);
-    data.append(
-      'Range shown',
-      PLACEHOLDER_PRICING ? 'none — pricing not yet published' : `${money(range.low)} – ${money(range.high)}`
-    );
+    // The whole point of the redesign: the budget arrives BEFORE any figure is
+    // named, so the call starts from their number rather than from ours.
+    data.append('Budget', selectedBand()?.label || 'not given');
 
     submit.disabled = true;
     submit.textContent = 'Sending…';
@@ -389,13 +353,20 @@ function captureForm() {
       const response = await fetch(WEB3FORMS_ENDPOINT, { method: 'POST', body: data });
       if (!response.ok) throw new Error('rejected');
       recordEvent('estimate_submit');
-      form.replaceChildren(
-        el('p', { class: 'estimate__sent' }, 'On its way. We’ll be in touch within one working day.')
+      const sent = el(
+        'div',
+        { class: 'estimate__sent-block' },
+        el('p', { class: 'estimate__sent' }, 'Brief received. We’ll reply within one working day.')
       );
+      form.replaceChildren(sent);
+      // Revealed rather than navigated to: the visitor stays on the page they
+      // already trust, and the calendar arrives as a next step rather than as
+      // a redirect that feels like being handed off.
+      form.after(bookingPanel());
     } catch {
       status.textContent = 'That didn’t send. Try again in a moment, or use the contact form.';
       submit.disabled = false;
-      submit.textContent = 'Send me the full breakdown';
+      submit.textContent = 'Send brief & book a call';
     }
   });
 
@@ -403,11 +374,11 @@ function captureForm() {
 }
 
 // --- Orchestration -----------------------------------------------------------
-// `openStep` is which question is expanded. Everything before it is collapsed
-// to its answer; everything after it is not shown at all, so the visitor only
-// ever sees one decision.
+// `openStep` is which question is expanded. Everything before it collapses to
+// its answer; everything after is not shown at all, so the visitor only ever
+// faces one decision.
 function render(openStep) {
-  const step = openStep ?? (!state.type ? 1 : !state.tier ? 2 : !state.timeline ? 3 : 4);
+  const step = openStep ?? (!state.type ? 1 : !state.tier ? 2 : !state.budget ? 3 : 4);
   const children = [];
 
   children.push(
@@ -456,12 +427,16 @@ function render(openStep) {
     children.push(
       question({
         number: 3,
-        legend: 'When do you need it?',
-        options: TIMELINES,
-        value: state.timeline,
+        // Asked third on purpose. It is the only uncomfortable question here,
+        // and by now the visitor has already invested two answers — abandonment
+        // at question three is far lower than at question one. This is the
+        // cheapest place on the page to ask it.
+        legend: 'What have you budgeted?',
+        options: BUDGET_BANDS,
+        value: state.budget,
         open: step === 3,
         onPick: (id) => {
-          state.timeline = id;
+          state.budget = id;
           persist();
           render();
         },
@@ -469,7 +444,7 @@ function render(openStep) {
     );
   }
 
-  const done = state.type && state.tier && state.timeline;
+  const done = state.type && state.tier && state.budget;
   if (done && step === 4) {
     children.push(resultPanel());
     if (!completeRecorded) {
@@ -480,12 +455,6 @@ function render(openStep) {
 
   app.replaceChildren(...children);
   app.hidden = false;
-
-  if (done && step === 4 && !PLACEHOLDER_PRICING) {
-    const range = priceRange();
-    countUp(qs('#estimate-low'), range.low, money);
-    countUp(qs('#estimate-high'), range.high, money);
-  }
 }
 
 if (app) render();

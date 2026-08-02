@@ -147,9 +147,9 @@
   border-block-start: 1px solid var(--ink-80);
 }
 
-/* Deliverables sit BESIDE the number, never under it: a price alone invites
-   sticker shock, the same price next to what actually lands in the client's
-   hands reads as value. */
+/* Two columns: the brief read back on the left, what the engagement contains on
+   the right. No price sits here — see js/estimate.js for why the studio names
+   no figure before the call. */
 .estimate__result-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -165,27 +165,86 @@
   letter-spacing: 0.08em;
 }
 
-.estimate__figure-value {
+/* The brief read back. This replaced a price: the visitor's payoff for three
+   answers is being understood, not being quoted a number that would only have
+   to be revised on the call. */
+.estimate__brief-list {
+  margin-block-start: var(--space-xs);
+  list-style: none;
+}
+.estimate__brief-list li {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-2xs);
-  margin-block-start: var(--space-2xs);
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: var(--step-2);
-  letter-spacing: -0.02em;
+  gap: var(--space-xs);
+  padding-block: var(--space-2xs);
+  border-block-end: 1px solid var(--ink-80);
+  font-size: var(--step-0);
+}
+.estimate__brief-list span {
+  min-width: 5rem;
+  color: var(--chalk-40);
+  font-size: var(--step--1);
+}
+.estimate__brief-list strong {
   color: var(--chalk);
-  /* Tabular figures so the digits do not jitter sideways while counting up. */
-  font-variant-numeric: tabular-nums;
+  font-weight: 500;
 }
 
-.estimate__figure-dash {
+.estimate__capture-note {
+  max-width: 52ch;
+  margin-block-start: var(--space-2xs);
+  color: var(--chalk-40);
+  font-size: var(--step--1);
+  line-height: 1.45;
+}
+
+/* ---- Booking, revealed after capture --------------------------------------- */
+.estimate__booking {
+  margin-block-start: var(--space-xl);
+  padding-block-start: var(--space-l);
+  border-block-start: 1px solid var(--ink-80);
+}
+.estimate__booking-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--step-1);
+  letter-spacing: -0.01em;
+  color: var(--chalk);
+}
+.estimate__booking-lede {
+  max-width: 52ch;
+  margin-block-start: var(--space-2xs);
+  color: var(--chalk-60);
+  font-size: var(--step--1);
+  line-height: 1.45;
+}
+/* Google's scheduler needs real height; it scrolls internally on small screens.
+   Same figures as the contact page's embed, which is the same calendar. */
+.booking__frame {
+  margin-block-start: var(--space-m);
+  border: 1px solid var(--moss);
+  border-radius: 2px;
+  overflow: hidden;
+  height: 680px;
+}
+.booking__frame iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+@media (max-width: 700px) {
+  .booking__frame {
+    height: 620px;
+  }
+}
+.booking__fallback {
+  margin-block-start: var(--space-2xs);
+  font-size: var(--step--1);
   color: var(--chalk-40);
 }
 
-.estimate__figure-note,
-.estimate__pending-note {
+.estimate__figure-note {
   max-width: 44ch;
   margin-block-start: var(--space-xs);
   color: var(--chalk-40);
@@ -193,13 +252,6 @@
   line-height: 1.45;
 }
 
-.estimate__pending-lead {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: var(--step-1);
-  letter-spacing: -0.01em;
-  color: var(--chalk);
-}
 
 .estimate__included-list {
   margin-block-start: var(--space-xs);
