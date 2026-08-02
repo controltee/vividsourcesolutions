@@ -431,6 +431,75 @@ a {
   background: var(--ink-80);
 }
 
+/* ---- Analytics tab --------------------------------------------------------- */
+.admin-panel__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-s);
+}
+.admin-seg {
+  display: flex;
+  gap: var(--space-3xs);
+}
+.admin-seg .is-active {
+  border-color: var(--accent-ink);
+  color: var(--accent-ink);
+}
+
+/* Ranked list with an inline bar. The bar is scaled to the TOP row, not to the
+   total: on a portfolio the leader dwarfs everything else, and scaling to the
+   total would leave every other row an invisible sliver. */
+.admin-stat-list {
+  margin-block: var(--space-s);
+  list-style: none;
+}
+.admin-stat {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: var(--space-xs);
+  padding-block: var(--space-2xs);
+  position: relative;
+  font-size: var(--step--1);
+  color: var(--chalk);
+}
+.admin-stat__count {
+  color: var(--chalk-60);
+  font-variant-numeric: tabular-nums;
+}
+.admin-stat__bar {
+  grid-column: 1 / -1;
+  height: 2px;
+  width: var(--w);
+  background: var(--accent-ink);
+  opacity: 0.5;
+}
+
+.admin-funnel {
+  margin-block: var(--space-l);
+}
+.admin-funnel__steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-l);
+  margin-block-start: var(--space-s);
+  list-style: none;
+}
+.admin-funnel__n {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--step-2);
+  color: var(--chalk);
+  font-variant-numeric: tabular-nums;
+}
+.admin-funnel__label {
+  color: var(--chalk-60);
+  font-size: var(--step--1);
+}
+
 /* A video card shows its poster in the same 140px box an image card uses, so a
    mixed gallery stays one grid. With no poster set yet the box says so rather
    than collapsing — the card still has to be draggable and deletable. */

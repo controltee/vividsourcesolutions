@@ -1,11 +1,15 @@
 /* home.css — the project grid and its banner cards. */
 
+/* "Selected work" is a label over the proof, not a headline: the h1 above it is
+   the page's voice, and two competing display sizes in one scroll flattens the
+   hierarchy the hero depends on. Sized and coloured down accordingly — the
+   pillar headings beneath it carry the structure. */
 .pane__title {
   font-family: var(--font-display);
-  font-weight: 800;
-  font-size: var(--step-2);
+  font-weight: 500;
+  font-size: var(--step-1);
   letter-spacing: -0.01em;
-  color: var(--chalk);
+  color: var(--chalk-60);
   margin-block-end: var(--space-l);
 }
 
@@ -33,13 +37,44 @@
      The multiplier came down with the scale: at 2.2 against the old --step-3
      this landed near 125px, which is what made the page read as zoomed in
      before anything else on it did. */
-  font-size: calc(var(--step-3) * 2);
+  /* Down from calc(--step-3 * 2). That size was tuned for a six-character
+     wordmark; the headline is now a full sentence of ~75 characters, and at the
+     old size it filled a phone screen on its own and pushed the CTA below the
+     fold — the one thing this band exists to put in front of people. */
+  font-size: calc(var(--step-3) * 1.15);
   letter-spacing: -0.02em;
-  line-height: 1.05;
+  line-height: 1.1;
   color: var(--chalk);
-  /* Reserve the line so the band does not grow and shrink as the headline
-     types in and out, which would shove the rest of the page around. */
-  min-height: 1.05em;
+  text-wrap: balance;
+}
+
+/* The fixed half of the sentence. Block so the rotating clause always starts
+   on its own line: mid-line wrapping would move the caret horizontally on
+   every phrase change, which reads as the text twitching. */
+.home-intro__prefix {
+  display: block;
+}
+
+/* The rotating clause sits in the accent so the eye lands on the part that
+   changes, and reads as the studio finishing its own sentence. */
+.home-intro__rotator {
+  position: relative;
+  display: block;
+  color: var(--accent-ink);
+}
+
+/* The height reservation. An invisible copy of the longest phrase (filled by
+   home.js) holds the box open; the typed text is laid over it. `visibility:
+   hidden` rather than `display: none` is the whole trick — it still takes up
+   space, and it re-measures on every resize for free, which a fixed min-height
+   in em cannot do once the phrase wraps to a different number of lines. */
+.home-intro__sizer {
+  visibility: hidden;
+}
+.home-intro__live {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
 }
 
 /* Typed caret. A steady block that blinks only while idle would read as two
@@ -58,37 +93,10 @@
   50.01%, 100% { opacity: 0; }
 }
 
-/* Two words crossfading in place, one at a time. Fade plus a 6px translation
-   only: nothing bounces, nothing spins, per the studio's motion rules. The
-   words are stacked absolutely so the band's height never shifts as they
-   swap, which would otherwise nudge the whole grid on every cycle. */
-.home-intro__cycle {
-  position: relative;
-  height: 1.3em;
-  margin-block-start: var(--space-2xs);
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: var(--step-1);
-  letter-spacing: -0.01em;
-  color: var(--accent-ink);
-}
-.home-intro__word {
-  position: absolute;
-  inset-inline-start: 0;
-  top: 0;
-  opacity: 0;
-  animation: word-cycle 7s var(--ease-out) infinite;
-}
-.home-intro__word:nth-child(2) {
-  animation-delay: 3.5s;
-}
-@keyframes word-cycle {
-  0%   { opacity: 0; transform: translateY(6px); }
-  6%   { opacity: 1; transform: translateY(0); }
-  44%  { opacity: 1; transform: translateY(0); }
-  50%  { opacity: 0; transform: translateY(-6px); }
-  100% { opacity: 0; transform: translateY(-6px); }
-}
+/* The old two-word crossfade (.home-intro__cycle / __word / @keyframes
+   word-cycle) lived here. It is gone with the CTRL+T hero: the rotating clause
+   in the headline now carries that job, and two competing rotations in one
+   band would have read as restlessness rather than as motion. */
 
 .home-intro__body {
   max-width: 62ch;
@@ -98,37 +106,100 @@
   line-height: 1.5;
 }
 .home-intro__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-m);
-  margin-block-start: var(--space-s);
-  font-size: var(--step--1);
+  margin-block-start: var(--space-m);
 }
+
+/* The page's ONE action, and the only filled control on it. Everything else
+   here is type on a ground, so a solid block is unmissable without needing a
+   colour the palette doesn't have or motion the studio doesn't do. It reads as
+   emphasis rather than as decoration — restraint everywhere else is what buys
+   this one element its weight. */
 .home-intro__cta {
-  color: var(--chalk);
-  border-block-end: 1px solid var(--chalk);
-  padding-block-end: 2px;
+  display: inline-block;
+  padding: var(--space-s) var(--space-l);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--step-0);
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  border: 1px solid var(--paper);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
 }
-.home-intro__more {
-  color: var(--chalk-60);
-}
-.home-intro__more:hover,
 .home-intro__cta:hover {
-  color: var(--accent-ink);
-  border-color: var(--accent-ink);
+  background: transparent;
+  color: var(--paper);
+  /* 1px. A short translation, per the motion rules — enough to acknowledge the
+     pointer, not enough to read as a button popping. */
+  transform: translateY(-1px);
 }
-.home-intro__cta:focus-visible,
-.home-intro__more:focus-visible {
+.home-intro__cta:focus-visible {
   outline: 2px solid var(--accent-ink);
   outline-offset: 3px;
 }
+@media (prefers-reduced-motion: reduce) {
+  .home-intro__cta {
+    transition: none;
+  }
+  .home-intro__cta:hover {
+    transform: none;
+  }
+}
 
-/* The grid heading is secondary to the synopsis now, so it sits smaller than
-   the band's title while keeping the same family and spacing rhythm. */
-.home-intro + .pane__title {
+/* ---- Two pillars ------------------------------------------------------------
+   What the studio sells, above the proof of it. Two cards and no more: the
+   moment this becomes five it is the category list again, which is the rail's
+   job and not this page's. */
+.pillars {
+  margin-block: var(--space-xl);
+  padding-block: var(--space-l);
+  border-block: 1px solid var(--ink-80);
+}
+.pillars__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-l);
+}
+.pillar__title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--step-2);
+  letter-spacing: -0.01em;
+  color: var(--chalk);
+}
+.pillar__body {
+  max-width: 46ch;
+  margin-block-start: var(--space-2xs);
+  color: var(--chalk-60);
+  font-size: var(--step-0);
+  line-height: 1.5;
+}
+/* A quiet text link, deliberately: it is a jump down the page, not a second
+   call to action competing with the one above it. */
+.pillar__link {
+  display: inline-block;
+  margin-block-start: var(--space-s);
+  color: var(--accent-ink);
+  font-size: var(--step--1);
+}
+
+/* ---- Work, split by pillar ------------------------------------------------ */
+.work-pillar + .work-pillar {
+  margin-block-start: var(--space-xl);
+}
+.work-pillar__title {
+  margin-block-end: var(--space-m);
+  font-family: var(--font-display);
+  font-weight: 500;
   font-size: var(--step-1);
+  letter-spacing: -0.01em;
   color: var(--chalk-60);
 }
+
 
 /* ---- Client logo marquee ---------------------------------------------------
    One continuous drift. The track holds the logo list TWICE (duplicated in
@@ -457,24 +528,18 @@ img.client-head__banner {
   .project-card__title::after {
     transition: none;
   }
-  /* No looping motion: the first word simply stays put. The second is removed
-     rather than stacked on top of it, since both would otherwise sit at the
-     same absolute position and overlap. */
-  .home-intro__word {
-    animation: none;
-    position: static;
-    opacity: 1;
-    transform: none;
-  }
-  .home-intro__word:nth-child(2) {
-    display: none;
-  }
-  .home-intro__cycle {
-    height: auto;
-  }
-  /* No typing and no blink: home.js writes the full headline straight out. */
+  /* No typing and no blink: home.js prints the lead phrase straight out and
+     never starts the loop. The sizer stops reserving height too — with a fixed
+     phrase there is nothing left to shift, and the reservation would only leave
+     a gap under a short line. */
   .home-intro__caret {
     display: none;
+  }
+  .home-intro__sizer {
+    display: none;
+  }
+  .home-intro__live {
+    position: static;
   }
   /* The marquee stops drifting and becomes a plain wrapped row, so every logo
      is still reachable rather than parked off-screen mid-scroll. */

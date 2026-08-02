@@ -132,27 +132,37 @@
             </label>
           </div>
 
-          <div class="inquiry__row">
-            <label class="inquiry__field">
-              <span class="inquiry__label">Company <span class="inquiry__optional">(optional)</span></span>
-              <input class="inquiry__input" name="company" type="text" autocomplete="organization" />
-            </label>
-            <label class="inquiry__field">
-              <span class="inquiry__label">What do you need?</span>
-              <select class="inquiry__input" name="service">
-                <option value="Brand identity">Brand identity</option>
-                <option value="Event branding">Event branding</option>
-                <option value="Social &amp; marketing campaign">Social &amp; marketing campaign</option>
-                <option value="Motion design">Motion design</option>
-                <option value="Video production">Video production</option>
-                <option value="Something else">Something else</option>
-              </select>
-            </label>
-          </div>
+          <!-- Three required fields: name, email, project type. Company came
+               out entirely — it is on the email signature of anyone who
+               replies, so asking for it was a field's worth of friction for
+               information the studio gets free.
 
+               Project type is now REQUIRED and its options are the two pillars
+               the homepage sells, not the five internal categories. It is the
+               one answer that changes who picks the reply up. -->
           <label class="inquiry__field">
-            <span class="inquiry__label">Tell us about the project</span>
-            <textarea class="inquiry__input inquiry__textarea" name="message" required rows="6"></textarea>
+            <span class="inquiry__label">What do you need?</span>
+            <select class="inquiry__input" name="service" required>
+              <option value="">Choose one…</option>
+              <option value="Branding">Branding — strategy, identity, the system</option>
+              <option value="Content Production">
+                Content Production — campaigns, motion, video
+              </option>
+              <option value="Both">Both</option>
+              <option value="Not sure yet">Not sure yet</option>
+            </select>
+          </label>
+
+          <!-- Optional, deliberately. Making it required reliably lifts lead
+               QUALITY and reliably costs volume; making it optional does the
+               reverse. Optional keeps both — the people with something to say
+               still say it, and the ones who would have bounced at a blank
+               6-row textarea now arrive as a name we can call. -->
+          <label class="inquiry__field">
+            <span class="inquiry__label">
+              Tell us about the project <span class="inquiry__optional">(optional)</span>
+            </span>
+            <textarea class="inquiry__input inquiry__textarea" name="message" rows="4"></textarea>
           </label>
 
           <!-- Honeypot: bots fill this, people never see it. -->

@@ -247,6 +247,7 @@ const TABS = [
   { id: 'clients', label: 'Clients' },
   { id: 'categories', label: 'Categories' },
   { id: 'logos', label: 'Client logos' },
+  { id: 'analytics', label: 'Analytics' },
   { id: 'settings', label: 'Site & Contact' },
 ];
 
@@ -323,6 +324,7 @@ function renderActiveTab(panel) {
   if (activeTabId === 'categories') renderCategoriesTab(panel);
   else if (activeTabId === 'clients') enterClientsTab(panel);
   else if (activeTabId === 'logos') renderLogosTab(panel);
+  else if (activeTabId === 'analytics') renderAnalyticsTab(panel);
   else if (activeTabId === 'settings') renderSettingsTab(panel);
   else enterProjectsTab(panel);
 }
@@ -2382,6 +2384,190 @@ function logoUploader(currentUrl, onChange) {
     field('Upload a logo (PNG/SVG with transparency works best)', fileInput),
     status,
     currentUrl ? el('div', { class: 'admin-form__actions' }, removeBtn) : null
+  );
+}
+
+// --- Analytics tab -------------------------------------------------------------
+// First-party traffic, read straight out of page_views (sql/010). No third
+// party is involved, which is the point: these numbers are Jesse's, in his own
+// panel, and nothing about them is shared with anyone.
+//
+// The counts are DIRECTIONALLY TRUE, not audited — anon can insert and the anon
+// key is public, so fabricated rows are possible. The tab says so rather than
+// quietly implying precision it does not have.
+const ANALYTICS_WINDOWS = [
+  { id: 7, label: '7 days' },
+  { id: 30, label: '30 days' },
+  { id: 90, label: '90 days' },
+];
+
+function countBy(rows, keyFn) {
+  const counts = new Map();
+  for (const row of rows) {
+    const key = keyFn(row);
+    if (key == null) continue;
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+}
+
+/** A ranked list with an inline bar. The bar is a proportion of the top row,
+ * not of the total: on a portfolio the leader usually dwarfs everything else,
+ * and scaling to the total leaves every other row an invisible sliver. */
+function rankedList(rows, emptyText, format = (k) => k) {
+  if (!rows.length) return el('p', { class: 'admin-field__hint' }, emptyText);
+  const max = rows[0][1];
+  return el(
+    'ol',
+    { class: 'admin-stat-list' },
+    ...rows.slice(0, 12).map(([key, count]) =>
+      el(
+        'li',
+        { class: 'admin-stat' },
+        el('span', { class: 'admin-stat__label' }, format(key)),
+        el('span', { class: 'admin-stat__count' }, String(count)),
+        el('span', {
+          class: 'admin-stat__bar',
+          style: `--w:${Math.round((count / max) * 100)}%`,
+          'aria-hidden': 'true',
+        })
+      )
+    )
+  );
+}
+
+function funnelPanel(rows) {
+  const step = (event) => rows.filter((r) => r.event === event).length;
+  const started = step('estimate_start');
+  const completed = step('estimate_complete');
+  const submitted = step('estimate_submit');
+  const rate = (n, of) => (of ? `${Math.round((n / of) * 100)}%` : '—');
+
+  return el(
+    'div',
+    { class: 'admin-funnel' },
+    el('h3', { class: 'admin-subhead' }, 'Estimator funnel'),
+    el(
+      'p',
+      { class: 'admin-field__hint' },
+      'The only numbers that answer whether the homepage rebuild worked. A big drop from started to completed means the questions are wrong; a big drop from completed to sent means the price is.'
+    ),
+    el(
+      'ul',
+      { class: 'admin-funnel__steps' },
+      el(
+        'li',
+        {},
+        el('span', { class: 'admin-funnel__n' }, String(started)),
+        el('span', { class: 'admin-funnel__label' }, 'started')
+      ),
+      el(
+        'li',
+        {},
+        el('span', { class: 'admin-funnel__n' }, String(completed)),
+        el('span', { class: 'admin-funnel__label' }, `saw a result · ${rate(completed, started)}`)
+      ),
+      el(
+        'li',
+        {},
+        el('span', { class: 'admin-funnel__n' }, String(submitted)),
+        el('span', { class: 'admin-funnel__label' }, `sent details · ${rate(submitted, completed)}`)
+      )
+    )
+  );
+}
+
+let analyticsDays = 30;
+
+async function renderAnalyticsTab(panel) {
+  panel.replaceChildren(el('p', {}, 'Loading analytics…'));
+
+  const since = new Date(Date.now() - analyticsDays * 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await supabase
+    .from('page_views')
+    .select('path, referrer, event, created_at')
+    .gte('created_at', since)
+    .order('created_at', { ascending: false })
+    .limit(20000);
+
+  if (error) {
+    // The overwhelmingly likely cause the first time is that sql/010 has not
+    // been run, and "relation does not exist" is not a helpful thing to read.
+    const missing = /page_views/i.test(error.message) || error.code === '42P01';
+    panel.replaceChildren(
+      el('h2', { class: 'admin-subhead' }, 'Analytics'),
+      el(
+        'p',
+        { class: 'admin-error' },
+        missing
+          ? 'No analytics table yet. Run sql/010_page_views.sql in the Supabase SQL editor, then reload this tab — counting starts from the moment it exists.'
+          : `Could not load analytics: ${error.message}`
+      )
+    );
+    return;
+  }
+
+  const rows = data || [];
+  const views = rows.filter((r) => !r.event);
+
+  // Housekeeping, here because there is no cron on this project: the admin
+  // opening this tab is the only reliable moment anything runs on a schedule.
+  // Failure is ignored — pruning is tidiness, not correctness.
+  supabase.rpc('prune_page_views').then(
+    () => {},
+    () => {}
+  );
+
+  const windowPicker = el(
+    'div',
+    { class: 'admin-seg' },
+    ...ANALYTICS_WINDOWS.map((w) => {
+      const btn = el(
+        'button',
+        {
+          class: w.id === analyticsDays ? 'admin-btn admin-btn--icon is-active' : 'admin-btn admin-btn--icon',
+          type: 'button',
+          'aria-pressed': w.id === analyticsDays ? 'true' : 'false',
+        },
+        w.label
+      );
+      btn.addEventListener('click', () => {
+        analyticsDays = w.id;
+        renderAnalyticsTab(panel);
+      });
+      return btn;
+    })
+  );
+
+  // A project's slug is the readable half of its path; showing the raw
+  // "/project.html?p=riara-rebrand" in a ranked list is noise.
+  const prettyPath = (path) => {
+    const [file, query] = path.split('?');
+    const slug = new URLSearchParams(query || '').get('p') || new URLSearchParams(query || '').get('c');
+    if (slug) return `${file.replace('.html', '').replace('/', '')} · ${slug}`;
+    return file === '/' ? 'Home' : file.replace('.html', '').replace('/', '');
+  };
+
+  panel.replaceChildren(
+    el(
+      'div',
+      { class: 'admin-panel__head' },
+      el('h2', { class: 'admin-subhead' }, 'Analytics'),
+      windowPicker
+    ),
+    el(
+      'p',
+      { class: 'admin-field__hint' },
+      `${views.length.toLocaleString()} page views in the last ${analyticsDays} days. First-party, no cookies, nothing that identifies a visitor — and not audited: anyone can post rows with the public key, so read these as direction, not as evidence for a pitch.`
+    ),
+    funnelPanel(rows),
+    el('h3', { class: 'admin-subhead' }, 'Most viewed'),
+    rankedList(countBy(views, (r) => r.path), 'Nothing yet.', prettyPath),
+    el('h3', { class: 'admin-subhead' }, 'Where they came from'),
+    rankedList(
+      countBy(views, (r) => r.referrer),
+      'No referrers yet — every visit so far was typed in or came from a link with no referrer.'
+    )
   );
 }
 

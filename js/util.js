@@ -37,6 +37,31 @@ export function slugify(text) {
     .replace(/^-+|-+$/g, '');
 }
 
+/**
+ * Guarded sessionStorage write. Every caller uses this store as an OPTIMISATION
+ * — the data is already in hand — but setItem throws in Safari Private Browsing
+ * and whenever the quota is full. An unguarded one in shell.js used to reject
+ * the nav load and blank the rail behind "Work couldn't load", on visits where
+ * the fetch had actually succeeded. Failing to cache must never fail the page.
+ */
+export function cacheWrite(key, value) {
+  try {
+    sessionStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    /* private mode / quota — this visit just recomputes, which is correct too */
+  }
+}
+
+/** The mirror of cacheWrite: returns the parsed value, or null for missing,
+ * corrupt or unreadable. */
+export function cacheRead(key) {
+  try {
+    return JSON.parse(sessionStorage.getItem(key));
+  } catch {
+    return null;
+  }
+}
+
 const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /**

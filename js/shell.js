@@ -1,9 +1,10 @@
-﻿// shell.js — renders the persistent rail nav from live data, keeps disclosure
+// shell.js — renders the persistent rail nav from live data, keeps disclosure
 // state across navigation, and drives the mobile drawer.
 
-import { qs, qsa, el, slugify } from './util.js';
+import { qs, qsa, el, slugify, cacheWrite, cacheRead } from './util.js';
 import { supabase } from './supabase.js';
 import { installMediaProtection } from './protect.js';
+import { recordView } from './analytics.js';
 
 const OPEN_KEY = 'ct:rail:open';
 const NAV_KEY = 'ct:nav:v4'; // v4: client labels follow card_title — bump invalidates old caches
@@ -30,19 +31,6 @@ function contentStamp() {
   }
 }
 
-// Writing to sessionStorage throws in Safari Private Browsing and whenever the
-// quota is full. Every cache write here is an OPTIMISATION — the data is
-// already in hand — so a failed write must never propagate: an unguarded one
-// used to reject loadNav() and blank the whole rail behind "Work couldn't
-// load", on a visit where the fetch had actually succeeded.
-function cacheWrite(key, value) {
-  try {
-    sessionStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    /* private mode / quota — this visit just refetches, which is correct too */
-  }
-}
-
 function cacheIsFresh(cached, ttl) {
   return Boolean(cached) && Date.now() - cached.t < ttl && cached.t >= contentStamp();
 }
@@ -53,14 +41,8 @@ function cacheIsFresh(cached, ttl) {
 // a muted "no work yet" note and start collapsed.
 // Cached in sessionStorage so moving between pages doesn't re-hit the network.
 async function loadNav() {
-  try {
-    const cached = JSON.parse(sessionStorage.getItem(NAV_KEY));
-    if (cacheIsFresh(cached, NAV_TTL) && Array.isArray(cached.groups)) {
-      return cached.groups;
-    }
-  } catch {
-    /* corrupt cache — refetch */
-  }
+  const cached = cacheRead(NAV_KEY);
+  if (cacheIsFresh(cached, NAV_TTL) && Array.isArray(cached.groups)) return cached.groups;
 
   const [cats, projs] = await Promise.all([
     supabase.from('categories').select('id, name, slug, sort_order').order('sort_order'),
@@ -138,12 +120,8 @@ function nestRepeatClients(projects) {
 
 // --- Disclosure open-state persistence -------------------------------------
 function readOpenState(groups) {
-  try {
-    const stored = JSON.parse(sessionStorage.getItem(OPEN_KEY));
-    if (Array.isArray(stored)) return new Set(stored);
-  } catch {
-    /* corrupt value — fall through to default */
-  }
+  const stored = cacheRead(OPEN_KEY);
+  if (Array.isArray(stored)) return new Set(stored);
   // First visit: open categories that have work; leave empty ones collapsed.
   const populated = new Set(groups.filter((g) => g.items.length).map((g) => g.slug));
   persistOpenState(populated);
@@ -266,12 +244,8 @@ const SITE_CONTENT_IDS = [
 ];
 
 async function loadSiteSettings() {
-  try {
-    const cached = JSON.parse(sessionStorage.getItem(SITE_KEY));
-    if (cacheIsFresh(cached, SITE_TTL)) return cached.settings;
-  } catch {
-    /* corrupt cache — refetch */
-  }
+  const cached = cacheRead(SITE_KEY);
+  if (cacheIsFresh(cached, SITE_TTL)) return cached.settings;
 
   const { data, error } = await supabase
     .from('site_content')
@@ -488,6 +462,10 @@ async function init() {
   // Public pages only — shell.js is not loaded by the admin, which needs a
   // working right-click. Read protect.js before assuming this secures anything.
   installMediaProtection();
+  // Fire-and-forget, and deliberately not awaited: the rail must not wait on a
+  // counter. shell.js is loaded by every public page and by none of the admin,
+  // so this counts visitors and never counts Jesse editing his own site.
+  recordView();
 
   try {
     const groups = await loadNav();

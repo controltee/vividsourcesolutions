@@ -12,9 +12,7 @@
 
 import { qs } from './util.js';
 import { supabase } from './supabase.js';
-
-const ACCESS_KEY = '11d96307-207d-4c24-9378-dea299083f92';
-const ENDPOINT = 'https://api.web3forms.com/submit';
+import { WEB3FORMS_ACCESS_KEY as ACCESS_KEY, WEB3FORMS_ENDPOINT as ENDPOINT } from './config.js';
 
 const form = qs('#inquiry-form');
 const statusEl = qs('#inquiry-status');
@@ -43,9 +41,13 @@ function showCheck() {
 }
 
 /** Returns the first invalid field, or null. Keeps native constraints but
- * reports them inline rather than with the browser's default bubbles. */
+ * reports them inline rather than with the browser's default bubbles.
+ * `select[required]` is in the list because project type is now required and
+ * the message is not — the required set is name, email and project type. */
 function firstInvalid() {
-  for (const field of form.querySelectorAll('input[required], textarea[required]')) {
+  for (const field of form.querySelectorAll(
+    'input[required], textarea[required], select[required]'
+  )) {
     if (!field.checkValidity()) return field;
   }
   return null;
@@ -59,7 +61,9 @@ form?.addEventListener('submit', async (event) => {
     setStatus(
       invalid.type === 'email' && invalid.value
         ? 'That email address doesn’t look right.'
-        : 'Please fill in your name, email and a short message.',
+        : invalid.name === 'service'
+          ? 'Pick what you need and we’ll route it to the right person.'
+          : 'Please fill in your name and email.',
       'error'
     );
     invalid.focus();

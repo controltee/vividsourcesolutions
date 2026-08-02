@@ -184,6 +184,67 @@ refuses uploads over 45MB and warns over 6MB.
 The free tier's monthly egress is spent by one 40MB file served a few hundred
 times. That is the whole reason the YouTube path exists.
 
+## Homepage as a conversion page (2026-08-02)
+
+The homepage sells two things and asks for one action. Structure, top to bottom:
+hero (headline + sub-copy + ONE CTA) → two pillars → work split by pillar →
+logo marquee.
+
+- **The hero is static HTML, not fetched.** It carries the site's only call to
+  action, so it must render on first paint with no network in the path — it used
+  to be `hidden` until a Supabase read succeeded. `home.js` still overrides the
+  BODY copy from `site_content.home_intro`; the headline is code, deliberately,
+  because it is one sentence split across a static prefix, a rotating clause and
+  a visually-hidden completion, and arbitrary admin text does not parse into it.
+- **The h1's accessible name never changes.** The rotating clause is
+  `aria-hidden` decoration; a `.visually-hidden` span completes the sentence for
+  screen readers and for crawlers, which do not run the animation.
+- **Height is reserved by `.home-intro__sizer`** — an invisible copy of the
+  longest phrase, filled by JS from the same list it rotates. That is what stops
+  the page shoving downward on every rotation. Do not replace it with a fixed
+  `min-height`: the phrases wrap to a different number of lines at different
+  widths, and only a real element re-measures.
+- **ONE call to action.** The old pair ("View selected work" / "More about the
+  studio") is gone. If a second button is ever added above the fold, the single
+  focal point is gone with it.
+- **Two pillars are a PRESENTATION grouping**, not a schema change:
+  `PILLAR_BY_CATEGORY` in js/home.js maps the five live category slugs onto
+  Branding / Content Production. The categories table is shared with the other
+  deployed site and cannot be restructured. An unmapped category falls into
+  Branding rather than vanishing.
+
+The contact form's required set is name, email, project type. The message is
+optional on purpose — required lifts lead quality and costs volume; optional
+keeps both. Company was removed outright.
+
+## Estimator (js/estimate.js)
+
+The site's single CTA points at `/estimate.html`. Three questions, then a range
+shown BEFORE any email is asked for — the capture is a trade for the detailed
+breakdown, not a toll gate.
+
+**`PLACEHOLDER_PRICING` is `true` and must stay true until Jesse supplies real
+figures.** While it is, the estimator runs end to end, records the funnel and
+captures leads, but shows no numbers. Never invent a range: a made-up figure on
+a live site is worse than no estimator, because the first lead who quotes it and
+gets a different answer has learned the prices are not real.
+
+## Analytics (sql/010, js/analytics.js)
+
+First-party, in our own database, because Jesse reads the numbers in /admin.
+That rules out Vercel Web Analytics (data lives in Vercel, no Hobby API) and
+every hosted tool. A row is a path, a referrer HOST and a timestamp — no
+cookies, no IP, nothing identifying, which is why the existing cookie notice
+already covers it.
+
+`recordView()` fires from shell.js, which no admin page loads, so Jesse editing
+his own site is never counted. Every call is fire-and-forget: analytics must
+never be able to break a page.
+
+**The counts are directionally true, not audited.** anon can INSERT and the anon
+key is public, so fabricated rows are possible. The admin tab says so. Do not
+present these figures as measured evidence.
+
 ## What "protecting" the site can and cannot do
 
 `js/protect.js` blocks right-click and drag ON MEDIA ONLY. It is a deterrent
