@@ -370,6 +370,11 @@ function captureForm() {
     data.append('access_key', WEB3FORMS_ACCESS_KEY);
     data.append('subject', `Estimate request — ${tier.name} (${state.type})`);
     data.append('from_name', 'Control Tee estimator');
+    // So hitting Reply in the inbox answers the CLIENT, not the form service.
+    // Without it, replying to a lead means copying their address out by hand,
+    // which is exactly the friction that turns a same-day reply into a
+    // next-week one.
+    data.append('replyto', emailInput.value.trim());
     data.append('Project type', state.type);
     data.append('Scope', tier.name);
     data.append('Timeline', state.timeline);

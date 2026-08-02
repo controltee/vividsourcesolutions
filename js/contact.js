@@ -74,6 +74,8 @@ form?.addEventListener('submit', async (event) => {
   formData.append('access_key', ACCESS_KEY);
   formData.append('subject', `New project inquiry from ${formData.get('name') || 'Control Tee site'}`);
   formData.append('from_name', 'Control Tee website');
+  // Reply goes to the person who wrote in, not to the form service.
+  formData.append('replyto', String(formData.get('email') || ''));
 
   const originalLabel = submitBtn.textContent;
   submitBtn.textContent = 'Sending…';
