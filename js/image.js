@@ -26,6 +26,22 @@ export function transformUrl(rawUrl, width, sourceW, sourceH, quality = 75) {
 /** Builds a <picture> for `rawUrl` sized by `sourceW`/`sourceH`, or a plain
  * <img> (no srcset, original bytes) if dimensions are unknown. */
 export function pictureFor(rawUrl, sourceW, sourceH, { alt, sizes, loading, priority } = {}) {
+  // No image at all — a project saved without a cover, which the admin's Cover
+  // field allows. Assigning a null src does NOT leave the image blank: it
+  // stringifies to "null", so the browser requests /null, takes a 404 and
+  // paints a broken-image icon on the grid. A placeholder holds the space.
+  if (!rawUrl) {
+    const placeholder = document.createElement('div');
+    placeholder.className = 'media-placeholder';
+    if (alt) {
+      placeholder.setAttribute('role', 'img');
+      placeholder.setAttribute('aria-label', alt);
+    } else {
+      placeholder.setAttribute('aria-hidden', 'true');
+    }
+    return placeholder;
+  }
+
   const srcset = transformUrl(rawUrl, 1280, sourceW, sourceH)
     ? WIDTHS.map((w) => `${transformUrl(rawUrl, w, sourceW, sourceH)} ${w}w`).join(', ')
     : null;

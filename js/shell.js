@@ -30,6 +30,19 @@ function contentStamp() {
   }
 }
 
+// Writing to sessionStorage throws in Safari Private Browsing and whenever the
+// quota is full. Every cache write here is an OPTIMISATION — the data is
+// already in hand — so a failed write must never propagate: an unguarded one
+// used to reject loadNav() and blank the whole rail behind "Work couldn't
+// load", on a visit where the fetch had actually succeeded.
+function cacheWrite(key, value) {
+  try {
+    sessionStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    /* private mode / quota — this visit just refetches, which is correct too */
+  }
+}
+
 function cacheIsFresh(cached, ttl) {
   return Boolean(cached) && Date.now() - cached.t < ttl && cached.t >= contentStamp();
 }
@@ -77,7 +90,7 @@ async function loadNav() {
     items: nestRepeatClients(byCategory.get(c.id) || []),
   }));
 
-  sessionStorage.setItem(NAV_KEY, JSON.stringify({ t: Date.now(), groups }));
+  cacheWrite(NAV_KEY, { t: Date.now(), groups });
   return groups;
 }
 
@@ -102,11 +115,16 @@ function nestRepeatClients(projects) {
     }
     if (emitted.has(p.client_id)) continue;
     emitted.add(p.client_id);
-    const name = p.clients?.name || 'Client';
+    // slugify() is fed the RAW name, not the 'Client' display fallback: that
+    // fallback always slugifies to "client", which is truthy, so it silently
+    // swallowed the client-id fallback below and pointed an unnamed client's
+    // link at a page that resolves to nothing. home.js does it this way too,
+    // and the two have to agree or the rail and the grid link differently.
+    const name = p.clients?.name;
     items.push({
       type: 'client',
       // Label follows card_title so the rail reads the same as the home card.
-      name: p.clients?.card_title?.trim() || name,
+      name: p.clients?.card_title?.trim() || name || 'Client',
       // The route resolves on the canonical NAME, never the card title, so
       // retitling never breaks a link: slugify(name), id as a fallback.
       slug: slugify(name) || String(p.client_id),
@@ -134,7 +152,7 @@ function readOpenState(groups) {
 
 function persistOpenState(set) {
   const slugs = set ?? new Set(qsa('.rail__group[open]').map((d) => d.dataset.slug));
-  sessionStorage.setItem(OPEN_KEY, JSON.stringify([...slugs]));
+  cacheWrite(OPEN_KEY, [...slugs]);
 }
 
 // --- Nav render ------------------------------------------------------------
@@ -262,7 +280,7 @@ async function loadSiteSettings() {
   if (error) throw error;
 
   const settings = Object.fromEntries(data.map((row) => [row.id, row.content]));
-  sessionStorage.setItem(SITE_KEY, JSON.stringify({ t: Date.now(), settings }));
+  cacheWrite(SITE_KEY, { t: Date.now(), settings });
   return settings;
 }
 
@@ -280,7 +298,21 @@ function applySiteSettings(settings) {
   // both the rail brand and the mobile top bar. Falls back to the wordmark.
   if (settings.logo_url) {
     for (const brand of qsa('.rail__brand, .topbar__brand')) {
-      brand.replaceChildren(el('img', { class: 'brand-logo', src: settings.logo_url, alt: 'Control Tee' }));
+      brand.replaceChildren(
+        el('img', {
+          class: 'brand-logo',
+          src: settings.logo_url,
+          alt: 'Control Tee',
+          // A placeholder ratio, the same tactic the logo marquee uses: the
+          // real dimensions aren't stored (site_content holds a bare URL), and
+          // .brand-logo caps the height in CSS with width:auto, so these only
+          // have to reserve a sane box before the mark decodes. Without them
+          // the brand had no intrinsic size at all and the rail shifted on
+          // every cold load — and CLAUDE.md requires width/height on every img.
+          width: 320,
+          height: 88,
+        })
+      );
     }
   }
 

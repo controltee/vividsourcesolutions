@@ -168,6 +168,17 @@ body {
 }
 
 /* Loading skeletons (used on the home grid and the project page). */
+/* Stands in for a project saved with no cover image (see pictureFor). Matches
+   the banner skeleton's ratio so a card with no artwork is the same size as its
+   neighbours instead of collapsing — but it does NOT shimmer: this is a settled
+   empty state, not something still loading. */
+.media-placeholder {
+  aspect-ratio: 4 / 3;
+  width: 100%;
+  background: var(--ink-80);
+  border-radius: 2px;
+}
+
 .skeleton {
   background: var(--ink-80);
   border-radius: 2px;

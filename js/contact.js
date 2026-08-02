@@ -97,13 +97,16 @@ form?.addEventListener('submit', async (event) => {
   }
 });
 
-// Optional: show the studio's email under the form if it's set in the admin.
+// Optional: replace the static intro copy with what the admin has set.
+// contact_email is deliberately NOT fetched here — this page has no element to
+// show it in (the form is the route we want people to take), and the About page
+// already surfaces it. It used to be requested and then dropped on the floor.
 (async () => {
   try {
     const { data } = await supabase
       .from('site_content')
       .select('id, content')
-      .in('id', ['contact_body', 'contact_email']);
+      .in('id', ['contact_body']);
     const settings = Object.fromEntries((data || []).map((r) => [r.id, r.content]));
     const intro = qs('#contact-intro');
     if (intro && settings.contact_body) intro.textContent = settings.contact_body;
