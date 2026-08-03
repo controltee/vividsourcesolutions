@@ -279,6 +279,29 @@
   color: var(--chalk);
 }
 
+/* Quiet, sitting under the budget control it reassures. A budget question
+   reads as a gate unless something explicitly says it is not one, and saying so
+   costs a single line. */
+.estimate__help {
+  max-width: 52ch;
+  margin-block: calc(var(--space-m) * -0.5) var(--space-m);
+  color: var(--chalk-40);
+  font-size: var(--step--1);
+  line-height: 1.45;
+}
+
+.estimate__textarea {
+  flex: 1 1 100%;
+  width: 100%;
+  margin-block-start: var(--space-xs);
+  font-family: var(--font-body);
+  resize: vertical;
+}
+
+.estimate__capture-actions {
+  margin-block-start: var(--space-m);
+}
+
 .estimate__capture-fields {
   display: flex;
   flex-wrap: wrap;

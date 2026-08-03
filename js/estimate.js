@@ -21,7 +21,7 @@ import { WEB3FORMS_ACCESS_KEY, WEB3FORMS_ENDPOINT } from './config.js';
 // ===========================================================================
 // BUDGET BANDS — PLACEHOLDER NUMBERS, JESSE REPLACES THESE
 // ===========================================================================
-// These four boundaries are STRUCTURAL PLACEHOLDERS so the flow can be
+// These six boundaries are STRUCTURAL PLACEHOLDERS so the flow can be
 // previewed. They are not a recommendation and they are not researched — I do
 // not know what Nairobi studio work bills at, and guessing at it here is the
 // exact mistake this file exists to avoid.
@@ -38,12 +38,25 @@ import { WEB3FORMS_ACCESS_KEY, WEB3FORMS_ENDPOINT } from './config.js';
 // These bands are visible to visitors. They disclose the range you will
 // ENTERTAIN, which is a much cheaper disclosure than what you CHARGE.
 const BUDGET_BANDS_ARE_PLACEHOLDER = true;
+
+// `route: 'call'` sends the visitor to the calendar, `'message'` keeps it a
+// written reply. The break sits at 500,000 because that is where a project stops
+// being a defined piece of work and starts being an engagement with a shape to
+// negotiate, which is a conversation, not a form.
+//
+// The bands do NOT start at zero. A scale beginning at 0 invites 0 as an answer
+// and quietly says the studio might work for nothing.
 const BUDGET_BANDS = [
-  { id: 'band-1', label: 'Under KES 250,000' },
-  { id: 'band-2', label: 'KES 250,000 – 750,000' },
-  { id: 'band-3', label: 'KES 750,000 – 2,000,000' },
-  { id: 'band-4', label: 'KES 2,000,000 and above' },
-  { id: 'unsure', label: 'Not sure yet', note: 'Fine — we’ll work it out on the call.' },
+  { id: 'band-1', label: 'Under KES 50,000', route: 'message' },
+  { id: 'band-2', label: 'KES 50,000 to 150,000', route: 'message' },
+  { id: 'band-3', label: 'KES 150,000 to 500,000', route: 'message' },
+  { id: 'band-4', label: 'KES 500,000 to 1,000,000', route: 'call' },
+  { id: 'band-5', label: 'KES 1,000,000 to 2,000,000', route: 'call' },
+  { id: 'band-6', label: 'KES 2,000,000 plus', route: 'call' },
+  // Routed to the written path on purpose. Someone with no figure yet is early
+  // in their thinking, and putting a calendar in front of them asks for a
+  // commitment they are not ready to make.
+  { id: 'unsure', label: 'Not sure yet', route: 'message', note: 'That is fine, we will work it out together.' },
 ];
 
 // The Google Appointment Schedule already used on /contact.html. Same calendar,
@@ -115,7 +128,7 @@ const PROJECT_TYPES = [
   {
     id: 'content',
     label: 'Content Production',
-    note: 'Campaigns, motion, video — work on a schedule.',
+    note: 'Campaigns, motion, video, on a schedule.',
   },
   { id: 'both', label: 'Both', note: 'Build the brand, then keep it fed.' },
 ];
@@ -137,6 +150,12 @@ const persist = () => cacheWrite(STORE_KEY, state);
 const tiersFor = (type) => (type === 'content' ? TIERS.content : TIERS.branding);
 const selectedTier = () => tiersFor(state.type)?.find((t) => t.id === state.tier) || null;
 const selectedBand = () => BUDGET_BANDS.find((b) => b.id === state.budget) || null;
+// Above the threshold the flow leads with a call; below it, a written reply.
+// Never a HARD branch: the message option stays visible on the call path too.
+// Institutional buyers, which a studio with a university client will meet often,
+// frequently have to start in writing, and the top band is the worst possible
+// place to put friction.
+const wantsCall = () => selectedBand()?.route === 'call';
 const typeLabel = () => PROJECT_TYPES.find((t) => t.id === state.type)?.label || '';
 
 // --- Question rendering ------------------------------------------------------
@@ -144,7 +163,7 @@ const typeLabel = () => PROJECT_TYPES.find((t) => t.id === state.type)?.label ||
 // next question only appears once the last is answered. Every option on screen
 // at once would be fourteen buttons, which is the "bloated form" feeling in a
 // different costume.
-function question({ number, legend, options, value, onPick, open }) {
+function question({ number, legend, help, options, value, onPick, open }) {
   const answered = value != null;
   const chosen = options.find((o) => o.id === value);
 
@@ -169,6 +188,9 @@ function question({ number, legend, options, value, onPick, open }) {
       el('span', { class: 'estimate__step-number', 'aria-hidden': 'true' }, `${number}`),
       legend
     ),
+    // Quiet, directly under the control it reassures. A budget question reads as
+    // a gate unless something says otherwise, and saying otherwise costs a line.
+    help ? el('p', { class: 'estimate__help' }, help) : null,
     el(
       'div',
       { class: 'estimate__options' },
@@ -224,7 +246,7 @@ function resultPanel() {
         el(
           'p',
           { class: 'estimate__figure-note' },
-          'We quote on the call, once we understand the project properly. A figure guessed from three answers would only have to be revised — and you would have anchored on it by then.'
+          'We quote on the call, once we understand the project properly. A figure guessed from three answers would only have to be revised, and you would have anchored on it by then.'
         )
       ),
       el(
@@ -282,6 +304,8 @@ function bookingPanel() {
 }
 
 function captureForm() {
+  const call = wantsCall();
+
   const nameInput = el('input', {
     class: 'estimate__input',
     name: 'name',
@@ -300,19 +324,43 @@ function captureForm() {
     'aria-label': 'Email',
     placeholder: 'Email',
   });
-  const submit = el('button', { class: 'estimate__submit', type: 'submit' }, 'Send brief & book a call');
+
+  // Below the threshold the message field is the point: a smaller job is
+  // usually well defined, and the fastest good outcome is a written reply. On
+  // the call path it is dropped, because everything it would capture is what
+  // the conversation is for.
+  const messageInput = call
+    ? null
+    : el('textarea', {
+        class: 'estimate__input estimate__textarea',
+        name: 'message',
+        rows: '4',
+        'aria-label': 'A bit more about the project',
+        placeholder: 'A bit more about the project',
+      });
+
+  const submitLabel = call ? 'Book A Discovery Call' : 'Send It';
+  const submit = el('button', { class: 'estimate__submit', type: 'submit' }, submitLabel);
   const status = el('p', { class: 'estimate__status', role: 'status', 'aria-live': 'polite' });
 
   const form = el(
     'form',
     { class: 'estimate__capture' },
-    el('h2', { class: 'estimate__capture-title' }, 'Send this brief and pick a time'),
+    el(
+      'h2',
+      { class: 'estimate__capture-title' },
+      call ? 'Let us talk properly' : 'Tell us a bit more'
+    ),
     el(
       'p',
       { class: 'estimate__capture-note' },
-      'Your answers reach us either way — booking a slot is optional, and you can always reply to the email instead.'
+      call
+        ? 'Pick a time that works and we will come prepared. Your brief reaches us either way, so if a call does not suit you, reply to the email instead.'
+        : 'Great. Tell us a bit more below and we will reply directly.'
     ),
-    el('div', { class: 'estimate__capture-fields' }, nameInput, emailInput, submit),
+    el('div', { class: 'estimate__capture-fields' }, nameInput, emailInput),
+    messageInput,
+    el('div', { class: 'estimate__capture-actions' }, submit),
     // Honeypot, same device the contact form uses: real people never see it,
     // and anything filling it in is not a person.
     el('input', {
@@ -329,7 +377,7 @@ function captureForm() {
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (!nameInput.value.trim() || !emailInput.checkValidity()) {
-      status.textContent = 'A name and a working email address, and it’s on its way.';
+      status.textContent = 'A name and a working email address, and it is on its way.';
       (nameInput.value.trim() ? emailInput : nameInput).focus();
       return;
     }
@@ -337,7 +385,7 @@ function captureForm() {
     const tier = selectedTier();
     const data = new FormData(form);
     data.append('access_key', WEB3FORMS_ACCESS_KEY);
-    data.append('subject', `Discovery request — ${tier.name} (${typeLabel()})`);
+    data.append('subject', `${call ? 'Discovery call' : 'Project enquiry'} — ${tier.name} (${typeLabel()})`);
     data.append('from_name', 'Control Tee estimator');
     // So hitting Reply in the inbox answers the CLIENT, not the form service.
     data.append('replyto', emailInput.value.trim());
@@ -352,21 +400,25 @@ function captureForm() {
     try {
       const response = await fetch(WEB3FORMS_ENDPOINT, { method: 'POST', body: data });
       if (!response.ok) throw new Error('rejected');
-      recordEvent('estimate_submit');
-      const sent = el(
-        'div',
-        { class: 'estimate__sent-block' },
-        el('p', { class: 'estimate__sent' }, 'Brief received. We’ll reply within one working day.')
+      recordEvent(call ? 'estimate_submit_call' : 'estimate_submit_message');
+      form.replaceChildren(
+        el(
+          'p',
+          { class: 'estimate__sent' },
+          call
+            ? 'Brief received. Pick a time below and we will come prepared.'
+            : 'Brief received. We will reply directly, within one working day.'
+        )
       );
-      form.replaceChildren(sent);
-      // Revealed rather than navigated to: the visitor stays on the page they
-      // already trust, and the calendar arrives as a next step rather than as
-      // a redirect that feels like being handed off.
-      form.after(bookingPanel());
+      // The calendar appears only on the call path, and only after the details
+      // are captured. Booking is never the ONLY route out of this page: someone
+      // interested but unable to commit half an hour right now would otherwise
+      // leave no trace at all.
+      if (call) form.after(bookingPanel());
     } catch {
-      status.textContent = 'That didn’t send. Try again in a moment, or use the contact form.';
+      status.textContent = 'That did not send. Try again in a moment, or use the contact form.';
       submit.disabled = false;
-      submit.textContent = 'Send brief & book a call';
+      submit.textContent = submitLabel;
     }
   });
 
@@ -431,7 +483,8 @@ function render(openStep) {
         // and by now the visitor has already invested two answers — abandonment
         // at question three is far lower than at question one. This is the
         // cheapest place on the page to ask it.
-        legend: 'What have you budgeted?',
+        legend: 'What is your budget range for this project?',
+        help: 'This helps us prepare properly before we speak. It is not here to filter you out.',
         options: BUDGET_BANDS,
         value: state.budget,
         open: step === 3,
