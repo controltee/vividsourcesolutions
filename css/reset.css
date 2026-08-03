@@ -34,6 +34,16 @@ svg {
   user-select: none;
 }
 
+/* The `hidden` attribute is display:none in the UA stylesheet, and ANY author
+   rule beats the UA stylesheet — so the `display: block` above was forcing
+   hidden <svg> elements visible. That is why the contact form's success
+   checkmark sat there on a fresh page, telling people their message had sent
+   before they had sent it. Anything given a display value above needs this to
+   restore what `hidden` is supposed to mean. */
+[hidden] {
+  display: none !important;
+}
+
 /* Available to assistive tech and to crawlers, invisible on screen. Used where
    a visible element is decorative (an animated headline) and the real sentence
    has to exist somewhere readable. */

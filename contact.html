@@ -248,26 +248,26 @@
         <section class="booking" aria-labelledby="booking-heading">
           <h2 class="booking__title" id="booking-heading">Or book a call</h2>
           <p class="booking__lede">
-            Pick a time that suits you and it lands straight in our calendar.
+            Pick a time that suits you and it lands straight in my calendar.
           </p>
-          <!-- Google Appointment Schedule. Google hosts this UI; the CSP
-               allows framing calendar.google.com specifically. -->
-          <div class="booking__frame">
-            <iframe
-              src="https://calendar.google.com/calendar/appointments/schedules/AcZssZ1Pp0n-nkuiI7-U85fburHPhb0qw3ir6a5lzVc_SWhqw277ACblxHpR8PlwclLw6OuxkjtphgMf?gv=true"
-              title="Book an appointment with Control Tee"
-              loading="lazy"
-              referrerpolicy="no-referrer-when-downgrade"
-            ></iframe>
-          </div>
-          <p class="booking__fallback">
-            Trouble loading?
+          <!-- A link out, not an embed. This used to frame Google's scheduler,
+               which meant 680px of someone else's UI in the middle of the page,
+               their typography, and frame-src https://calendar.google.com in
+               our CSP. Building a real calendar here instead was considered and
+               rejected: live availability and event creation need Google
+               credentials held server-side, and any drift between our logic and
+               theirs produces a double-booking, which is the one failure that
+               costs a client before the work has started. -->
+          <p class="booking__actions">
             <a
+              class="booking__link"
               href="https://calendar.app.google/8iF7VTC8a88wDPkJA"
               target="_blank"
               rel="noopener noreferrer"
-              >Open the booking page in a new tab</a
-            >.
+            >
+              Open my booking page
+              <span class="booking__link-note">opens in a new tab</span>
+            </a>
           </p>
         </section>
       </main>

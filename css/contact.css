@@ -187,7 +187,7 @@
   }
 }
 
-/* ---- Booking (Google Appointment Schedule embed) ------------------------ */
+/* ---- Booking (a link out to Google, not an embed) ----------------------- */
 .booking {
   margin-block-start: var(--space-xl);
   max-width: 900px;
@@ -203,32 +203,36 @@
   color: var(--chalk-60);
   font-size: var(--step--1);
 }
-.booking__frame {
+.booking__actions {
   margin-block-start: var(--space-m);
+}
+/* Deliberately quieter than .inquiry__submit. The form is the primary route
+   and must stay the loudest thing on the page; this is the alternative, so it
+   reads as an outlined sibling rather than a second filled button competing
+   with the first. */
+.booking__link {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
   border: 1px solid var(--moss);
   border-radius: 2px;
-  overflow: hidden;
-  /* Google's scheduler needs real height; it scrolls internally on small screens. */
-  height: 680px;
+  padding: var(--space-2xs) var(--space-m);
+  font-family: var(--font-display);
+  font-weight: 500;
+  color: var(--chalk);
+  text-decoration: none;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
 }
-.booking__frame iframe {
-  display: block;
-  width: 100%;
-  height: 100%;
-  border: 0;
+.booking__link:hover,
+.booking__link:focus-visible {
+  border-color: var(--chalk-40);
+  color: var(--paper);
 }
-@media (max-width: 700px) {
-  .booking__frame {
-    height: 620px;
-  }
-}
-.booking__fallback {
-  margin-block-start: var(--space-2xs);
+.booking__link-note {
+  font-family: inherit;
+  font-weight: 400;
   font-size: var(--step--1);
   color: var(--chalk-40);
-}
-.booking__fallback a {
-  color: var(--accent-ink);
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
 }
