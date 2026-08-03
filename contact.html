@@ -153,16 +153,66 @@
             </select>
           </label>
 
-          <!-- Optional, deliberately. Making it required reliably lifts lead
-               QUALITY and reliably costs volume; making it optional does the
-               reverse. Optional keeps both — the people with something to say
-               still say it, and the ones who would have bounced at a blank
-               6-row textarea now arrive as a name we can call. -->
+          <!-- Three small questions in place of what used to be a blank
+               "tell us about the project" textarea. A blank box asks someone to
+               compose prose about something that is usually still half-formed,
+               and that is where people leave. These are answerable in seconds
+               each and produce a better brief than the free text did.
+
+               All three are OPTIONAL, which is the whole point: they reduce
+               friction only for as long as they cannot themselves become a
+               wall. The required set is still name, email, project type.
+
+               There is deliberately NO budget question. Nothing on this site
+               names money — see CLAUDE.md. -->
           <label class="inquiry__field">
             <span class="inquiry__label">
-              Tell us about the project <span class="inquiry__optional">(optional)</span>
+              What is it for? <span class="inquiry__optional">(optional)</span>
             </span>
-            <textarea class="inquiry__input inquiry__textarea" name="message" rows="4"></textarea>
+            <select class="inquiry__input" name="occasion">
+              <option value="">Choose one…</option>
+              <option value="A launch">A launch, something new going out</option>
+              <option value="An event">An event or a campaign with a date</option>
+              <option value="A rebrand">A rebrand, fixing what is already there</option>
+              <option value="Ongoing content">Ongoing content, work on a schedule</option>
+              <option value="Something else">Something else</option>
+            </select>
+          </label>
+
+          <label class="inquiry__field">
+            <span class="inquiry__label">
+              When do you need it? <span class="inquiry__optional">(optional)</span>
+            </span>
+            <select class="inquiry__input" name="timing">
+              <option value="">Choose one…</option>
+              <option value="Within a month">Within a month</option>
+              <option value="One to three months">One to three months</option>
+              <option value="Later than three months">Later than three months</option>
+              <option value="Not fixed yet">Not fixed yet</option>
+            </select>
+          </label>
+
+          <label class="inquiry__field">
+            <span class="inquiry__label">
+              What exists already? <span class="inquiry__optional">(optional)</span>
+            </span>
+            <select class="inquiry__input" name="existing">
+              <option value="">Choose one…</option>
+              <option value="Nothing yet">Nothing yet, starting from scratch</option>
+              <option value="A logo only">A logo only</option>
+              <option value="A full brand to apply">A full brand, it needs applying</option>
+              <option value="Not sure">Not sure</option>
+            </select>
+          </label>
+
+          <!-- Kept, but no longer load-bearing. Anyone with something specific
+               to say still has somewhere to say it; nobody is now required to
+               invent prose to get through the form. -->
+          <label class="inquiry__field">
+            <span class="inquiry__label">
+              Anything else? <span class="inquiry__optional">(optional)</span>
+            </span>
+            <textarea class="inquiry__input inquiry__textarea" name="message" rows="3"></textarea>
           </label>
 
           <!-- Honeypot: bots fill this, people never see it. -->

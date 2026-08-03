@@ -12,11 +12,19 @@
 
 import { qs } from './util.js';
 import { supabase } from './supabase.js';
+import { recordEvent } from './analytics.js';
 import { WEB3FORMS_ACCESS_KEY as ACCESS_KEY, WEB3FORMS_ENDPOINT as ENDPOINT } from './config.js';
 
 const form = qs('#inquiry-form');
 const statusEl = qs('#inquiry-status');
 const submitBtn = form?.querySelector('button[type="submit"]');
+
+// Two events, and the pair is a true funnel: both ends happen on this page to
+// the same person, so the drop between them is a real number. 'inquiry_start'
+// fires once on first contact with any field — `once: true` on a listener bound
+// to the form, so it costs nothing and cannot double-count. Analytics is
+// fire-and-forget by design and must never be able to break the form.
+form?.addEventListener('focusin', () => recordEvent('inquiry_start'), { once: true });
 
 function setStatus(message, state) {
   statusEl.textContent = message;
@@ -62,7 +70,7 @@ form?.addEventListener('submit', async (event) => {
       invalid.type === 'email' && invalid.value
         ? 'That email address doesn’t look right.'
         : invalid.name === 'service'
-          ? 'Pick what you need and we’ll route it to the right person.'
+          ? 'Pick what you need so I can come back to you properly.'
           : 'Please fill in your name and email.',
       'error'
     );
@@ -89,8 +97,9 @@ form?.addEventListener('submit', async (event) => {
 
     if (response.ok) {
       form.reset();
-      setStatus('Thank you. Your message is on its way. We’ll be in touch shortly.', 'success');
+      setStatus('Thank you. Your message is on its way. I’ll be in touch shortly.', 'success');
       showCheck();
+      recordEvent('inquiry_submit');
     } else {
       setStatus(data.message || 'That didn’t send. Please try again in a moment.', 'error');
     }
