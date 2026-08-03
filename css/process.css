@@ -29,6 +29,203 @@
   line-height: 1.5;
 }
 
+/* ---- The ring ----------------------------------------------------------- */
+/* Same column as the stage list below, so the diagram reads as belonging to the
+   text rather than floating in the middle of the pane. */
+.process-ring {
+  margin-block-start: var(--space-l);
+  max-width: 60ch;
+  /* The top and bottom nodes straddle the frame's edge, so the section needs
+     room for roughly half a node above and below or they clip. */
+  padding-block: 2.2rem;
+}
+.process-ring__frame {
+  position: relative;
+  /* Square, so the circle stays a circle without any aspect-ratio juggling. */
+  width: min(320px, 78vw);
+  aspect-ratio: 1;
+  margin-inline: auto;
+}
+.process-ring__art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  stroke: var(--moss);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+/* pathLength="100" makes the circumference exactly 100 units, so every dash
+   value below reads as a percentage of the way round. */
+.process-ring__line {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 900ms var(--ease-out);
+}
+.js .process-ring__line {
+  stroke-dashoffset: 100;
+}
+.process-ring.is-visible .process-ring__line {
+  stroke-dashoffset: 0;
+}
+
+/* The sweep: a short arc that travels ONE lap and stops. This is the "arrows
+   moving in a circle", expressed as a single pass — a perpetual rotation would
+   break the studio's own no-spin rule (CLAUDE.md). 12 units of dash, 88 of gap,
+   offset by a full lap so it enters at the top and leaves where it started. */
+.process-ring__sweep {
+  stroke: var(--accent-ink);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 12 88;
+  stroke-dashoffset: 0;
+  opacity: 0;
+}
+.process-ring.is-visible .process-ring__sweep {
+  animation: ring-sweep 1400ms var(--ease-out) 200ms 1 both;
+}
+@keyframes ring-sweep {
+  0% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: -100;
+    opacity: 0;
+  }
+}
+
+.process-ring__heads {
+  stroke: var(--chalk-40);
+  stroke-width: 1.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 1;
+  transition: opacity var(--dur-slow) var(--ease-out) 700ms;
+}
+.js .process-ring__heads {
+  opacity: 0;
+}
+.process-ring.is-visible .process-ring__heads {
+  opacity: 1;
+}
+
+/* ---- Ring nodes --------------------------------------------------------- */
+/* Real anchors laid over the art, so they focus and jump with no JS. */
+.process-ring__node {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 6.5rem;
+  padding: var(--space-3xs);
+  text-align: center;
+  text-decoration: none;
+  color: var(--chalk-60);
+  background: var(--ink);
+  border-radius: 2px;
+  transition:
+    opacity calc(var(--dur-slow) * 0.6) var(--ease-out),
+    transform var(--dur-slow) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+.js .process-ring__node {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.process-ring.is-visible .process-ring__node {
+  opacity: 1;
+  transform: none;
+}
+.process-ring__node:hover,
+.process-ring__node:focus-visible {
+  color: var(--chalk);
+}
+.process-ring__node--n {
+  inset-block-start: 0;
+  inset-inline-start: 50%;
+  margin-inline-start: -3.25rem;
+  transform: translateY(-50%);
+}
+.process-ring__node--e {
+  inset-block-start: 50%;
+  inset-inline-start: 100%;
+  margin-block-start: -2.1rem;
+  margin-inline-start: -3.25rem;
+}
+.process-ring__node--s {
+  inset-block-end: 0;
+  inset-inline-start: 50%;
+  margin-inline-start: -3.25rem;
+  transform: translateY(50%);
+}
+.process-ring__node--w {
+  inset-block-start: 50%;
+  inset-inline-start: 0;
+  margin-block-start: -2.1rem;
+  margin-inline-start: -3.25rem;
+}
+/* The N and S nodes sit ON the ring, so their resting transform is not `none`.
+   Restated after the .is-visible rule, which would otherwise clear it and drop
+   them half a node height. */
+.process-ring.is-visible .process-ring__node--n {
+  transform: translateY(-50%);
+}
+.process-ring.is-visible .process-ring__node--s {
+  transform: translateY(50%);
+}
+
+.process-ring__icon {
+  color: var(--accent-ink);
+}
+.process-ring__icon svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  stroke-width: 1.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+.process-ring__num {
+  font-family: var(--font-display);
+  font-size: var(--step--1);
+  color: var(--chalk-40);
+  font-variant-numeric: tabular-nums;
+}
+.process-ring__label {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--step-0);
+  line-height: 1.2;
+}
+
+/* The E and W nodes hang off the frame's edges, so the section needs room for
+   them at narrow widths or they clip against the pane. */
+@media (max-width: 640px) {
+  .process-ring__frame {
+    width: min(240px, 62vw);
+  }
+  .process-ring__node {
+    width: 5.5rem;
+  }
+  .process-ring__node--e,
+  .process-ring__node--s,
+  .process-ring__node--w,
+  .process-ring__node--n {
+    margin-inline-start: -2.75rem;
+  }
+}
+
 /* ---- Track and thread --------------------------------------------------- */
 .process {
   margin-block-start: var(--space-xl);
@@ -259,5 +456,38 @@
   .process-end__arrow svg {
     animation: none;
     opacity: 0.55;
+  }
+
+  /* The ring is complete and still: drawn, arrowheads showing direction, nodes
+     in place, and the sweep never runs. The diagram must lose its movement and
+     nothing else. */
+  .process-ring__line,
+  .js .process-ring__line {
+    stroke-dashoffset: 0;
+    transition: none;
+  }
+  .process-ring__sweep,
+  .process-ring.is-visible .process-ring__sweep {
+    animation: none;
+    opacity: 0;
+  }
+  .process-ring__heads,
+  .js .process-ring__heads {
+    opacity: 1;
+    transition: none;
+  }
+  .process-ring__node,
+  .js .process-ring__node {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .process-ring__node--n,
+  .js .process-ring__node--n {
+    transform: translateY(-50%);
+  }
+  .process-ring__node--s,
+  .js .process-ring__node--s {
+    transform: translateY(50%);
   }
 }

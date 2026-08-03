@@ -141,6 +141,103 @@
           </p>
         </section>
 
+        <!-- The cycle, as a diagram. It is a SUMMARY and a set of jump links,
+             not the content: four paragraphs cannot sit on a circumference, so
+             the readable text stays in the list below and nothing here is the
+             only copy of anything.
+
+             Split by responsibility on purpose:
+               - the ring is one aria-hidden <svg>, pure decoration
+               - the four nodes are real <a> elements laid over it, so focus,
+                 keyboard and the browser's own jump behaviour work with no JS
+
+             A circle claims the process loops. That is fair (revisions cycle
+             back into direction) but it is a claim the straight thread did not
+             make. -->
+        <section class="process-ring" aria-labelledby="ring-heading">
+          <h2 class="visually-hidden" id="ring-heading">The four stages at a glance</h2>
+
+          <div class="process-ring__frame">
+            <svg
+              class="process-ring__art"
+              viewBox="0 0 200 200"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <!-- A circle in a SQUARE viewBox scales uniformly, so dash
+                   geometry is trustworthy here. The vertical thread could not
+                   use this technique because its viewBox was stretched by a
+                   non-uniform preserveAspectRatio. -->
+              <circle class="process-ring__line" cx="100" cy="100" r="76" pathLength="100" />
+              <circle class="process-ring__sweep" cx="100" cy="100" r="76" pathLength="100" />
+              <!-- Direction, still legible after the sweep has finished.
+                   One arrowhead drawn once at the top and rotated about the
+                   circle's centre, which places it and orients it to the
+                   tangent in a single step. They sit on the DIAGONALS, between
+                   the nodes: at 12/3/6/9 the nodes' own backgrounds covered
+                   them, so only two of the four were ever visible. -->
+              <g class="process-ring__heads">
+                <path d="M96 21 L100 24.5 L96 28" transform="rotate(45 100 100)" />
+                <path d="M96 21 L100 24.5 L96 28" transform="rotate(135 100 100)" />
+                <path d="M96 21 L100 24.5 L96 28" transform="rotate(225 100 100)" />
+                <path d="M96 21 L100 24.5 L96 28" transform="rotate(315 100 100)" />
+              </g>
+            </svg>
+
+            <a class="process-ring__node process-ring__node--n" href="#stage-1">
+              <span class="process-ring__icon" aria-hidden="true">
+                <!-- Trim marks: the extent of the piece. -->
+                <svg viewBox="0 0 24 24" fill="none" focusable="false">
+                  <path d="M3 8V3h5M16 3h5v5M21 16v5h-5M8 21H3v-5" />
+                </svg>
+              </span>
+              <span class="process-ring__num" aria-hidden="true">01</span>
+              <span class="process-ring__label">Scope</span>
+            </a>
+
+            <a class="process-ring__node process-ring__node--e" href="#stage-2">
+              <span class="process-ring__icon" aria-hidden="true">
+                <!-- Registration mark: bringing separate plates into alignment. -->
+                <svg viewBox="0 0 24 24" fill="none" focusable="false">
+                  <circle cx="12" cy="12" r="6" />
+                  <path d="M12 2v7M12 15v7M2 12h7M15 12h7" />
+                </svg>
+              </span>
+              <span class="process-ring__num" aria-hidden="true">02</span>
+              <span class="process-ring__label">Discover</span>
+            </a>
+
+            <a class="process-ring__node process-ring__node--s" href="#stage-3">
+              <span class="process-ring__icon" aria-hidden="true">
+                <!-- A bezier and its two anchors. Routes are paths. The handle
+                     lines were dropped: at 22px they closed the shape up into
+                     a blot. -->
+                <svg viewBox="0 0 24 24" fill="none" focusable="false">
+                  <path d="M4 19c7 0 9-14 16-14" />
+                  <rect x="1.5" y="16.5" width="5" height="5" />
+                  <rect x="17.5" y="2.5" width="5" height="5" />
+                </svg>
+              </span>
+              <span class="process-ring__num" aria-hidden="true">03</span>
+              <span class="process-ring__label">Direction</span>
+            </a>
+
+            <a class="process-ring__node process-ring__node--w" href="#stage-4">
+              <span class="process-ring__icon" aria-hidden="true">
+                <!-- Sheets, collated and passed over. This replaced a press
+                     colour bar, which at 22px read as a solid block: four
+                     swatches plus their strokes leave no white between them. -->
+                <svg viewBox="0 0 24 24" fill="none" focusable="false">
+                  <rect x="7.5" y="2.5" width="14" height="14" />
+                  <path d="M16.5 20.5h-13v-13" />
+                </svg>
+              </span>
+              <span class="process-ring__num" aria-hidden="true">04</span>
+              <span class="process-ring__label">Handover</span>
+            </a>
+          </div>
+        </section>
+
         <section class="process" aria-labelledby="process-heading">
           <h2 class="visually-hidden" id="process-heading">How a project runs</h2>
 
@@ -159,7 +256,7 @@
             <span class="process__thread" aria-hidden="true"></span>
 
             <ol class="process__stages">
-              <li class="process__stage">
+              <li class="process__stage" id="stage-1">
                 <span class="process__num" aria-hidden="true">01</span>
                 <h3 class="process__title">Scope</h3>
                 <p class="process__body">
@@ -177,7 +274,7 @@
                 </span>
               </li>
 
-              <li class="process__stage">
+              <li class="process__stage" id="stage-2">
                 <span class="process__num" aria-hidden="true">02</span>
                 <h3 class="process__title">Discover</h3>
                 <p class="process__body">
@@ -194,7 +291,7 @@
                 </span>
               </li>
 
-              <li class="process__stage">
+              <li class="process__stage" id="stage-3">
                 <span class="process__num" aria-hidden="true">03</span>
                 <h3 class="process__title">Direction</h3>
                 <p class="process__body">
@@ -210,7 +307,7 @@
                 </span>
               </li>
 
-              <li class="process__stage">
+              <li class="process__stage" id="stage-4">
                 <span class="process__num" aria-hidden="true">04</span>
                 <h3 class="process__title">Build and hand over</h3>
                 <p class="process__body">

@@ -35,6 +35,12 @@ if (stages.length) revealOnScroll(stages);
 const thread = qs('.process__thread');
 if (thread) revealOnScroll([thread]);
 
+// The ring section is the observed element, not its parts: the line, the sweep
+// and the four nodes all key off `.is-visible` on the section, so they run as
+// one composed movement rather than four independently triggered ones.
+const ring = qs('.process-ring');
+if (ring) revealOnScroll([ring]);
+
 // Did the process page actually send people to the work? That is the only
 // question this page has to answer, and a page view cannot answer it.
 // Fire-and-forget: the import, the module and the insert can all fail without
