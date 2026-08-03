@@ -2555,7 +2555,9 @@ async function renderAnalyticsTab(panel) {
     const [file, query] = path.split('?');
     const slug = new URLSearchParams(query || '').get('p') || new URLSearchParams(query || '').get('c');
     if (slug) return `${file.replace('.html', '').replace('/', '')} · ${slug}`;
-    return file === '/' ? 'Home' : file.replace('.html', '').replace('/', '');
+    // '/' is the process landing page, not the work grid — the grid moved to
+    // /work.html. Labelling it "Home" would read as the portfolio.
+    return file === '/' ? 'Process (landing)' : file.replace('.html', '').replace('/', '');
   };
 
   panel.replaceChildren(

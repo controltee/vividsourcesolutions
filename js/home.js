@@ -127,7 +127,7 @@ function firstParagraphText(html) {
 const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // The rotating half of the headline. The static prefix ("We build creative
-// systems that") lives in index.html and never moves; these complete it.
+// systems that") lives in work.html and never moves; these complete it.
 //
 // Ordered on purpose. The pipeline line goes first because it is the only one
 // of the four a competitor could not paste onto their own site — it names a
@@ -259,7 +259,7 @@ async function renderMarquee() {
 // longer editable from /admin: it is now one sentence split across a static
 // prefix, a rotating clause and a visually-hidden completion, and arbitrary
 // text dropped into that structure produces a sentence that does not parse.
-// The words are in index.html and js/home.js — a code change, deliberately,
+// The words are in work.html and js/home.js — a code change, deliberately,
 // because they are the page's conversion copy.
 //
 // Everything here is an enhancement. The band already rendered with real copy

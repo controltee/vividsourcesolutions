@@ -38,7 +38,7 @@ function notFound(heading, message) {
       { class: 'project__empty' },
       el('h1', {}, heading),
       el('p', {}, message),
-      el('a', { href: '/' }, '← Back to work')
+      el('a', { href: '/work.html' }, '← Back to work')
     )
   );
 }
@@ -58,7 +58,7 @@ function renderMeta(project) {
   const meta = el(
     'div',
     { class: 'project__meta' },
-    el('a', { class: 'project__back', href: '/' }, '← Back to work'),
+    el('a', { class: 'project__back', href: '/work.html' }, '← Back to work'),
     project.clients?.name ? el('p', { class: 'project__client' }, project.clients.name) : null,
     el('h1', { class: 'project__title' }, project.title),
     el('dl', { class: 'project__facts' }, ...facts),

@@ -22,7 +22,7 @@ function notFound(heading, message) {
     el(
       'div',
       { class: 'client-head' },
-      el('a', { class: 'client-head__back', href: '/' }, '← Back to work'),
+      el('a', { class: 'client-head__back', href: '/work.html' }, '← Back to work'),
       el('h1', { class: 'client-head__title' }, heading),
       el('p', { class: 'client-head__count' }, message)
     )
@@ -120,7 +120,7 @@ async function load() {
   const head = el(
     'header',
     { class: 'client-head' },
-    el('a', { class: 'client-head__back', href: '/' }, '← Back to work'),
+    el('a', { class: 'client-head__back', href: '/work.html' }, '← Back to work'),
     banner,
     el('p', { class: 'client-head__eyebrow' }, 'Client'),
     el('h1', { class: 'client-head__title' }, heading),
