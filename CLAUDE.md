@@ -63,6 +63,15 @@ rows into the existing `site_content`.
   `posters` (home marquee), `videos` (grid), `site_content` (editable text).
 
 ## Hard rules
+- **Site copy speaks as "I", never "we".** Jesse is a solo designer with nobody
+  on payroll, and the site must not imply a team in either direction: no "our
+  team", and equally no apology for its absence. The legal pages
+  (privacy/terms/cookies) still use "we" as the entity voice — that is a
+  separate decision and has not been made.
+- **No em dashes in site copy, and no hyphens used as punctuation.** Jesse's
+  rule. Code comments and this file are exempt; anything a visitor reads is not.
+- No prices, ranges or currency anywhere on the public site. See the section on
+  that below before adding a "starting from" line or a budget field.
 - No build step. No npm packages at runtime. No frameworks.
 - No new dependencies without asking Jesse first.
 - All colors and fonts come from css/tokens.css. Never hardcode a hex value.
@@ -235,10 +244,24 @@ class — `.js .reveal`, `.js .process__stage > *`, `.js .process__thread`.
 Ungated, a visitor with scripting off, or any page whose module graph fails to
 load, gets a blank page instead of an unanimated one.
 
-That failure is not hypothetical: `js/supabase.js` pulls the client from
-esm.sh, so anything importing it statically dies with that CDN. **`js/process.js`
-imports `analytics.js` dynamically for exactly this reason** — the landing page
-must render with no network in its path.
+### A module graph fails as a unit — keep esm.sh out of the critical path
+
+`js/supabase.js` pulls the client from esm.sh. Anything that imports it, at any
+depth, stops executing entirely if that CDN is slow or blocked. `js/util.js` and
+`js/config.js` import nothing and are always safe.
+
+Two files import it **dynamically**, and must stay that way:
+
+- `js/process.js` — a static import left every stage of the landing page at
+  opacity 0, permanently, with no way back.
+- `js/contact.js` — a static import meant the submit listener was never
+  attached, so the form fell back to a **native GET submission**: the inquiry was
+  silently lost and the visitor was left on a page with their own answers in the
+  query string. This form is the site's only conversion route. Verified by
+  loading the page with esm.sh unreachable and submitting.
+
+Both Supabase uses in those files are cosmetic (an admin copy override) or
+fire-and-forget (analytics). Neither is worth the page for.
 
 ## The portfolio page as a conversion page (2026-08-02)
 

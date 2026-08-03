@@ -10,9 +10,16 @@
 //  - explicit validation so the first invalid field gets focus
 //  - a honeypot ("botcheck") that real people never see
 
+// Static imports are limited to util.js and config.js, which import NOTHING.
+// That is load-bearing, not tidiness. supabase.js pulls the client from esm.sh,
+// and an ES module graph fails as a unit: while supabase was imported here at
+// the top level, a blocked or slow esm.sh meant this file never executed, the
+// submit listener below was never attached, and the form fell back to a native
+// GET submission — silently losing the inquiry and leaving the visitor on a
+// page with their answers in the query string. This form is the site's only
+// conversion route, so it must work with nothing but its own two local
+// dependencies. Both Supabase uses are now loaded on demand, below.
 import { qs } from './util.js';
-import { supabase } from './supabase.js';
-import { recordEvent } from './analytics.js';
 import { WEB3FORMS_ACCESS_KEY as ACCESS_KEY, WEB3FORMS_ENDPOINT as ENDPOINT } from './config.js';
 
 const form = qs('#inquiry-form');
@@ -24,6 +31,11 @@ const submitBtn = form?.querySelector('button[type="submit"]');
 // fires once on first contact with any field — `once: true` on a listener bound
 // to the form, so it costs nothing and cannot double-count. Analytics is
 // fire-and-forget by design and must never be able to break the form.
+const recordEvent = (name) =>
+  import('./analytics.js')
+    .then((m) => m.recordEvent(name))
+    .catch(() => {});
+
 form?.addEventListener('focusin', () => recordEvent('inquiry_start'), { once: true });
 
 function setStatus(message, state) {
@@ -112,12 +124,17 @@ form?.addEventListener('submit', async (event) => {
   }
 });
 
-// Optional: replace the static intro copy with what the admin has set.
+// Optional: replace the static intro copy with what the admin has set. Loaded
+// on demand so that Supabase, and therefore esm.sh, stays out of this file's
+// static import graph — see the note at the top. This is cosmetic: the static
+// copy in contact.html is already correct, so failing here costs nothing.
+//
 // contact_email is deliberately NOT fetched here — this page has no element to
 // show it in (the form is the route we want people to take), and the About page
 // already surfaces it. It used to be requested and then dropped on the floor.
 (async () => {
   try {
+    const { supabase } = await import('./supabase.js');
     const { data } = await supabase
       .from('site_content')
       .select('id, content')

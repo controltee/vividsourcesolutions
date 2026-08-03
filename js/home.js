@@ -126,7 +126,7 @@ function firstParagraphText(html) {
 
 const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-// The rotating half of the headline. The static prefix ("We build creative
+// The rotating half of the headline. The static prefix ("I build creative
 // systems that") lives in work.html and never moves; these complete it.
 //
 // Ordered on purpose. The pipeline line goes first because it is the only one
