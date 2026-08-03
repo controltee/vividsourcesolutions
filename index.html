@@ -267,6 +267,10 @@
                   You leave this stage with a written list of what you get, so that nothing
                   later has to be asked for as a favour.
                 </p>
+                <!-- Empty and hidden. Stages 1 and 2 ship without a rounds
+                     line, but /admin can add one, and it needs somewhere to
+                     land. js/process.js unhides this when a value is set. -->
+                <p class="process__rounds" hidden></p>
                 <span class="process__chevron" aria-hidden="true">
                   <svg viewBox="0 0 14 9" fill="none" focusable="false">
                     <path d="M1 1 L7 7 L13 1" stroke="currentColor" stroke-width="1.25" />
@@ -284,6 +288,10 @@
                   it is the whole difference between design that decorates and design that
                   works.
                 </p>
+                <!-- Empty and hidden. Stages 1 and 2 ship without a rounds
+                     line, but /admin can add one, and it needs somewhere to
+                     land. js/process.js unhides this when a value is set. -->
+                <p class="process__rounds" hidden></p>
                 <span class="process__chevron" aria-hidden="true">
                   <svg viewBox="0 0 14 9" fill="none" focusable="false">
                     <path d="M1 1 L7 7 L13 1" stroke="currentColor" stroke-width="1.25" />
@@ -309,7 +317,10 @@
 
               <li class="process__stage" id="stage-4">
                 <span class="process__num" aria-hidden="true">04</span>
-                <h3 class="process__title">Build and hand over</h3>
+                <!-- Short on purpose: this title is mirrored onto the ring
+                     node, where a three-word heading wraps to three lines and
+                     pushes out of the diagram. -->
+                <h3 class="process__title">Handover</h3>
                 <p class="process__body">
                   The chosen direction is built out across everything it needs to appear on.
                   You get the files, organised, in the formats you will actually use, and

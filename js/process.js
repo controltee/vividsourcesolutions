@@ -50,3 +50,74 @@ qs('#process-cta')?.addEventListener('click', () => {
     .then((m) => m.recordEvent('process_cta'))
     .catch(() => {});
 });
+
+// --- Copy override from /admin ---------------------------------------------
+//
+// The static HTML in index.html is the SOURCE OF TRUTH and is what renders on
+// first paint. This only replaces text once a read has already succeeded.
+// Inverting that — fetching the copy as the primary source — would put the
+// site's first impression behind a network round trip and behind esm.sh, which
+// is the failure this file was restructured to avoid. The import stays dynamic
+// for the same reason.
+//
+// Rules, all three load-bearing:
+//   - a blank or missing value leaves the shipped copy alone. An empty admin
+//     field must never be able to empty the page.
+//   - textContent, never innerHTML. This copy is the first thing a visitor
+//     reads and must not be able to inject markup or break the layout.
+//   - every failure is swallowed. The page is already correct without this.
+
+/** Sets text only when there is text to set. Returns whether it did. */
+function setText(selector, value) {
+  const node = qs(selector);
+  const text = (value || '').trim();
+  if (!node || !text) return false;
+  node.textContent = text;
+  return true;
+}
+
+// The ring node labels mirror their stage titles, so there is ONE field per
+// stage rather than two that have to be kept in step by hand.
+const RING_LABEL = ['--n', '--e', '--s', '--w'];
+
+(async () => {
+  const ids = [
+    'process_intro_title',
+    'process_intro_body',
+    'process_end_lede',
+    'process_cta_label',
+    ...[1, 2, 3, 4].flatMap((n) => [
+      `process_stage${n}_title`,
+      `process_stage${n}_body`,
+      `process_stage${n}_rounds`,
+    ]),
+  ];
+
+  try {
+    const { supabase } = await import('./supabase.js');
+    const { data } = await supabase.from('site_content').select('id, content').in('id', ids);
+    if (!data?.length) return;
+    const copy = Object.fromEntries(data.map((r) => [r.id, r.content]));
+
+    setText('.process-intro__title', copy.process_intro_title);
+    setText('.process-intro__body', copy.process_intro_body);
+    setText('.process-end__lede', copy.process_end_lede);
+    setText('#process-cta', copy.process_cta_label);
+
+    for (const n of [1, 2, 3, 4]) {
+      if (setText(`#stage-${n} .process__title`, copy[`process_stage${n}_title`])) {
+        setText(`.process-ring__node${RING_LABEL[n - 1]} .process-ring__label`, copy[`process_stage${n}_title`]);
+      }
+      setText(`#stage-${n} .process__body`, copy[`process_stage${n}_body`]);
+
+      // Stages 1 and 2 ship an empty, hidden rounds line so that one added in
+      // /admin has somewhere to go. Setting text is not enough on its own.
+      const rounds = qs(`#stage-${n} .process__rounds`);
+      if (rounds && setText(`#stage-${n} .process__rounds`, copy[`process_stage${n}_rounds`])) {
+        rounds.hidden = false;
+      }
+    }
+  } catch {
+    /* the shipped copy is already correct */
+  }
+})();

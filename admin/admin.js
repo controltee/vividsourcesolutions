@@ -249,6 +249,7 @@ const TABS = [
   { id: 'logos', label: 'Client logos' },
   { id: 'analytics', label: 'Analytics' },
   { id: 'settings', label: 'Site & Contact' },
+  { id: 'landing', label: 'Landing page' },
 ];
 
 // Where you were survives a genuine RELOAD, not just an in-page tab switch.
@@ -326,6 +327,7 @@ function renderActiveTab(panel) {
   else if (activeTabId === 'logos') renderLogosTab(panel);
   else if (activeTabId === 'analytics') renderAnalyticsTab(panel);
   else if (activeTabId === 'settings') renderSettingsTab(panel);
+  else if (activeTabId === 'landing') renderLandingTab(panel);
   else enterProjectsTab(panel);
 }
 
@@ -2343,6 +2345,44 @@ const SETTINGS_FIELDS = [
   { id: 'contact_body', label: 'Contact: intro (HTML)', type: 'textarea' },
 ];
 
+// The process page at /. Plain text only, no HTML: these are set into
+// textContent by js/process.js, so a tag typed here appears literally rather
+// than rendering. That is deliberate — this copy is the site's first
+// impression and should not be able to break its own layout.
+//
+// Every field falls back to the static copy in index.html when left blank, so
+// no row here is required and clearing one is always safe. The rounds fields
+// are the scope boundary; they are the reason a client cannot ask for a fifth
+// revision as a favour, so removing them costs more than it looks.
+const LANDING_FIELDS = [
+  { heading: 'Opening', id: 'process_intro_title', label: 'Headline', hint: 'The page’s h1. One sentence.', type: 'textarea' },
+  { id: 'process_intro_body', label: 'Sub-copy', type: 'textarea' },
+
+  { heading: 'Stage 01', id: 'process_stage1_title', label: 'Title', hint: 'Also the label on the diagram, so keep it to a word or two.', type: 'input' },
+  {
+    id: 'process_stage1_body',
+    label: 'Body',
+    hint: 'This is the paragraph that explains a logo versus an identity versus a campaign system. It is the one that stops the wrong brief arriving.',
+    type: 'textarea',
+  },
+  { id: 'process_stage1_rounds', label: 'Rounds line', hint: 'e.g. “Includes two rounds of revision”. Blank hides the chip.', type: 'input' },
+
+  { heading: 'Stage 02', id: 'process_stage2_title', label: 'Title', type: 'input' },
+  { id: 'process_stage2_body', label: 'Body', type: 'textarea' },
+  { id: 'process_stage2_rounds', label: 'Rounds line', type: 'input' },
+
+  { heading: 'Stage 03', id: 'process_stage3_title', label: 'Title', type: 'input' },
+  { id: 'process_stage3_body', label: 'Body', type: 'textarea' },
+  { id: 'process_stage3_rounds', label: 'Rounds line', type: 'input' },
+
+  { heading: 'Stage 04', id: 'process_stage4_title', label: 'Title', type: 'input' },
+  { id: 'process_stage4_body', label: 'Body', type: 'textarea' },
+  { id: 'process_stage4_rounds', label: 'Rounds line', type: 'input' },
+
+  { heading: 'The link into the work', id: 'process_end_lede', label: 'Line above the button', type: 'input' },
+  { id: 'process_cta_label', label: 'Button label', hint: 'The page’s only call to action.', type: 'input' },
+];
+
 // Logo uploads immediately (like gallery images) and stores its URL in
 // site_content.logo_url. Separate from the text-field "Save settings" button.
 function logoUploader(currentUrl, onChange) {
@@ -2583,44 +2623,89 @@ async function renderAnalyticsTab(panel) {
   );
 }
 
-async function renderSettingsTab(panel) {
-  showLoading(panel);
-  const ids = [...SETTINGS_FIELDS.map((f) => f.id), 'logo_url'];
-  const { data, error } = await supabase.from('site_content').select('id, content').in('id', ids);
-  if (error) {
-    panel.replaceChildren(el('p', { class: 'admin-error', 'aria-live': 'polite' }, `Failed to load settings: ${error.message}`));
-    return;
-  }
-  const values = Object.fromEntries((data || []).map((r) => [r.id, r.content]));
-
+/** Builds a site_content form from a declarative field list, and returns both
+ * the <form> and the values it loaded. Shared by Site & Contact and Landing
+ * page: the two tabs differ only in which keys they edit, so the form, the
+ * upsert and the save indicator are written once.
+ *
+ * Fields may carry `heading`, which starts a new titled group. That is what
+ * keeps sixteen landing-page fields navigable instead of one long stack. */
+function contentForm(fields, values, saveLabel) {
   const inputs = {};
-  const fieldEls = SETTINGS_FIELDS.map((f) => {
+  const children = [];
+
+  for (const f of fields) {
+    if (f.heading) children.push(el('h3', { class: 'admin-subhead' }, f.heading));
     const control =
       f.type === 'textarea'
         ? el('textarea', { class: 'admin-textarea' }, values[f.id] || '')
         : el('input', { class: 'admin-input', value: values[f.id] || '' });
     inputs[f.id] = control;
-    return field(f.label, control, f.hint);
-  });
+    children.push(field(f.label, control, f.hint));
+  }
 
   const errorEl = el('p', { class: 'admin-error', 'aria-live': 'polite' });
-  const saveBtn = el('button', { class: 'admin-btn admin-btn--primary', type: 'submit' }, 'Save settings');
-  const form = el('form', { class: 'admin-form' }, ...fieldEls, errorEl, el('div', { class: 'admin-form__actions' }, saveBtn));
+  const saveBtn = el('button', { class: 'admin-btn admin-btn--primary', type: 'submit' }, saveLabel);
+  const form = el('form', { class: 'admin-form' }, ...children, errorEl, el('div', { class: 'admin-form__actions' }, saveBtn));
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     errorEl.textContent = '';
     try {
-      const rows = SETTINGS_FIELDS.map((f) => ({ id: f.id, content: inputs[f.id].value }));
+      const rows = fields.map((f) => ({ id: f.id, content: inputs[f.id].value }));
       await withSaveState(supabase.from('site_content').upsert(rows, { onConflict: 'id' }).throwOnError());
     } catch (err) {
       errorEl.textContent = err.message;
     }
   });
 
+  return form;
+}
+
+/** Loads the given keys, or renders the error. Returns null when it failed, so
+ * callers can bail without repeating the error markup. */
+async function loadContentValues(panel, ids, what) {
+  const { data, error } = await supabase.from('site_content').select('id, content').in('id', ids);
+  if (error) {
+    panel.replaceChildren(el('p', { class: 'admin-error', 'aria-live': 'polite' }, `Failed to load ${what}: ${error.message}`));
+    return null;
+  }
+  return Object.fromEntries((data || []).map((r) => [r.id, r.content]));
+}
+
+async function renderSettingsTab(panel) {
+  showLoading(panel);
+  const values = await loadContentValues(panel, [...SETTINGS_FIELDS.map((f) => f.id), 'logo_url'], 'settings');
+  if (!values) return;
+
   panel.replaceChildren(
     logoUploader(values.logo_url, () => renderSettingsTab(panel)),
-    el('section', {}, el('h2', { class: 'admin-section__title' }, 'Site & Contact'), form)
+    el(
+      'section',
+      {},
+      el('h2', { class: 'admin-section__title' }, 'Site & Contact'),
+      contentForm(SETTINGS_FIELDS, values, 'Save settings')
+    )
+  );
+}
+
+async function renderLandingTab(panel) {
+  showLoading(panel);
+  const values = await loadContentValues(panel, LANDING_FIELDS.map((f) => f.id), 'the landing page');
+  if (!values) return;
+
+  panel.replaceChildren(
+    el(
+      'section',
+      {},
+      el('h2', { class: 'admin-section__title' }, 'Landing page'),
+      el(
+        'p',
+        { class: 'admin-field__hint' },
+        'The process page at controlteestudios.com. Leave any field blank to keep the wording that ships with the site — an empty box restores the built-in copy rather than emptying the page. Nothing here may name a price, a range or a currency.'
+      ),
+      contentForm(LANDING_FIELDS, values, 'Save landing page')
+    )
   );
 }
 

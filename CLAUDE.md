@@ -218,6 +218,50 @@ estimator used to attempt with numbers.
 Stage copy in `index.html` is marked DRAFT and is meant to be rewritten. What
 must survive a rewrite is listed in the comment above it.
 
+### The ring
+
+The four stages also render as a circular diagram above the list. It is a
+**summary and a set of jump links, never the content** — four paragraphs cannot
+sit on a circumference, so the readable text stays in the list and nothing on
+the ring is the only copy of anything.
+
+- The ring is one `aria-hidden` `<svg>`; the four nodes are real `<a>` elements
+  laid over it, so focus and jump-to-stage work with no JavaScript.
+- **One sweep, not a rotation.** A short arc travels the circumference once on
+  entry and stops; four static arrowheads carry the direction afterwards. A
+  turning ring would break the no-spin rule above, and that rule still stands.
+- Arrowheads sit on the DIAGONALS. At 12/3/6/9 the nodes' own backgrounds
+  covered them. Each is one path rotated about the circle's centre, which
+  places and orients it in a single step.
+- A circle in a square viewBox scales uniformly, which is why `stroke-dashoffset`
+  is trustworthy here and was not on the vertical thread.
+- Icons are drawn from prepress and vector craft (trim marks, registration
+  mark, bezier and anchors, collated sheets). Deliberately not the generic icon
+  set. Check any new one at its real 22px before keeping it: a press colour bar
+  and a bezier with handle lines both closed into a blot at that size.
+
+### Landing copy is editable in /admin → Landing page
+
+Sixteen `site_content` rows (`process_intro_*`, `process_stage{1..4}_*`,
+`process_end_lede`, `process_cta_label`). **No migration was needed** —
+`site_content` already had the right RLS and the settings form upserts, so rows
+appear on first save.
+
+**The static HTML stays the source of truth and is what renders on first
+paint.** `js/process.js` only replaces text after a read has already succeeded.
+Inverting that would put the site's first impression behind a network round trip
+and behind esm.sh. Three rules in that code are load-bearing: a blank value
+leaves the shipped copy alone, it is always `textContent` and never
+`innerHTML`, and every failure is swallowed.
+
+A stage title is mirrored onto its ring node, so there is one field per stage
+rather than two to keep in step. That is why stage four is titled "Handover" and
+not "Build and hand over": a three-word heading wraps to three lines on the ring.
+
+`admin/admin.js` builds both content tabs from declarative field lists
+(`SETTINGS_FIELDS`, `LANDING_FIELDS`) through one shared `contentForm()`. Adding
+a field is data, not code.
+
 ### Motion on the landing page
 
 Read `css/process.css` before changing any of it. Two things are already
