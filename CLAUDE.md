@@ -184,9 +184,65 @@ refuses uploads over 45MB and warns over 6MB.
 The free tier's monthly egress is spent by one 40MB file served a few hundred
 times. That is the whole reason the YouTube path exists.
 
-## Homepage as a conversion page (2026-08-02)
+## Routing: the front door is the process page (2026-08-03)
 
-The homepage sells two things and asks for one action. Structure, top to bottom:
+- `/` (`index.html`, `css/process.css`, `js/process.js`) — **the process page.**
+  Four stages of how a project runs, then ONE link into the work.
+- `/work.html` (`css/home.css`, `js/home.js`) — the portfolio: hero, two
+  pillars, the grids, the marquee. This is the old homepage, moved by `git mv`.
+  The css and js keep the `home` name because `client.html` shares the
+  stylesheet.
+
+Anything linking back to the grid must say `/work.html`, not `/`. The four
+"← Back to work" links in `js/project.js` and `js/client.js` are the ones that
+already caught this out. The rail's brand still points at `/`, because that is
+what a logo means; the rail's **Work** link is how people already inside reach
+the grid.
+
+**Why the method comes before the work.** Clients who value a clearly run
+project pay more for one, and that quality was invisible until someone had
+already hired the studio. The page also settles the logo-versus-identity
+question before anyone writes in, and its "includes N rounds" lines draw the
+scope boundary as craft rather than as a fee. That is the qualifying the
+estimator used to attempt with numbers.
+
+Stage copy in `index.html` is marked DRAFT and is meant to be rewritten. What
+must survive a rewrite is listed in the comment above it.
+
+### Motion on the landing page
+
+Read `css/process.css` before changing any of it. Two things are already
+settled and are expensive to rediscover:
+
+- **There is no scroll-linked animation, deliberately.** The thread was built
+  with `animation-timeline: view()` first. Measured, the finished page scrolls a
+  total of 256px at 1280x900, so the line reached about a quarter of its length
+  and stopped there permanently. Entry-triggered transitions always complete.
+  Do not "upgrade" it without re-measuring the page's real scroll range.
+- **The thread is a scaled element, not a dashed SVG.** `stroke-dashoffset`
+  with `pathLength="1"` renders dashed once the viewBox is stretched by a
+  non-uniform `preserveAspectRatio`. `transform: scaleY()` has no unit
+  ambiguity and is composited.
+
+Everything animates `transform` and `opacity` only, and there is no JS
+animation loop anywhere on the page.
+
+### `html.js` gates every hidden-to-animate state
+
+`js/theme-init.js` stamps `.js` on `<html>` before first paint. Any rule that
+hides something so JavaScript can reveal it later **must** be gated on that
+class — `.js .reveal`, `.js .process__stage > *`, `.js .process__thread`.
+Ungated, a visitor with scripting off, or any page whose module graph fails to
+load, gets a blank page instead of an unanimated one.
+
+That failure is not hypothetical: `js/supabase.js` pulls the client from
+esm.sh, so anything importing it statically dies with that CDN. **`js/process.js`
+imports `analytics.js` dynamically for exactly this reason** — the landing page
+must render with no network in its path.
+
+## The portfolio page as a conversion page (2026-08-02)
+
+`/work.html` sells two things and asks for one action. Structure, top to bottom:
 hero (headline + sub-copy + ONE CTA) → two pillars → work split by pillar →
 logo marquee.
 

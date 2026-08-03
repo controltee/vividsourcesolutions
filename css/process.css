@@ -1,0 +1,263 @@
+/* process.css — the landing page at /.
+   Motion rules, in one place, because they are the reason this page exists:
+   - transform and opacity ONLY. Both are composited, so nothing here can
+     trigger layout while the page is scrolling.
+   - no JS animation loop. Entrances are CSS transitions flipped by a class;
+     the scroll-linked upgrade is CSS too.
+   - every effect resolves to its finished state under reduced motion. The
+     page must lose movement and nothing else. */
+
+/* ---- Intro -------------------------------------------------------------- */
+.process-intro {
+  max-width: 46ch;
+  margin-block-start: var(--space-l);
+}
+.process-intro__title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--step-3);
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+  color: var(--chalk);
+  text-wrap: balance;
+}
+.process-intro__body {
+  margin-block-start: var(--space-m);
+  max-width: 42ch;
+  color: var(--chalk-60);
+  font-size: var(--step-1);
+  line-height: 1.5;
+}
+
+/* ---- Track and thread --------------------------------------------------- */
+.process {
+  margin-block-start: var(--space-xl);
+}
+.process__track {
+  position: relative;
+  max-width: 60ch;
+}
+/* Spans the full height of the stage list and sits under the numerals, which
+   carry the page ground as a background so the line reads as passing behind
+   them. Scaled from the top rather than animating height: transform is
+   composited, height is not. */
+.process__thread {
+  position: absolute;
+  inset-block-start: 0.55rem;
+  inset-inline-start: 0;
+  width: 1px;
+  height: calc(100% - 0.55rem);
+  background: var(--moss);
+  transform-origin: top center;
+  transition: transform 1100ms var(--ease-out);
+}
+/* Gated on html.js — see js/theme-init.js. The class that draws the line is
+   added by script, so hiding it unconditionally would leave a JS-off visitor
+   with no thread at all. */
+.js .process__thread {
+  transform: scaleY(0);
+}
+.process__thread.is-visible {
+  transform: scaleY(1);
+}
+
+.process__stages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.process__stage {
+  position: relative;
+  padding-inline-start: var(--space-xl);
+  padding-block-end: var(--space-xl);
+}
+.process__stage:last-child {
+  padding-block-end: 0;
+}
+
+/* ---- Stage contents ----------------------------------------------------- */
+/* The stagger. Children move, the <li> does not, so a stage is read in the
+   order it should be read rather than arriving as one slab. Nothing here
+   exceeds ~300ms end to end: a fast scroller must never wait on it. */
+.process__stage > * {
+  transition:
+    opacity calc(var(--dur-slow) * 0.6) var(--ease-out),
+    transform var(--dur-slow) var(--ease-out);
+}
+/* Gated on html.js. `.is-visible` is added by script; without the gate, this
+   page has no readable content at all when scripting is unavailable, and it is
+   the site's front door. */
+.js .process__stage > * {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.process__stage.is-visible > * {
+  opacity: 1;
+  transform: none;
+}
+.process__title {
+  transition-delay: 60ms;
+}
+.process__body {
+  transition-delay: 120ms;
+}
+.process__rounds {
+  transition-delay: 180ms;
+}
+
+.process__num {
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block-start: 0.1rem;
+  /* Sits on the thread, with the page ground behind it so the line appears to
+     pass under the numeral rather than through it. */
+  transform: translateX(-40%);
+  padding-block: 0.15rem;
+  background: var(--ink);
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--step--1);
+  color: var(--accent-ink);
+  font-variant-numeric: tabular-nums;
+}
+.process__stage.is-visible .process__num {
+  transform: translateX(-40%);
+}
+.process__title {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--step-2);
+  color: var(--chalk);
+}
+.process__body {
+  margin-block-start: var(--space-xs);
+  color: var(--chalk-60);
+  font-size: var(--step-0);
+  line-height: 1.6;
+}
+.process__rounds {
+  margin-block-start: var(--space-s);
+  display: inline-block;
+  border: 1px solid var(--moss);
+  border-radius: 2px;
+  padding: var(--space-3xs) var(--space-xs);
+  font-size: var(--step--1);
+  color: var(--chalk-60);
+}
+
+/* ---- Guide chevrons ----------------------------------------------------- */
+/* Drift down as their stage arrives: the cheapest possible instruction to
+   keep reading. Decorative, so aria-hidden in the markup. */
+.process__chevron {
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block-end: calc(var(--space-l) * 0.5);
+  transform: translate(-45%, -6px);
+  color: var(--chalk-40);
+  transition-delay: 220ms;
+}
+.process__chevron svg {
+  width: 14px;
+  height: 9px;
+}
+.process__stage.is-visible .process__chevron {
+  transform: translate(-45%, 0);
+}
+
+/* ---- The resolve -------------------------------------------------------- */
+.process-end {
+  margin-block-start: var(--space-xl);
+  max-width: 60ch;
+  text-align: center;
+}
+.process-end__arrow {
+  display: block;
+  color: var(--chalk-40);
+}
+.process-end__arrow svg {
+  width: 14px;
+  height: 22px;
+  margin-inline: auto;
+  /* The one sustained motion on the site. A slow drift, not a bounce: no
+     overshoot, no easing back past the start. It marks the page's only exit. */
+  animation: process-drift 2600ms var(--ease-out) infinite;
+}
+@keyframes process-drift {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translateY(4px);
+    opacity: 1;
+  }
+}
+.process-end__lede {
+  margin-block-start: var(--space-m);
+  color: var(--chalk-60);
+  font-size: var(--step-0);
+}
+.process-end__cta {
+  display: inline-block;
+  margin-block-start: var(--space-m);
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--paper);
+  border-radius: 2px;
+  padding: var(--space-2xs) var(--space-l);
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--step-1);
+  text-decoration: none;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+.process-end__cta:hover,
+.process-end__cta:focus-visible {
+  background: transparent;
+  color: var(--accent-ink);
+}
+
+@media (max-width: 700px) {
+  .process__stage {
+    padding-inline-start: var(--space-l);
+  }
+}
+
+/* ---- Why there is no scroll-linked version of the thread ---------------- */
+/* This was built with `animation-timeline: view()` first, and measured: at
+   1280x900 the finished page scrolls a total of 256px, because the whole thing
+   is barely taller than one viewport. Tying the draw to scroll POSITION meant
+   the thread reached about a quarter of its length and stopped there, on every
+   desktop viewport, permanently. A scroll-driven animation needs scroll to
+   drive it, and this page deliberately does not have much.
+   The transition above is triggered by entry instead, so the line always draws
+   its full length, at any page height, in any browser. Do not "upgrade" this
+   to a scroll timeline without re-measuring the page's actual scroll range. */
+
+/* ---- Reduced motion ----------------------------------------------------- */
+/* Everything finished, nothing moving. The page reads identically. */
+@media (prefers-reduced-motion: reduce) {
+  .process__thread,
+  .process__thread.is-visible {
+    transition: none;
+    transform: scaleY(1);
+  }
+  .process__stage > * {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .process__chevron,
+  .process__stage.is-visible .process__chevron {
+    transform: translate(-45%, 0);
+  }
+  .process__num,
+  .process__stage.is-visible .process__num {
+    transform: translateX(-40%);
+  }
+  .process-end__arrow svg {
+    animation: none;
+    opacity: 0.55;
+  }
+}

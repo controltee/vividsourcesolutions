@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="/js/theme-init.js"></script>
+    <title>Control Tee · Nairobi design studio</title>
+    <meta
+      name="description"
+      content="How a project runs at Control Tee, a design studio in Nairobi. Brand identity, institutional identity and campaign design identity, from scope to handover."
+    />
+    <link
+      rel="preload"
+      href="/fonts/CabinetGrotesk-Extrabold.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="stylesheet" href="/css/tokens.css" />
+    <link rel="stylesheet" href="/css/reset.css" />
+    <link rel="stylesheet" href="/css/shell.css" />
+    <link rel="stylesheet" href="/css/process.css" />
+    <script type="module" src="/js/shell.js"></script>
+    <script type="module" src="/js/process.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#pane">Skip to content</a>
+
+    <!-- Mobile only (hidden on desktop by shell.css) -->
+    <header class="topbar">
+      <a class="topbar__brand" href="/">Control Tee</a>
+      <button
+        class="topbar__toggle"
+        id="rail-toggle"
+        type="button"
+        aria-expanded="false"
+        aria-controls="rail"
+        aria-label="Open menu"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          aria-hidden="true"
+        >
+          <path d="M3 6h18M3 12h18M3 18h18" />
+        </svg>
+      </button>
+    </header>
+
+    <div class="scrim" id="scrim"></div>
+
+    <div class="shell">
+      <aside class="rail" id="rail">
+        <div class="rail__head">
+          <a class="rail__brand" href="/">Control Tee</a>
+          <p class="rail__tagline" id="brand-tagline" hidden></p>
+        </div>
+
+        <nav class="rail__nav" id="rail-nav" aria-label="Projects">
+          <!-- rendered by shell.js -->
+        </nav>
+
+        <footer class="rail__foot">
+          <a href="/work.html">Work</a>
+          <a href="/about.html">About</a>
+          <a href="/contact.html" id="contact-link">Contact</a>
+          <ul class="rail__social">
+            <li>
+              <a
+                href="https://www.instagram.com/control.tee/"
+                data-social="instagram"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Control Tee on Instagram"
+                >Instagram</a
+              >
+            </li>
+            <li>
+              <a
+                href="https://www.behance.net/controltee"
+                data-social="behance"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Control Tee on Behance"
+                >Behance</a
+              >
+            </li>
+            <li>
+              <a
+                href="https://www.linkedin.com/in/controltee/"
+                data-social="linkedin"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Control Tee on LinkedIn"
+                >LinkedIn</a
+              >
+            </li>
+          </ul>
+          <button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">
+            <span class="theme-toggle__icon" aria-hidden="true">◑</span>
+            <span class="theme-toggle__label">Light mode</span>
+          </button>
+          <time class="rail__clock" id="rail-clock" aria-label="Current time in Nairobi"></time>
+          <ul class="rail__legal">
+            <li><a href="/privacy.html">Privacy</a></li>
+            <li><a href="/terms.html">Terms</a></li>
+            <li><a href="/cookies.html">Cookies</a></li>
+          </ul>
+        </footer>
+      </aside>
+
+      <main class="pane" id="pane" tabindex="-1">
+        <!-- ============================================================
+             DRAFT COPY. Every word below is a placeholder written to be
+             replaced, not to be kept. It is deliberately good enough to
+             read as a finished page so the wording can be judged in place
+             rather than in the abstract.
+
+             What it must keep doing when it is rewritten:
+               1. Stage one has to explain a logo versus an identity versus
+                  a campaign system. That paragraph is the one that stops
+                  the wrong brief arriving.
+               2. Every "Includes N rounds" line stays. It is the scope
+                  boundary, stated as craft rather than as a fee.
+               3. No prices, no ranges, no currency. See CLAUDE.md.
+               4. First person. "I", never "we".
+             ============================================================ -->
+        <section class="process-intro">
+          <h1 class="process-intro__title">
+            How I work, before you see a single poster.
+          </h1>
+          <p class="process-intro__body">
+            Most design goes wrong long before anyone opens the software. It goes wrong in
+            what was agreed. This is how I run a project so that it does not happen to
+            yours.
+          </p>
+        </section>
+
+        <section class="process" aria-labelledby="process-heading">
+          <h2 class="visually-hidden" id="process-heading">How a project runs</h2>
+
+          <div class="process__track">
+            <!-- The thread. One line, drawn top to bottom as the stages come
+                 into view, so four separate blocks read as one continuous
+                 method instead of four unrelated claims.
+
+                 A plain element scaled on Y, NOT an <svg> dashed with
+                 stroke-dashoffset. The SVG version was built first and drew a
+                 dashed line: normalising a stretched viewBox with pathLength
+                 does not survive contact with a non-uniform
+                 preserveAspectRatio. A scaleY transform has no unit ambiguity,
+                 is composited like every other animation on this page, and
+                 needs no measurement at any height. -->
+            <span class="process__thread" aria-hidden="true"></span>
+
+            <ol class="process__stages">
+              <li class="process__stage">
+                <span class="process__num" aria-hidden="true">01</span>
+                <h3 class="process__title">Scope</h3>
+                <p class="process__body">
+                  We agree what you are actually buying. A logo is one artifact. A brand
+                  identity is the system that logo lives inside: the type, the colour, the
+                  rules, the way it behaves on a poster and on a phone. A campaign identity
+                  is that system built to move quickly and hold together across a season.
+                  You leave this stage with a written list of what you get, so that nothing
+                  later has to be asked for as a favour.
+                </p>
+                <span class="process__chevron" aria-hidden="true">
+                  <svg viewBox="0 0 14 9" fill="none" focusable="false">
+                    <path d="M1 1 L7 7 L13 1" stroke="currentColor" stroke-width="1.25" />
+                  </svg>
+                </span>
+              </li>
+
+              <li class="process__stage">
+                <span class="process__num" aria-hidden="true">02</span>
+                <h3 class="process__title">Discover</h3>
+                <p class="process__body">
+                  Before anything is drawn I need to know what the brand has to do. Who it
+                  speaks to, what it is measured against, and what it has to survive: a
+                  launch, a season, a campaign with a fixed date. This stage is short, and
+                  it is the whole difference between design that decorates and design that
+                  works.
+                </p>
+                <span class="process__chevron" aria-hidden="true">
+                  <svg viewBox="0 0 14 9" fill="none" focusable="false">
+                    <path d="M1 1 L7 7 L13 1" stroke="currentColor" stroke-width="1.25" />
+                  </svg>
+                </span>
+              </li>
+
+              <li class="process__stage">
+                <span class="process__num" aria-hidden="true">03</span>
+                <h3 class="process__title">Direction</h3>
+                <p class="process__body">
+                  You see routes, not a single take it or leave it option. We choose one
+                  together and I take it to finished. This is where the shaping happens, so
+                  it is where the revisions belong.
+                </p>
+                <p class="process__rounds">Includes two rounds of revision</p>
+                <span class="process__chevron" aria-hidden="true">
+                  <svg viewBox="0 0 14 9" fill="none" focusable="false">
+                    <path d="M1 1 L7 7 L13 1" stroke="currentColor" stroke-width="1.25" />
+                  </svg>
+                </span>
+              </li>
+
+              <li class="process__stage">
+                <span class="process__num" aria-hidden="true">04</span>
+                <h3 class="process__title">Build and hand over</h3>
+                <p class="process__body">
+                  The chosen direction is built out across everything it needs to appear on.
+                  You get the files, organised, in the formats you will actually use, and
+                  the guidance to keep the system intact once other people start working
+                  with it.
+                </p>
+                <p class="process__rounds">Includes one round of revision</p>
+              </li>
+            </ol>
+          </div>
+        </section>
+
+        <!-- ONE action, and it is the end of the thread rather than a button
+             dropped near it. The arrow above it is the only thing on the site
+             allowed to keep moving, because it marks the page's single exit. -->
+        <section class="process-end">
+          <span class="process-end__arrow" aria-hidden="true">
+            <svg viewBox="0 0 14 22" fill="none" focusable="false">
+              <path
+                d="M7 0 L7 20 M1 14 L7 20 L13 14"
+                stroke="currentColor"
+                stroke-width="1.25"
+              />
+            </svg>
+          </span>
+          <p class="process-end__lede">That is the method. This is what it produces.</p>
+          <a class="process-end__cta" href="/work.html" id="process-cta">See the work</a>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

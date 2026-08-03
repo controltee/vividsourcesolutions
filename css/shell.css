@@ -155,12 +155,18 @@ body {
    stutter rather than an entrance. A longer lift over --dur-slow, on an ease
    that decelerates hard, arrives instead of snapping. Opacity leads slightly
    so the card is legible before it finishes moving. */
+/* The hidden state is gated on html.js (set in js/theme-init.js before first
+   paint). `.is-visible` is added by revealOnScroll, so hiding unconditionally
+   meant that a visitor with scripting off, or any page whose module graph
+   failed to load, saw an empty page instead of an unanimated one. */
 .reveal {
-  opacity: 0;
-  transform: translateY(22px);
   transition:
     opacity calc(var(--dur-slow) * 0.7) var(--ease-out),
     transform var(--dur-slow) var(--ease-out);
+}
+.js .reveal {
+  opacity: 0;
+  transform: translateY(22px);
 }
 .reveal.is-visible {
   opacity: 1;
