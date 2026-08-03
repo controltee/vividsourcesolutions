@@ -7,7 +7,9 @@
       "has": [{ "type": "host", "value": "controlteestudios.vercel.app" }],
       "destination": "https://controlteestudios.com/$1",
       "permanent": true
-    }
+    },
+    { "source": "/estimate.html", "destination": "/contact.html", "permanent": true },
+    { "source": "/estimate", "destination": "/contact.html", "permanent": true }
   ],
   "headers": [
     {

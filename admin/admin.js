@@ -2436,21 +2436,31 @@ function rankedList(rows, emptyText, format = (k) => k) {
   );
 }
 
+// Deliberately NOT one three-step funnel. `process_cta` fires on the landing
+// page and the two inquiry events fire on /contact.html, and a visitor can
+// reach the form without ever passing the landing page — so a percentage from
+// one to the other would be an invented number. Only `started` → `sent` is a
+// true funnel, because both ends happen on the same page to the same person.
+//
+// The previous version of this counted 'estimate_submit', which nothing ever
+// recorded (the estimator fired 'estimate_submit_call' / '..._message'), so its
+// third row read 0 for its whole life. Any event named here must exist in the
+// page that claims to send it.
 function funnelPanel(rows) {
   const step = (event) => rows.filter((r) => r.event === event).length;
-  const started = step('estimate_start');
-  const completed = step('estimate_complete');
-  const submitted = step('estimate_submit');
+  const toWork = step('process_cta');
+  const started = step('inquiry_start');
+  const submitted = step('inquiry_submit');
   const rate = (n, of) => (of ? `${Math.round((n / of) * 100)}%` : '—');
 
   return el(
     'div',
     { class: 'admin-funnel' },
-    el('h3', { class: 'admin-subhead' }, 'Estimator funnel'),
+    el('h3', { class: 'admin-subhead' }, 'Landing page and inquiries'),
     el(
       'p',
       { class: 'admin-field__hint' },
-      'The only numbers that answer whether the homepage rebuild worked. A big drop from started to completed means the questions are wrong; a big drop from completed to sent means the price is.'
+      'The first number is how many people read the process and chose to see the work. The second pair is the inquiry form: a big drop from started to sent means a question on the form is doing damage.'
     ),
     el(
       'ul',
@@ -2458,20 +2468,20 @@ function funnelPanel(rows) {
       el(
         'li',
         {},
-        el('span', { class: 'admin-funnel__n' }, String(started)),
-        el('span', { class: 'admin-funnel__label' }, 'started')
+        el('span', { class: 'admin-funnel__n' }, String(toWork)),
+        el('span', { class: 'admin-funnel__label' }, 'went on to the work')
       ),
       el(
         'li',
         {},
-        el('span', { class: 'admin-funnel__n' }, String(completed)),
-        el('span', { class: 'admin-funnel__label' }, `saw a result · ${rate(completed, started)}`)
+        el('span', { class: 'admin-funnel__n' }, String(started)),
+        el('span', { class: 'admin-funnel__label' }, 'started an inquiry')
       ),
       el(
         'li',
         {},
         el('span', { class: 'admin-funnel__n' }, String(submitted)),
-        el('span', { class: 'admin-funnel__label' }, `sent details · ${rate(submitted, completed)}`)
+        el('span', { class: 'admin-funnel__label' }, `sent it · ${rate(submitted, started)}`)
       )
     )
   );

@@ -52,10 +52,14 @@ export function recordView() {
   });
 }
 
-/** A named step, for the estimator funnel: 'estimate_start' when the first
- * question is answered, 'estimate_complete' when a range is shown,
- * 'estimate_submit' when contact details are sent. Those three numbers are the
- * only ones that answer whether this refactor actually worked. */
+/** A named step. Three are recorded: 'process_cta' when someone leaves the
+ * landing page for the work, 'inquiry_start' on first contact with the inquiry
+ * form, and 'inquiry_submit' when it sends. Together they answer whether the
+ * landing page moves people along and whether the form loses them.
+ *
+ * Whatever you pass here must actually be read by admin/admin.js — the
+ * estimator funnel this replaced counted an event name no page ever sent, and
+ * showed a permanent zero for months without anyone noticing. */
 export function recordEvent(event) {
   send({
     path: `${location.pathname}${location.search}`.slice(0, 300),

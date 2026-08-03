@@ -217,17 +217,20 @@ The contact form's required set is name, email, project type. The message is
 optional on purpose — required lifts lead quality and costs volume; optional
 keeps both. Company was removed outright.
 
-## Estimator (js/estimate.js)
+## No money on the site (2026-08-03)
 
-The site's single CTA points at `/estimate.html`. Three questions, then a range
-shown BEFORE any email is asked for — the capture is a trade for the detailed
-breakdown, not a toll gate.
+There was an estimator at `/estimate.html`. It is gone, along with its budget
+question, and **nothing on the public site names a price, a range, or a
+currency** — no figures, no bands, no "from KES". Pricing is named by Jesse in
+conversation, with the context of an actual brief in front of him.
 
-**`PLACEHOLDER_PRICING` is `true` and must stay true until Jesse supplies real
-figures.** While it is, the estimator runs end to end, records the funnel and
-captures leads, but shows no numbers. Never invent a range: a made-up figure on
-a live site is worse than no estimator, because the first lead who quotes it and
-gets a different answer has learned the prices are not real.
+This is a positioning decision, not a temporary state waiting on real numbers.
+Do not reintroduce a calculator, a "starting from" line, or a budget dropdown on
+the inquiry form. The qualifying that the estimator was trying to do is done by
+the process page instead: it anchors on how the work is run, which is the thing
+clients pay a premium for, rather than on a figure the site cannot defend.
+
+`/estimate.html` 301s to `/contact.html` in vercel.json so old links survive.
 
 ## Analytics (sql/010, js/analytics.js)
 
