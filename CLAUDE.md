@@ -218,27 +218,50 @@ estimator used to attempt with numbers.
 Stage copy in `index.html` is marked DRAFT and is meant to be rewritten. What
 must survive a rewrite is listed in the comment above it.
 
+### `/` is a gateway: no rail, one door
+
+The landing page has **no rail, no top bar and no navigation at all**. A visitor
+meets the method; the only thing to do is go through to `/work.html`, and the
+rail exists on every page from there on.
+
+The cost was weighed and accepted: `/` offers no route to Contact, no theme
+toggle, and exactly one internal link for crawlers. In exchange the first screen
+has a single focal point. Do not quietly add a second link to it.
+
+`shell.js` is still loaded, without the rail markup, for the view count, the
+cookie notice and media protection. Every one of its rail functions already
+guards on a missing element (`initDrawer`, `renderNav`, `initThemeToggle`,
+`initClock`), so it skips what it cannot find. Check that still holds before
+changing it.
+
 ### The ring
 
-The four stages also render as a circular diagram above the list. It is a
-**summary and a set of jump links, never the content** — four paragraphs cannot
-sit on a circumference, so the readable text stays in the list and nothing on
-the ring is the only copy of anything.
+The four stages render as a circular diagram with the call to action at its
+centre, and the written stages below the fold. The ring is a **summary and a set
+of jump links, never the content** — four paragraphs cannot sit on a
+circumference, so nothing on it is the only copy of anything.
 
-- The ring is one `aria-hidden` `<svg>`; the four nodes are real `<a>` elements
-  laid over it, so focus and jump-to-stage work with no JavaScript.
-- **One sweep, not a rotation.** A short arc travels the circumference once on
-  entry and stops; four static arrowheads carry the direction afterwards. A
-  turning ring would break the no-spin rule above, and that rule still stands.
+- The ring is one `aria-hidden` `<svg>`; the nodes and the button are HTML
+  **siblings** of it, not children. That is what lets the art rotate while the
+  labels hold still and stay upright. Never move them inside the svg.
+- **It spins, and that is a deliberate exception to the rule above.** The rule
+  still governs the rest of the site; this one diagram overrides it because
+  rotation is the diagram's whole point. `prefers-reduced-motion` stops it dead
+  — continuous motion is exactly the case where that matters most.
+- Nodes sit at **12% / 88%**, not at the frame edge: the drawn circle has radius
+  76 in a 200 viewBox, so its edge is at 76% of the half-width. Pinning them to
+  the frame left them floating outside the line.
 - Arrowheads sit on the DIAGONALS. At 12/3/6/9 the nodes' own backgrounds
-  covered them. Each is one path rotated about the circle's centre, which
-  places and orients it in a single step.
-- A circle in a square viewBox scales uniformly, which is why `stroke-dashoffset`
-  is trustworthy here and was not on the vertical thread.
+  covered them. Each is one path rotated about the circle's centre.
+- **The hand-drawn look is in the path geometry, not in a filter.** The circle
+  is four uneven beziers that overshoot where they close, plus a lighter second
+  pass — two strokes that do not quite agree is what reads as pencil pressure.
+  An `feTurbulence` roughen would give real chalk grain but re-rasterises the
+  element on every frame of the rotation. Do not add one to anything that moves.
 - Icons are drawn from prepress and vector craft (trim marks, registration
   mark, bezier and anchors, collated sheets). Deliberately not the generic icon
-  set. Check any new one at its real 22px before keeping it: a press colour bar
-  and a bezier with handle lines both closed into a blot at that size.
+  set. Check any new one at its real size before keeping it: a press colour bar
+  and a bezier with handle lines both closed into a blot at 22px.
 
 ### Landing copy is editable in /admin → Landing page
 
@@ -393,3 +416,7 @@ RLS correct is.
 ## Style
 Type and motion are the studio's signature. Restraint reads as confidence.
 Nothing bounces. Nothing spins. Fades and short translations only.
+ONE exception, granted deliberately: the process ring on `/` rotates, because a
+cycle that does not turn is just a circle. It is the only continuous motion on
+the site and it stops under `prefers-reduced-motion`. Do not read it as licence
+for a second.

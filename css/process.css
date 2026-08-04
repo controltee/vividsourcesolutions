@@ -7,10 +7,69 @@
    - every effect resolves to its finished state under reduced motion. The
      page must lose movement and nothing else. */
 
+/* ---- The gateway screen ------------------------------------------------- */
+/* No rail on this page, so the layout is the body's own rather than the
+   shell's two-column grid. See the comment at the top of index.html for what
+   that costs and why it was accepted. */
+.landing__stage {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-l);
+  padding: var(--space-l) var(--space-m);
+  text-align: center;
+}
+.landing__read {
+  max-width: 60ch;
+  margin-inline: auto;
+  padding: 0 var(--space-m) var(--space-xl);
+}
+
+/* The nudge below the fold. A full-height first screen reads as the whole
+   page without it. */
+.landing__more {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2xs);
+  color: var(--chalk-40);
+  font-size: var(--step--1);
+  text-decoration: none;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.landing__more:hover,
+.landing__more:focus-visible {
+  color: var(--chalk);
+}
+.landing__more-arrow svg {
+  width: 18px;
+  height: 26px;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  /* A slow drift, not a bounce: no overshoot, nothing easing back past its
+     start. On a full-height first screen this is what says there is more. */
+  animation: landing-drift 2600ms var(--ease-out) infinite;
+}
+@keyframes landing-drift {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(4px);
+    opacity: 1;
+  }
+}
+
 /* ---- Intro -------------------------------------------------------------- */
 .process-intro {
   max-width: 46ch;
-  margin-block-start: var(--space-l);
 }
 .process-intro__title {
   font-family: var(--font-display);
@@ -20,32 +79,37 @@
   letter-spacing: -0.015em;
   color: var(--chalk);
   text-wrap: balance;
+  max-width: 20ch;
 }
 .process-intro__body {
-  margin-block-start: var(--space-m);
-  max-width: 42ch;
+  margin-block-start: var(--space-l);
   color: var(--chalk-60);
   font-size: var(--step-1);
   line-height: 1.5;
 }
 
 /* ---- The ring ----------------------------------------------------------- */
-/* Same column as the stage list below, so the diagram reads as belonging to the
-   text rather than floating in the middle of the pane. */
 .process-ring {
-  margin-block-start: var(--space-l);
-  max-width: 60ch;
-  /* The top and bottom nodes straddle the frame's edge, so the section needs
-     room for roughly half a node above and below or they clip. */
-  padding-block: 2.2rem;
+  /* Nodes now sit inset at 12%, inside the frame, so nothing overflows and no
+     clearance padding is needed. */
+  padding-block: 0;
 }
 .process-ring__frame {
   position: relative;
-  /* Square, so the circle stays a circle without any aspect-ratio juggling. */
-  width: min(320px, 78vw);
+  /* Square, so the circle stays a circle without any aspect-ratio juggling.
+     Bounded by height as well as width: this sits on a 100svh screen with a
+     headline above it, and a ring sized only by vw overflows a laptop. */
+  width: min(460px, 74vw, 46svh);
   aspect-ratio: 1;
   margin-inline: auto;
 }
+
+/* THIS is the element that turns. The nodes and the button are HTML siblings
+   of it, not children, so they hold still and stay upright while it rotates
+   behind them — which is the only way orbiting text stays readable.
+
+   Rotation is the whole point of the diagram, so it overrides the studio's
+   "nothing spins" line for this page only. See CLAUDE.md. */
 .process-ring__art {
   display: block;
   width: 100%;
@@ -53,69 +117,69 @@
   overflow: visible;
   fill: none;
   stroke: var(--moss);
-  stroke-width: 1;
-  vector-effect: non-scaling-stroke;
-}
-
-/* pathLength="100" makes the circumference exactly 100 units, so every dash
-   value below reads as a percentage of the way round. */
-.process-ring__line {
-  stroke-dasharray: 100;
-  stroke-dashoffset: 0;
-  transition: stroke-dashoffset 900ms var(--ease-out);
-}
-.js .process-ring__line {
-  stroke-dashoffset: 100;
-}
-.process-ring.is-visible .process-ring__line {
-  stroke-dashoffset: 0;
-}
-
-/* The sweep: a short arc that travels ONE lap and stops. This is the "arrows
-   moving in a circle", expressed as a single pass — a perpetual rotation would
-   break the studio's own no-spin rule (CLAUDE.md). 12 units of dash, 88 of gap,
-   offset by a full lap so it enters at the top and leaves where it started. */
-.process-ring__sweep {
-  stroke: var(--accent-ink);
-  stroke-width: 2;
+  stroke-width: 1.4;
   stroke-linecap: round;
-  stroke-dasharray: 12 88;
-  stroke-dashoffset: 0;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  animation: ring-turn 54s linear infinite;
+}
+@keyframes ring-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* The hand-drawn look is in the GEOMETRY, not in a filter. An
+   feTurbulence/feDisplacementMap roughen would give real chalk grain, but it
+   re-rasterises the element on every frame of the rotation and stutters on a
+   phone. Two passes of an uneven path is what carries the pencil character
+   here, and it composites for free. */
+.js .process-ring__art {
   opacity: 0;
 }
-.process-ring.is-visible .process-ring__sweep {
-  animation: ring-sweep 1400ms var(--ease-out) 200ms 1 both;
+.process-ring.is-visible .process-ring__art {
+  opacity: 1;
+  transition: opacity var(--dur-slow) var(--ease-out);
 }
-@keyframes ring-sweep {
-  0% {
-    stroke-dashoffset: 0;
-    opacity: 0;
-  }
-  12% {
-    opacity: 1;
-  }
-  88% {
-    opacity: 1;
-  }
-  100% {
-    stroke-dashoffset: -100;
-    opacity: 0;
-  }
+.process-ring__line--ghost {
+  stroke-width: 0.7;
+  opacity: 0.5;
 }
 
 .process-ring__heads {
-  stroke: var(--chalk-40);
-  stroke-width: 1.25;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  opacity: 1;
-  transition: opacity var(--dur-slow) var(--ease-out) 700ms;
+  stroke: var(--accent-ink);
+  stroke-width: 1.3;
 }
-.js .process-ring__heads {
-  opacity: 0;
+
+/* ---- The centre ---------------------------------------------------------- */
+/* The page's only action, at the middle of the cycle, with the ring turning
+   around it. Held still deliberately: the one fixed thing on a moving diagram
+   is where the eye lands. */
+.process-ring__cta {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-block;
+  max-width: 9rem;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1.5px solid var(--paper);
+  border-radius: 2px;
+  padding: var(--space-2xs) var(--space-m);
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--step-1);
+  line-height: 1.15;
+  text-decoration: none;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
 }
-.process-ring.is-visible .process-ring__heads {
-  opacity: 1;
+.process-ring__cta:hover,
+.process-ring__cta:focus-visible {
+  background: transparent;
+  color: var(--accent-ink);
 }
 
 /* ---- Ring nodes --------------------------------------------------------- */
@@ -126,70 +190,61 @@
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  width: 6.5rem;
-  padding: var(--space-3xs);
+  /* Sized to its own label, not to a fixed box. Each node's background masks
+     the ring behind it so the text stays readable, and a fixed 6.5rem width
+     punched four gaps wide enough that the circle stopped reading as one. */
+  width: max-content;
+  max-width: 7rem;
+  padding: var(--space-3xs) var(--space-2xs);
   text-align: center;
   text-decoration: none;
   color: var(--chalk-60);
   background: var(--ink);
   border-radius: 2px;
+  /* Placed by centre: every node is pulled back half its own width and height,
+     whatever that turns out to be. */
+  transform: translate(-50%, -50%);
   transition:
     opacity calc(var(--dur-slow) * 0.6) var(--ease-out),
-    transform var(--dur-slow) var(--ease-out),
     color var(--dur-fast) var(--ease-out);
 }
 .js .process-ring__node {
   opacity: 0;
-  transform: translateY(8px);
 }
 .process-ring.is-visible .process-ring__node {
   opacity: 1;
-  transform: none;
 }
 .process-ring__node:hover,
 .process-ring__node:focus-visible {
   color: var(--chalk);
 }
+/* 12%, not 0%. The drawn circle has a radius of 76 in a 200 viewBox, so its
+   edge sits at 76% of the frame's half-width — pinning the nodes to the frame
+   itself left them floating a visible gap outside the line. (100 - 76) / 2 = 12.
+   Every node is placed by its CENTRE and pulled back half its own size, which
+   is why all four share one transform and need no per-node margins. */
 .process-ring__node--n {
-  inset-block-start: 0;
+  inset-block-start: 12%;
   inset-inline-start: 50%;
-  margin-inline-start: -3.25rem;
-  transform: translateY(-50%);
 }
 .process-ring__node--e {
   inset-block-start: 50%;
-  inset-inline-start: 100%;
-  margin-block-start: -2.1rem;
-  margin-inline-start: -3.25rem;
+  inset-inline-start: 88%;
 }
 .process-ring__node--s {
-  inset-block-end: 0;
+  inset-block-start: 88%;
   inset-inline-start: 50%;
-  margin-inline-start: -3.25rem;
-  transform: translateY(50%);
 }
 .process-ring__node--w {
   inset-block-start: 50%;
-  inset-inline-start: 0;
-  margin-block-start: -2.1rem;
-  margin-inline-start: -3.25rem;
+  inset-inline-start: 12%;
 }
-/* The N and S nodes sit ON the ring, so their resting transform is not `none`.
-   Restated after the .is-visible rule, which would otherwise clear it and drop
-   them half a node height. */
-.process-ring.is-visible .process-ring__node--n {
-  transform: translateY(-50%);
-}
-.process-ring.is-visible .process-ring__node--s {
-  transform: translateY(50%);
-}
-
 .process-ring__icon {
   color: var(--accent-ink);
 }
 .process-ring__icon svg {
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
   stroke: currentColor;
   stroke-width: 1.25;
   stroke-linecap: round;
@@ -216,13 +271,7 @@
     width: min(240px, 62vw);
   }
   .process-ring__node {
-    width: 5.5rem;
-  }
-  .process-ring__node--e,
-  .process-ring__node--s,
-  .process-ring__node--w,
-  .process-ring__node--n {
-    margin-inline-start: -2.75rem;
+    max-width: 5.5rem;
   }
 }
 
@@ -342,53 +391,11 @@
   color: var(--chalk-60);
 }
 
-/* ---- Guide chevrons ----------------------------------------------------- */
-/* Drift down as their stage arrives: the cheapest possible instruction to
-   keep reading. Decorative, so aria-hidden in the markup. */
-.process__chevron {
-  position: absolute;
-  inset-inline-start: 0;
-  inset-block-end: calc(var(--space-l) * 0.5);
-  transform: translate(-45%, -6px);
-  color: var(--chalk-40);
-  transition-delay: 220ms;
-}
-.process__chevron svg {
-  width: 14px;
-  height: 9px;
-}
-.process__stage.is-visible .process__chevron {
-  transform: translate(-45%, 0);
-}
-
 /* ---- The resolve -------------------------------------------------------- */
 .process-end {
   margin-block-start: var(--space-xl);
   max-width: 60ch;
   text-align: center;
-}
-.process-end__arrow {
-  display: block;
-  color: var(--chalk-40);
-}
-.process-end__arrow svg {
-  width: 14px;
-  height: 22px;
-  margin-inline: auto;
-  /* The one sustained motion on the site. A slow drift, not a bounce: no
-     overshoot, no easing back past the start. It marks the page's only exit. */
-  animation: process-drift 2600ms var(--ease-out) infinite;
-}
-@keyframes process-drift {
-  0%,
-  100% {
-    transform: translateY(0);
-    opacity: 0.55;
-  }
-  50% {
-    transform: translateY(4px);
-    opacity: 1;
-  }
 }
 .process-end__lede {
   margin-block-start: var(--space-m);
@@ -445,49 +452,29 @@
     transform: none;
     transition: none;
   }
-  .process__chevron,
-  .process__stage.is-visible .process__chevron {
-    transform: translate(-45%, 0);
-  }
   .process__num,
   .process__stage.is-visible .process__num {
     transform: translateX(-40%);
   }
-  .process-end__arrow svg {
-    animation: none;
-    opacity: 0.55;
-  }
 
-  /* The ring is complete and still: drawn, arrowheads showing direction, nodes
-     in place, and the sweep never runs. The diagram must lose its movement and
-     nothing else. */
-  .process-ring__line,
-  .js .process-ring__line {
-    stroke-dashoffset: 0;
-    transition: none;
-  }
-  .process-ring__sweep,
-  .process-ring.is-visible .process-ring__sweep {
+  /* The ring STOPS. This is the one place on the site where motion is
+     continuous, so it is also the one place where switching it off matters
+     most: a diagram that never stops turning is exactly what a vestibular
+     trigger looks like. The circle, its arrowheads, the nodes and the button
+     all stay exactly where they are, and the page loses nothing but movement. */
+  .process-ring__art,
+  .js .process-ring__art {
     animation: none;
-    opacity: 0;
-  }
-  .process-ring__heads,
-  .js .process-ring__heads {
     opacity: 1;
     transition: none;
   }
   .process-ring__node,
   .js .process-ring__node {
     opacity: 1;
-    transform: none;
     transition: none;
   }
-  .process-ring__node--n,
-  .js .process-ring__node--n {
-    transform: translateY(-50%);
-  }
-  .process-ring__node--s,
-  .js .process-ring__node--s {
-    transform: translateY(50%);
+  .landing__more-arrow svg {
+    animation: none;
+    opacity: 0.6;
   }
 }

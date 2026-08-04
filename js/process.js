@@ -45,11 +45,18 @@ if (ring) revealOnScroll([ring]);
 // question this page has to answer, and a page view cannot answer it.
 // Fire-and-forget: the import, the module and the insert can all fail without
 // the click being affected, because the navigation is the browser's to make.
-qs('#process-cta')?.addEventListener('click', () => {
-  import('./analytics.js')
-    .then((m) => m.recordEvent('process_cta'))
-    .catch(() => {});
-});
+// Both routes into the work count, and both carry the admin's label: the one at
+// the centre of the ring and the one at the foot of the written stages. Wiring
+// only the centre would undercount every visitor who read to the end, which is
+// exactly the visitor worth knowing about.
+const workLinks = qsa('#process-cta, .process-end__cta');
+for (const link of workLinks) {
+  link.addEventListener('click', () => {
+    import('./analytics.js')
+      .then((m) => m.recordEvent('process_cta'))
+      .catch(() => {});
+  });
+}
 
 // --- Copy override from /admin ---------------------------------------------
 //
@@ -102,7 +109,10 @@ const RING_LABEL = ['--n', '--e', '--s', '--w'];
     setText('.process-intro__title', copy.process_intro_title);
     setText('.process-intro__body', copy.process_intro_body);
     setText('.process-end__lede', copy.process_end_lede);
-    setText('#process-cta', copy.process_cta_label);
+    // Both work links share one label field. setText only handles the first
+    // match, so the pair is set explicitly rather than by selector.
+    const label = (copy.process_cta_label || '').trim();
+    if (label) for (const link of workLinks) link.textContent = label;
 
     for (const n of [1, 2, 3, 4]) {
       if (setText(`#stage-${n} .process__title`, copy[`process_stage${n}_title`])) {

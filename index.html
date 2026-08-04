@@ -22,334 +22,248 @@
     <link rel="stylesheet" href="/css/reset.css" />
     <link rel="stylesheet" href="/css/shell.css" />
     <link rel="stylesheet" href="/css/process.css" />
+    <!-- shell.js is loaded WITHOUT the rail markup below. Every one of its rail
+         functions guards on a missing element (initDrawer, renderNav,
+         initThemeToggle, initClock all return early), so it still does the
+         three things this page needs — the view count, the cookie notice and
+         media protection — and quietly skips the navigation it cannot find. -->
     <script type="module" src="/js/shell.js"></script>
     <script type="module" src="/js/process.js"></script>
   </head>
-  <body>
-    <a class="skip-link" href="#pane">Skip to content</a>
 
-    <!-- Mobile only (hidden on desktop by shell.css) -->
-    <header class="topbar">
-      <a class="topbar__brand" href="/">Control Tee</a>
-      <button
-        class="topbar__toggle"
-        id="rail-toggle"
-        type="button"
-        aria-expanded="false"
-        aria-controls="rail"
-        aria-label="Open menu"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          aria-hidden="true"
-        >
-          <path d="M3 6h18M3 12h18M3 18h18" />
-        </svg>
-      </button>
-    </header>
+  <!-- THE GATEWAY.
+       This page deliberately has NO rail, NO top bar and no navigation at all.
+       A visitor meets the method, and the single thing they can do is go
+       through to the work, where the rail exists on every page from then on.
 
-    <div class="scrim" id="scrim"></div>
+       The cost is real and was accepted: the landing page has no route to
+       Contact and no theme toggle, and the site's root offers crawlers exactly
+       one internal link. In exchange the first screen has one focal point. -->
+  <body class="landing">
+    <a class="skip-link" href="#stages">Skip to the written stages</a>
 
-    <div class="shell">
-      <aside class="rail" id="rail">
-        <div class="rail__head">
-          <a class="rail__brand" href="/">Control Tee</a>
-          <p class="rail__tagline" id="brand-tagline" hidden></p>
+    <main class="landing__stage">
+      <h1 class="process-intro__title" id="process-title">
+        How I work, before you see a single poster.
+      </h1>
+
+      <section class="process-ring" aria-labelledby="ring-heading">
+        <h2 class="visually-hidden" id="ring-heading">The four stages at a glance</h2>
+
+        <div class="process-ring__frame">
+          <!-- Decoration only. This is the element that turns; the nodes and
+               the button are HTML siblings, so they stay put and upright while
+               it rotates behind them. -->
+          <svg
+            class="process-ring__art"
+            viewBox="0 0 200 200"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <!-- A drawn circle, not a computed one: the radius wanders, the
+                 curve is built from four uneven beziers, and the stroke
+                 overshoots where it closes, the way a hand does. A perfect
+                 <circle> is the one shape that cannot look hand-drawn. -->
+            <path
+              class="process-ring__line"
+              d="M99 23.6
+                 C141.5 24.4 175.4 58.2 176.4 100.6
+                 C177.2 143.4 143.1 176.8 100.6 176.4
+                 C58.4 175.9 23.4 141.8 23.6 99.4
+                 C23.8 57.6 57.4 24.2 99 23.6
+                 C103.1 23.7 106.9 24.2 110.4 25.1"
+            />
+            <!-- A second, lighter pass, offset slightly. Two strokes that do
+                 not quite agree is what reads as pencil pressure; a single
+                 path of uniform width never will. -->
+            <path
+              class="process-ring__line process-ring__line--ghost"
+              d="M100.2 24.4
+                 C141.9 25.6 175.2 58.9 175.5 100.7
+                 C175.8 142.6 142.2 175.6 100.4 175.3
+                 C58.9 175 24.5 141.1 24.6 99.8
+                 C24.7 58.4 58.3 25 100.2 24.4"
+            />
+
+            <!-- Arrowheads on the diagonals, between the nodes. Each is the
+                 same drawn mark rotated about the centre, so one path places
+                 and orients all four. The arms are uneven and slightly curved,
+                 like the reference arrows. -->
+            <g class="process-ring__heads">
+              <path d="M91.4 17.2 Q96.8 21 100.8 24.3 Q96.2 27.6 92.8 31.4" transform="rotate(45 100 100)" />
+              <path d="M91.4 17.2 Q96.8 21 100.8 24.3 Q96.2 27.6 92.8 31.4" transform="rotate(135 100 100)" />
+              <path d="M91.4 17.2 Q96.8 21 100.8 24.3 Q96.2 27.6 92.8 31.4" transform="rotate(225 100 100)" />
+              <path d="M91.4 17.2 Q96.8 21 100.8 24.3 Q96.2 27.6 92.8 31.4" transform="rotate(315 100 100)" />
+            </g>
+          </svg>
+
+          <!-- The page's ONE action, at the centre of the cycle. -->
+          <a class="process-ring__cta" href="/work.html" id="process-cta">See the work</a>
+
+          <a class="process-ring__node process-ring__node--n" href="#stage-1">
+            <span class="process-ring__icon" aria-hidden="true">
+              <!-- Trim marks: the extent of the piece. Drawn, so no two
+                   corners are quite the same. -->
+              <svg viewBox="0 0 24 24" fill="none" focusable="false">
+                <path d="M3.4 8.6C3.2 6.4 3.1 4.4 3.3 3.2 4.6 3 6.4 3 8.4 3.2" />
+                <path d="M15.7 3.1C17.8 2.9 19.7 3 20.8 3.3 21.1 4.5 21.1 6.3 20.9 8.3" />
+                <path d="M20.8 15.6C21.1 17.7 21 19.6 20.7 20.8 19.4 21.1 17.6 21.1 15.6 20.8" />
+                <path d="M8.3 20.8C6.3 21.1 4.4 21 3.3 20.7 3 19.5 3 17.7 3.2 15.7" />
+              </svg>
+            </span>
+            <span class="process-ring__num" aria-hidden="true">01</span>
+            <span class="process-ring__label">Scope</span>
+          </a>
+
+          <a class="process-ring__node process-ring__node--e" href="#stage-2">
+            <span class="process-ring__icon" aria-hidden="true">
+              <!-- Registration mark: bringing separate plates into alignment.
+                   The ring wanders and the arms are different lengths. -->
+              <svg viewBox="0 0 24 24" fill="none" focusable="false">
+                <path d="M12.3 6.1C15.5 6.2 18 8.8 17.9 12.1 17.8 15.4 15.1 18 11.8 17.9 8.6 17.8 6.1 15.1 6.2 11.8 6.3 8.6 9 6 12.3 6.1" />
+                <path d="M12.1 2.2 12 9.1M12 15.1 11.9 21.8M2.2 11.9 9.2 12.1M15 12 21.7 11.9" />
+              </svg>
+            </span>
+            <span class="process-ring__num" aria-hidden="true">02</span>
+            <span class="process-ring__label">Discover</span>
+          </a>
+
+          <a class="process-ring__node process-ring__node--s" href="#stage-3">
+            <span class="process-ring__icon" aria-hidden="true">
+              <!-- A bezier and its two anchors. Handle lines were dropped:
+                   at 22px they closed the shape into a blot. -->
+              <svg viewBox="0 0 24 24" fill="none" focusable="false">
+                <path d="M4.2 19.1C11.3 18.6 12.9 5.4 19.9 4.7" />
+                <path d="M1.7 16.4 6.6 16.7 6.4 21.6 1.6 21.3Z" />
+                <path d="M17.6 2.4 22.5 2.7 22.3 7.6 17.4 7.3Z" />
+              </svg>
+            </span>
+            <span class="process-ring__num" aria-hidden="true">03</span>
+            <span class="process-ring__label">Direction</span>
+          </a>
+
+          <a class="process-ring__node process-ring__node--w" href="#stage-4">
+            <span class="process-ring__icon" aria-hidden="true">
+              <!-- Sheets, collated and passed over. -->
+              <svg viewBox="0 0 24 24" fill="none" focusable="false">
+                <path d="M7.6 2.6 21.4 2.4 21.5 16.3 7.5 16.5Z" />
+                <path d="M16.6 20.4C12.6 20.7 6.9 20.6 3.6 20.4 3.4 17.1 3.3 11.4 3.5 7.5" />
+              </svg>
+            </span>
+            <span class="process-ring__num" aria-hidden="true">04</span>
+            <span class="process-ring__label">Handover</span>
+          </a>
         </div>
+      </section>
 
-        <nav class="rail__nav" id="rail-nav" aria-label="Projects">
-          <!-- rendered by shell.js -->
-        </nav>
+      <!-- A drawn arrow, pointing at what is below the fold. Without it a
+           full-height first screen reads as the whole page. -->
+      <a class="landing__more" href="#stages">
+        <span class="landing__more-label">Read how each stage runs</span>
+        <span class="landing__more-arrow" aria-hidden="true">
+          <svg viewBox="0 0 24 34" fill="none" focusable="false">
+            <path d="M11.6 2.4C12.4 9.1 12.1 18.4 11.8 27.9" />
+            <path d="M5.2 21.6C7.4 24.4 10 27.3 11.9 30.9 14 27.6 16.4 24.6 18.6 22.2" />
+          </svg>
+        </span>
+      </a>
+    </main>
 
-        <footer class="rail__foot">
-          <a href="/work.html">Work</a>
-          <a href="/about.html">About</a>
-          <a href="/contact.html" id="contact-link">Contact</a>
-          <ul class="rail__social">
-            <li>
-              <a
-                href="https://www.instagram.com/control.tee/"
-                data-social="instagram"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Control Tee on Instagram"
-                >Instagram</a
-              >
+    <!-- ============================================================
+         DRAFT COPY. Every word below is a placeholder written to be
+         replaced, not to be kept. It is deliberately good enough to
+         read as a finished page so the wording can be judged in place
+         rather than in the abstract. All of it is editable in
+         /admin → Landing page.
+
+         What it must keep doing when it is rewritten:
+           1. Stage one has to explain a logo versus an identity versus
+              a campaign system. That paragraph is the one that stops
+              the wrong brief arriving.
+           2. Every "Includes N rounds" line stays. It is the scope
+              boundary, stated as craft rather than as a fee.
+           3. No prices, no ranges, no currency. See CLAUDE.md.
+           4. First person. "I", never "we".
+         ============================================================ -->
+    <div class="landing__read" id="stages">
+      <section class="process-intro">
+        <p class="process-intro__body">
+          Most design goes wrong long before anyone opens the software. It goes wrong in
+          what was agreed. This is how I run a project so that it does not happen to
+          yours.
+        </p>
+      </section>
+
+      <section class="process" aria-labelledby="process-heading">
+        <h2 class="visually-hidden" id="process-heading">How a project runs</h2>
+
+        <div class="process__track">
+          <span class="process__thread" aria-hidden="true"></span>
+
+          <ol class="process__stages">
+            <li class="process__stage" id="stage-1">
+              <span class="process__num" aria-hidden="true">01</span>
+              <h3 class="process__title">Scope</h3>
+              <p class="process__body">
+                We agree what you are actually buying. A logo is one artifact. A brand
+                identity is the system that logo lives inside: the type, the colour, the
+                rules, the way it behaves on a poster and on a phone. A campaign identity
+                is that system built to move quickly and hold together across a season.
+                You leave this stage with a written list of what you get, so that nothing
+                later has to be asked for as a favour.
+              </p>
+              <!-- Empty and hidden. Stages 1 and 2 ship without a rounds
+                   line, but /admin can add one, and it needs somewhere to
+                   land. js/process.js unhides this when a value is set. -->
+              <p class="process__rounds" hidden></p>
             </li>
-            <li>
-              <a
-                href="https://www.behance.net/controltee"
-                data-social="behance"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Control Tee on Behance"
-                >Behance</a
-              >
+
+            <li class="process__stage" id="stage-2">
+              <span class="process__num" aria-hidden="true">02</span>
+              <h3 class="process__title">Discover</h3>
+              <p class="process__body">
+                Before anything is drawn I need to know what the brand has to do. Who it
+                speaks to, what it is measured against, and what it has to survive: a
+                launch, a season, a campaign with a fixed date. This stage is short, and
+                it is the whole difference between design that decorates and design that
+                works.
+              </p>
+              <p class="process__rounds" hidden></p>
             </li>
-            <li>
-              <a
-                href="https://www.linkedin.com/in/controltee/"
-                data-social="linkedin"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Control Tee on LinkedIn"
-                >LinkedIn</a
-              >
+
+            <li class="process__stage" id="stage-3">
+              <span class="process__num" aria-hidden="true">03</span>
+              <h3 class="process__title">Direction</h3>
+              <p class="process__body">
+                You see routes, not a single take it or leave it option. We choose one
+                together and I take it to finished. This is where the shaping happens, so
+                it is where the revisions belong.
+              </p>
+              <p class="process__rounds">Includes two rounds of revision</p>
             </li>
-          </ul>
-          <button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">
-            <span class="theme-toggle__icon" aria-hidden="true">◑</span>
-            <span class="theme-toggle__label">Light mode</span>
-          </button>
-          <time class="rail__clock" id="rail-clock" aria-label="Current time in Nairobi"></time>
-          <ul class="rail__legal">
-            <li><a href="/privacy.html">Privacy</a></li>
-            <li><a href="/terms.html">Terms</a></li>
-            <li><a href="/cookies.html">Cookies</a></li>
-          </ul>
-        </footer>
-      </aside>
 
-      <main class="pane" id="pane" tabindex="-1">
-        <!-- ============================================================
-             DRAFT COPY. Every word below is a placeholder written to be
-             replaced, not to be kept. It is deliberately good enough to
-             read as a finished page so the wording can be judged in place
-             rather than in the abstract.
+            <li class="process__stage" id="stage-4">
+              <span class="process__num" aria-hidden="true">04</span>
+              <!-- Short on purpose: this title is mirrored onto the ring
+                   node, where a three-word heading wraps to three lines and
+                   pushes out of the diagram. -->
+              <h3 class="process__title">Handover</h3>
+              <p class="process__body">
+                The chosen direction is built out across everything it needs to appear on.
+                You get the files, organised, in the formats you will actually use, and
+                the guidance to keep the system intact once other people start working
+                with it.
+              </p>
+              <p class="process__rounds">Includes one round of revision</p>
+            </li>
+          </ol>
+        </div>
+      </section>
 
-             What it must keep doing when it is rewritten:
-               1. Stage one has to explain a logo versus an identity versus
-                  a campaign system. That paragraph is the one that stops
-                  the wrong brief arriving.
-               2. Every "Includes N rounds" line stays. It is the scope
-                  boundary, stated as craft rather than as a fee.
-               3. No prices, no ranges, no currency. See CLAUDE.md.
-               4. First person. "I", never "we".
-             ============================================================ -->
-        <section class="process-intro">
-          <h1 class="process-intro__title">
-            How I work, before you see a single poster.
-          </h1>
-          <p class="process-intro__body">
-            Most design goes wrong long before anyone opens the software. It goes wrong in
-            what was agreed. This is how I run a project so that it does not happen to
-            yours.
-          </p>
-        </section>
-
-        <!-- The cycle, as a diagram. It is a SUMMARY and a set of jump links,
-             not the content: four paragraphs cannot sit on a circumference, so
-             the readable text stays in the list below and nothing here is the
-             only copy of anything.
-
-             Split by responsibility on purpose:
-               - the ring is one aria-hidden <svg>, pure decoration
-               - the four nodes are real <a> elements laid over it, so focus,
-                 keyboard and the browser's own jump behaviour work with no JS
-
-             A circle claims the process loops. That is fair (revisions cycle
-             back into direction) but it is a claim the straight thread did not
-             make. -->
-        <section class="process-ring" aria-labelledby="ring-heading">
-          <h2 class="visually-hidden" id="ring-heading">The four stages at a glance</h2>
-
-          <div class="process-ring__frame">
-            <svg
-              class="process-ring__art"
-              viewBox="0 0 200 200"
-              aria-hidden="true"
-              focusable="false"
-            >
-              <!-- A circle in a SQUARE viewBox scales uniformly, so dash
-                   geometry is trustworthy here. The vertical thread could not
-                   use this technique because its viewBox was stretched by a
-                   non-uniform preserveAspectRatio. -->
-              <circle class="process-ring__line" cx="100" cy="100" r="76" pathLength="100" />
-              <circle class="process-ring__sweep" cx="100" cy="100" r="76" pathLength="100" />
-              <!-- Direction, still legible after the sweep has finished.
-                   One arrowhead drawn once at the top and rotated about the
-                   circle's centre, which places it and orients it to the
-                   tangent in a single step. They sit on the DIAGONALS, between
-                   the nodes: at 12/3/6/9 the nodes' own backgrounds covered
-                   them, so only two of the four were ever visible. -->
-              <g class="process-ring__heads">
-                <path d="M96 21 L100 24.5 L96 28" transform="rotate(45 100 100)" />
-                <path d="M96 21 L100 24.5 L96 28" transform="rotate(135 100 100)" />
-                <path d="M96 21 L100 24.5 L96 28" transform="rotate(225 100 100)" />
-                <path d="M96 21 L100 24.5 L96 28" transform="rotate(315 100 100)" />
-              </g>
-            </svg>
-
-            <a class="process-ring__node process-ring__node--n" href="#stage-1">
-              <span class="process-ring__icon" aria-hidden="true">
-                <!-- Trim marks: the extent of the piece. -->
-                <svg viewBox="0 0 24 24" fill="none" focusable="false">
-                  <path d="M3 8V3h5M16 3h5v5M21 16v5h-5M8 21H3v-5" />
-                </svg>
-              </span>
-              <span class="process-ring__num" aria-hidden="true">01</span>
-              <span class="process-ring__label">Scope</span>
-            </a>
-
-            <a class="process-ring__node process-ring__node--e" href="#stage-2">
-              <span class="process-ring__icon" aria-hidden="true">
-                <!-- Registration mark: bringing separate plates into alignment. -->
-                <svg viewBox="0 0 24 24" fill="none" focusable="false">
-                  <circle cx="12" cy="12" r="6" />
-                  <path d="M12 2v7M12 15v7M2 12h7M15 12h7" />
-                </svg>
-              </span>
-              <span class="process-ring__num" aria-hidden="true">02</span>
-              <span class="process-ring__label">Discover</span>
-            </a>
-
-            <a class="process-ring__node process-ring__node--s" href="#stage-3">
-              <span class="process-ring__icon" aria-hidden="true">
-                <!-- A bezier and its two anchors. Routes are paths. The handle
-                     lines were dropped: at 22px they closed the shape up into
-                     a blot. -->
-                <svg viewBox="0 0 24 24" fill="none" focusable="false">
-                  <path d="M4 19c7 0 9-14 16-14" />
-                  <rect x="1.5" y="16.5" width="5" height="5" />
-                  <rect x="17.5" y="2.5" width="5" height="5" />
-                </svg>
-              </span>
-              <span class="process-ring__num" aria-hidden="true">03</span>
-              <span class="process-ring__label">Direction</span>
-            </a>
-
-            <a class="process-ring__node process-ring__node--w" href="#stage-4">
-              <span class="process-ring__icon" aria-hidden="true">
-                <!-- Sheets, collated and passed over. This replaced a press
-                     colour bar, which at 22px read as a solid block: four
-                     swatches plus their strokes leave no white between them. -->
-                <svg viewBox="0 0 24 24" fill="none" focusable="false">
-                  <rect x="7.5" y="2.5" width="14" height="14" />
-                  <path d="M16.5 20.5h-13v-13" />
-                </svg>
-              </span>
-              <span class="process-ring__num" aria-hidden="true">04</span>
-              <span class="process-ring__label">Handover</span>
-            </a>
-          </div>
-        </section>
-
-        <section class="process" aria-labelledby="process-heading">
-          <h2 class="visually-hidden" id="process-heading">How a project runs</h2>
-
-          <div class="process__track">
-            <!-- The thread. One line, drawn top to bottom as the stages come
-                 into view, so four separate blocks read as one continuous
-                 method instead of four unrelated claims.
-
-                 A plain element scaled on Y, NOT an <svg> dashed with
-                 stroke-dashoffset. The SVG version was built first and drew a
-                 dashed line: normalising a stretched viewBox with pathLength
-                 does not survive contact with a non-uniform
-                 preserveAspectRatio. A scaleY transform has no unit ambiguity,
-                 is composited like every other animation on this page, and
-                 needs no measurement at any height. -->
-            <span class="process__thread" aria-hidden="true"></span>
-
-            <ol class="process__stages">
-              <li class="process__stage" id="stage-1">
-                <span class="process__num" aria-hidden="true">01</span>
-                <h3 class="process__title">Scope</h3>
-                <p class="process__body">
-                  We agree what you are actually buying. A logo is one artifact. A brand
-                  identity is the system that logo lives inside: the type, the colour, the
-                  rules, the way it behaves on a poster and on a phone. A campaign identity
-                  is that system built to move quickly and hold together across a season.
-                  You leave this stage with a written list of what you get, so that nothing
-                  later has to be asked for as a favour.
-                </p>
-                <!-- Empty and hidden. Stages 1 and 2 ship without a rounds
-                     line, but /admin can add one, and it needs somewhere to
-                     land. js/process.js unhides this when a value is set. -->
-                <p class="process__rounds" hidden></p>
-                <span class="process__chevron" aria-hidden="true">
-                  <svg viewBox="0 0 14 9" fill="none" focusable="false">
-                    <path d="M1 1 L7 7 L13 1" stroke="currentColor" stroke-width="1.25" />
-                  </svg>
-                </span>
-              </li>
-
-              <li class="process__stage" id="stage-2">
-                <span class="process__num" aria-hidden="true">02</span>
-                <h3 class="process__title">Discover</h3>
-                <p class="process__body">
-                  Before anything is drawn I need to know what the brand has to do. Who it
-                  speaks to, what it is measured against, and what it has to survive: a
-                  launch, a season, a campaign with a fixed date. This stage is short, and
-                  it is the whole difference between design that decorates and design that
-                  works.
-                </p>
-                <!-- Empty and hidden. Stages 1 and 2 ship without a rounds
-                     line, but /admin can add one, and it needs somewhere to
-                     land. js/process.js unhides this when a value is set. -->
-                <p class="process__rounds" hidden></p>
-                <span class="process__chevron" aria-hidden="true">
-                  <svg viewBox="0 0 14 9" fill="none" focusable="false">
-                    <path d="M1 1 L7 7 L13 1" stroke="currentColor" stroke-width="1.25" />
-                  </svg>
-                </span>
-              </li>
-
-              <li class="process__stage" id="stage-3">
-                <span class="process__num" aria-hidden="true">03</span>
-                <h3 class="process__title">Direction</h3>
-                <p class="process__body">
-                  You see routes, not a single take it or leave it option. We choose one
-                  together and I take it to finished. This is where the shaping happens, so
-                  it is where the revisions belong.
-                </p>
-                <p class="process__rounds">Includes two rounds of revision</p>
-                <span class="process__chevron" aria-hidden="true">
-                  <svg viewBox="0 0 14 9" fill="none" focusable="false">
-                    <path d="M1 1 L7 7 L13 1" stroke="currentColor" stroke-width="1.25" />
-                  </svg>
-                </span>
-              </li>
-
-              <li class="process__stage" id="stage-4">
-                <span class="process__num" aria-hidden="true">04</span>
-                <!-- Short on purpose: this title is mirrored onto the ring
-                     node, where a three-word heading wraps to three lines and
-                     pushes out of the diagram. -->
-                <h3 class="process__title">Handover</h3>
-                <p class="process__body">
-                  The chosen direction is built out across everything it needs to appear on.
-                  You get the files, organised, in the formats you will actually use, and
-                  the guidance to keep the system intact once other people start working
-                  with it.
-                </p>
-                <p class="process__rounds">Includes one round of revision</p>
-              </li>
-            </ol>
-          </div>
-        </section>
-
-        <!-- ONE action, and it is the end of the thread rather than a button
-             dropped near it. The arrow above it is the only thing on the site
-             allowed to keep moving, because it marks the page's single exit. -->
-        <section class="process-end">
-          <span class="process-end__arrow" aria-hidden="true">
-            <svg viewBox="0 0 14 22" fill="none" focusable="false">
-              <path
-                d="M7 0 L7 20 M1 14 L7 20 L13 14"
-                stroke="currentColor"
-                stroke-width="1.25"
-              />
-            </svg>
-          </span>
-          <p class="process-end__lede">That is the method. This is what it produces.</p>
-          <a class="process-end__cta" href="/work.html" id="process-cta">See the work</a>
-        </section>
-      </main>
+      <section class="process-end">
+        <p class="process-end__lede">That is the method. This is what it produces.</p>
+        <a class="process-end__cta" href="/work.html">See the work</a>
+      </section>
     </div>
   </body>
 </html>
