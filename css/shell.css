@@ -53,6 +53,42 @@
   }
 }
 
+/* ---- Scrollbars ----------------------------------------------------------
+   The browser default is a light grey trough that reads as chrome bolted onto
+   the page, and on the dark theme it is the brightest thing on screen. These
+   dress it in the site's own neutrals so it recedes: a thin thumb at the same
+   weight as a hairline border, no trough at all.
+
+   Both syntaxes are needed. scrollbar-color/width is the standard one (Firefox,
+   and Chromium since 121); ::-webkit-scrollbar covers older Chromium and
+   Safari, which ignore the standard properties. Anything that supports neither
+   simply keeps the default bar. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--chalk-40) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: var(--chalk-40);
+  /* Fully rounded, and inset from the edge by a transparent border so the thumb
+     reads as a floating rule rather than a bar wedged against the content. */
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--chalk-60);
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 /* ---- Base --------------------------------------------------------------- */
 body {
   background: var(--ink);

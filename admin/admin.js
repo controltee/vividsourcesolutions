@@ -2076,7 +2076,7 @@ async function renderLogosTab(panel) {
           { class: 'admin-field__hint' },
           el('li', {}, 'SVG is best. It stays sharp at any size and is stored as-is.'),
           el('li', {}, 'Otherwise PNG or WebP with a TRANSPARENT background, at least 200px tall (400px is better).'),
-          el('li', {}, 'One colour, ideally white. Logos are shown at a single muted opacity, so full-colour marks look inconsistent next to each other.'),
+          el('li', {}, 'FULL COLOUR, the client’s real mark. The marquee no longer recolours anything, so upload the logo as the brand actually uses it. A white-on-transparent file will be invisible on the light theme.'),
           el('li', {}, 'Trim the empty space around the mark, or it will float with odd gaps.'),
           el('li', {}, 'Under 500KB.')
         )
