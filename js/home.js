@@ -97,40 +97,148 @@ function firstParagraphText(html) {
 
 const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-// Types the headline in, holds it, deletes it, then repeats. Timings are
-// deliberately uneven: typing is slower than deleting, and the full word is
-// held far longer than the empty pause, which is what makes it read as typing
-// rather than as a flicker. setTimeout per character (not setInterval) so each
-// phase can have its own pace.
-function typeLoop(node, text) {
-  const TYPE_MS = 110;
-  const DELETE_MS = 55;
-  const HOLD_FULL = 2000;
-  const HOLD_EMPTY = 500;
-  let count = 0;
-  let deleting = false;
+// --- Intro sequence ---------------------------------------------------------
+// A ONE TIME build on load: four pillar words type through the line, the line
+// drops and CTRL+T lands, the logo reveals above it, then the scroll cue
+// arrives. This function owns the ORDER and the timing; css/home.css owns how
+// each beat looks.
+//
+// Three rules it holds to, all of them from CLAUDE.md or hard-won:
+//   * fades and short translations only, nothing bounces
+//   * prefers-reduced-motion skips the whole thing and writes the end state
+//   * ANY interaction cancels it instantly and jumps to the end state, so a
+//     visitor is never stuck watching an intro they did not ask for
+//
+// It also plays once per SESSION, not once per page load. This is a multi-page
+// site — every nav is a full document load — so replaying the build each time
+// somebody returns to the homepage would be punishing.
+const PILLARS = ['Creativity', 'Transformation', 'Resonance', 'Language'];
+const CONCEPT = 'CTRL+T';
+const INTRO_SEEN_KEY = 'ct:intro-seen';
 
-  const step = () => {
-    node.textContent = text.slice(0, count);
-    let delay;
-    if (!deleting) {
-      if (count < text.length) {
-        count += 1;
-        delay = TYPE_MS;
-      } else {
-        deleting = true;
-        delay = HOLD_FULL;
-      }
-    } else if (count > 0) {
-      count -= 1;
-      delay = DELETE_MS;
-    } else {
-      deleting = false;
-      delay = HOLD_EMPTY;
-    }
-    setTimeout(step, delay);
+// Every duration in one place, so the whole build can be tightened without
+// hunting through the steps. Total runs ~6.9s at these values.
+const T = {
+  type: 35,        // per character
+  holdWord: 550,   // a finished pillar word sits before it clears
+  clear: 180,      // fade the word out
+  shift: 400,      // the line drops before CTRL+T
+  caretBeat: 600,  // CTRL+T sits with the caret blinking
+  beforeLogo: 300,
+  logoIn: 550,
+  beforeCue: 450,
+};
+
+function runIntro(section, { headline, body, logoUrl, skip = false }) {
+  const titleEl = qs('#home-intro-title');
+  const typeEl = qs('#home-intro-type');
+  const logoEl = qs('#home-intro-logo');
+  const cueEl = qs('#home-intro-scroll');
+  const bodyEl = qs('#home-intro-body');
+
+  // The h1 is always fully named for assistive tech, whatever the visible text
+  // is doing mid-build.
+  titleEl.setAttribute('aria-label', headline);
+  bodyEl.textContent = body;
+  bodyEl.hidden = !body;
+  // Unhidden immediately so it holds its space from the first frame; the CSS
+  // keeps it at opacity 0 until the reveal. Left hidden it would pop into the
+  // layout and push the page down as it appeared.
+  if (logoUrl) {
+    logoEl.src = logoUrl;
+    logoEl.hidden = false;
+  }
+
+  // The finished state, reachable from anywhere: mid-build, on reduced motion,
+  // or the moment somebody interacts.
+  const settle = () => {
+    typeEl.textContent = CONCEPT;
+    typeEl.classList.add('home-intro__type--concept');
+    section.classList.remove('home-intro--clearing');
+    section.classList.add('home-intro--shifted');
+    if (logoUrl) logoEl.classList.add('is-in');
+    cueEl.classList.add('is-in');
+    section.classList.add('home-intro--settled');
   };
-  step();
+
+  // Reduced motion, or already seen this session: straight to the end state.
+  if (skip || prefersReducedMotion()) {
+    settle();
+    return;
+  }
+
+  const timers = [];
+  let cancelled = false;
+  const wait = (ms) => new Promise((res) => timers.push(setTimeout(res, ms)));
+
+  const cancel = () => {
+    if (cancelled) return;
+    cancelled = true;
+    timers.forEach(clearTimeout);
+    settle();
+    teardown();
+  };
+  // `once` on each, and scroll must be passive so cancelling never delays the
+  // scroll the visitor actually asked for.
+  const events = ['pointerdown', 'keydown', 'touchstart', 'wheel', 'scroll'];
+  const teardown = () =>
+    events.forEach((e) => window.removeEventListener(e, cancel));
+  events.forEach((e) => window.addEventListener(e, cancel, { passive: true, once: true }));
+
+  const typeOut = async (text) => {
+    for (let i = 1; i <= text.length; i += 1) {
+      if (cancelled) return;
+      typeEl.textContent = text.slice(0, i);
+      await wait(T.type);
+    }
+  };
+
+  (async () => {
+    // 1 — the pillar words, one at a time, once through
+    for (const word of PILLARS) {
+      if (cancelled) return;
+      section.classList.remove('home-intro--clearing');
+      typeEl.textContent = '';
+      await typeOut(word);
+      await wait(T.holdWord);
+      if (cancelled) return;
+      section.classList.add('home-intro--clearing');
+      await wait(T.clear);
+    }
+    if (cancelled) return;
+
+    // 2 — the line drops, then the concept lands in its own space
+    typeEl.textContent = '';
+    section.classList.remove('home-intro--clearing');
+    section.classList.add('home-intro--shifted');
+    await wait(T.shift);
+    if (cancelled) return;
+    typeEl.classList.add('home-intro__type--concept');
+    await typeOut(CONCEPT);
+    await wait(T.caretBeat);
+    if (cancelled) return;
+
+    // 3 — the payoff
+    if (logoUrl) {
+      await wait(T.beforeLogo);
+      if (cancelled) return;
+      logoEl.classList.add('is-in');
+      await wait(T.logoIn);
+      if (cancelled) return;
+    }
+
+    // 4 — the scroll cue
+    await wait(T.beforeCue);
+    if (cancelled) return;
+    // Next frame, so the transition has a start state to move from.
+    requestAnimationFrame(() => {
+      cueEl.classList.add('is-in');
+      // The supporting copy arrives with the cue: the build has landed, and the
+      // page settles into the state it will stay in.
+      section.classList.add('home-intro--settled');
+    });
+    teardown();
+  })();
 }
 
 // --- Client logo marquee ----------------------------------------------------
@@ -187,7 +295,7 @@ async function renderIntro() {
   const { data, error } = await supabase
     .from('site_content')
     .select('id, content')
-    .in('id', ['home_headline', 'home_intro', 'about_headline', 'about_body']);
+    .in('id', ['home_headline', 'home_intro', 'about_headline', 'about_body', 'logo_url']);
   // A missing synopsis is not worth blocking the work on: leave the band hidden
   // and let the grid carry the page, exactly as before this section existed.
   if (error || !data?.length) return;
@@ -196,23 +304,27 @@ async function renderIntro() {
   // Defaults to the brand mark rather than the About heading: "Creativity"
   // works as a section title but is thin as the homepage h1. Set home_headline
   // in /admin to override this.
-  const headline = (values.home_headline || '').trim() || 'CTRL+T';
+  const headline = (values.home_headline || '').trim() || CONCEPT;
   const body = (values.home_intro || '').trim() || firstParagraphText(values.about_body);
 
-  // The h1's accessible name is the complete headline, always, so a screen
-  // reader never hears a half-typed word.
-  const titleEl = qs('#home-intro-title');
-  const typeEl = qs('#home-intro-type');
-  titleEl.setAttribute('aria-label', headline);
-  if (prefersReducedMotion()) {
-    typeEl.textContent = headline;
-  } else {
-    typeLoop(typeEl, headline);
-  }
-  const bodyEl = qs('#home-intro-body');
-  bodyEl.textContent = body;
-  bodyEl.hidden = !body;
   section.hidden = false;
+
+  // Once per session. A repeat visit to the homepage within the same session
+  // gets the end state immediately rather than sitting through the build again.
+  let seen = false;
+  try {
+    seen = sessionStorage.getItem(INTRO_SEEN_KEY) === '1';
+    sessionStorage.setItem(INTRO_SEEN_KEY, '1');
+  } catch {
+    /* private mode — the sequence simply plays every load */
+  }
+
+  runIntro(section, {
+    headline,
+    body,
+    logoUrl: (values.logo_url || '').trim(),
+    skip: seen,
+  });
 }
 
 // --- Render ----------------------------------------------------------------

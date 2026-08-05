@@ -37,9 +37,12 @@
   letter-spacing: -0.02em;
   line-height: 1.05;
   color: var(--chalk);
-  /* Reserve the line so the band does not grow and shrink as the headline
-     types in and out, which would shove the rest of the page around. */
-  min-height: 1.05em;
+  /* Reserve the line so the band does not grow and shrink as the headline types
+     in and out, which would shove the rest of the page around.
+     Sized for the TALLEST thing the line ever holds, which is CTRL+T at 1.18em,
+     not for the pillar words at 1em. Reserving only the smaller of the two let
+     the whole page drop 15px the moment the concept landed. */
+  min-height: calc(1.05em * 1.18);
 }
 
 /* Typed caret. A steady block that blinks only while idle would read as two
@@ -58,36 +61,138 @@
   50.01%, 100% { opacity: 0; }
 }
 
-/* Two words crossfading in place, one at a time. Fade plus a 6px translation
-   only: nothing bounces, nothing spins, per the studio's motion rules. The
-   words are stacked absolutely so the band's height never shifts as they
-   swap, which would otherwise nudge the whole grid on every cycle. */
-.home-intro__cycle {
-  position: relative;
-  height: 1.3em;
-  margin-block-start: var(--space-2xs);
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: var(--step-1);
-  letter-spacing: -0.01em;
+/* ---- Intro sequence -------------------------------------------------------
+   A one time build on page load: four pillar words type through the line, the
+   line drops and CTRL+T lands, the logo reveals above it, then the scroll cue
+   arrives. js/home.js drives the ORDER; this file owns how each beat looks.
+
+   Every beat is a fade or a short translation, per the studio's motion rules.
+   Nothing bounces and nothing spins — including the scroll cue, which drifts
+   rather than bounces (see below). */
+
+/* The line drops between the pillar words and CTRL+T, so the concept lands in
+   its own space rather than in the slot the words were using.
+   It starts RAISED and settles to its natural position, rather than starting at
+   rest and translating down. Same movement on screen, but the layout always
+   reserves the FINAL position, so the drop cannot shove the line into the
+   paragraph underneath it — which is exactly what a downward translate did,
+   since a transform moves the line without moving anything below it. */
+.home-intro__title {
+  transform: translateY(-30px);
+  transition: transform var(--dur-slow) var(--ease-out);
+}
+.home-intro--shifted .home-intro__title {
+  transform: none;
+}
+
+/* CTRL+T is the concept landing, not another word in the list, so it is set
+   heavier and larger than the words that built up to it. */
+.home-intro__type--concept {
+  font-size: 1.18em;
+  letter-spacing: -0.03em;
+}
+
+/* Each word clears by fading rather than by reverse-typing. Deleting character
+   by character doubles the time the sequence spends on a word already read,
+   and the whole build is long enough as it is. */
+.home-intro__type {
+  transition: opacity 180ms var(--ease-out);
+}
+.home-intro--clearing .home-intro__type {
+  opacity: 0;
+}
+
+/* The payoff. Fade plus a small scale settle — the one scale in the sequence,
+   and it is what makes this read as a reveal rather than another fade. */
+.home-intro__logo {
+  display: block;
+  /* A FIXED box height, not max-height. An <img> has no intrinsic size until
+     the file arrives, so an auto height is zero until it loads and then jumps
+     to the logo's real height — shoving the whole page down mid-sequence. A
+     fixed height with object-fit:contain reserves the space from the first
+     frame and letterboxes whatever shape the logo turns out to be. */
+  height: 4.5rem;
+  max-width: min(18rem, 60%);
+  width: auto;
+  object-fit: contain;
+  object-position: left center;
+  margin-block-end: var(--space-s);
+  /* Space is reserved from the first frame — the element stays in flow and only
+     its opacity changes. Toggling `hidden` instead would have the logo appear
+     from nothing and push the whole page down as it lands, which reads as a
+     glitch rather than a reveal. */
+  opacity: 0;
+  transform: scale(0.95);
+  transition:
+    opacity var(--dur-slow) var(--ease-out),
+    transform var(--dur-slow) var(--ease-out);
+}
+.home-intro__logo.is-in {
+  opacity: 1;
+  transform: none;
+}
+/* A monochrome white logo would vanish on the pale ground, matching how the
+   rail's brand mark is handled. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='light']) .home-intro__logo {
+    filter: invert(1);
+  }
+}
+:root[data-theme='light'] .home-intro__logo {
+  filter: invert(1);
+}
+
+/* ---- Scroll cue ----
+   Deliberately NOT a bounce. CLAUDE.md's motion rule is "nothing bounces,
+   fades and short translations only", so the arrow drifts down and back on a
+   slow eased loop. It still reads as an invitation, it just does not spring. */
+.home-intro__scroll {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  margin-block-start: var(--space-l);
+  color: var(--chalk-60);
+  font-size: var(--step--1);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  /* In flow from the first frame so revealing it cannot shove the work grid
+     down, but visibility:hidden keeps it out of the tab order until it is
+     actually offered — an invisible link a keyboard can still reach is worse
+     than no link at all. */
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity var(--dur-slow) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+.home-intro__scroll.is-in {
+  visibility: visible;
+  opacity: 1;
+}
+.home-intro__scroll:hover {
   color: var(--accent-ink);
 }
-.home-intro__word {
-  position: absolute;
-  inset-inline-start: 0;
-  top: 0;
+.home-intro__scroll svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  /* Solid enough to read as a control at a glance rather than as a hairline
+     flourish, which is what the brief asked for. */
+  animation: scroll-drift 2.2s var(--ease-out) infinite;
+}
+@keyframes scroll-drift {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(5px); }
+}
+
+/* The supporting copy holds back until the sequence has landed. Visible from
+   the first frame it gives away the ending, and the build has nothing left to
+   reveal. */
+.home-intro__body,
+.home-intro__actions {
   opacity: 0;
-  animation: word-cycle 7s var(--ease-out) infinite;
+  transition: opacity var(--dur-slow) var(--ease-out);
 }
-.home-intro__word:nth-child(2) {
-  animation-delay: 3.5s;
-}
-@keyframes word-cycle {
-  0%   { opacity: 0; transform: translateY(6px); }
-  6%   { opacity: 1; transform: translateY(0); }
-  44%  { opacity: 1; transform: translateY(0); }
-  50%  { opacity: 0; transform: translateY(-6px); }
-  100% { opacity: 0; transform: translateY(-6px); }
+.home-intro--settled .home-intro__body,
+.home-intro--settled .home-intro__actions {
+  opacity: 1;
 }
 
 .home-intro__body {
@@ -445,24 +550,25 @@ img.client-head__banner {
   .project-card__title::after {
     transition: none;
   }
-  /* No looping motion: the first word simply stays put. The second is removed
-     rather than stacked on top of it, since both would otherwise sit at the
-     same absolute position and overlap. */
-  .home-intro__word {
-    animation: none;
-    position: static;
-    opacity: 1;
-    transform: none;
-  }
-  .home-intro__word:nth-child(2) {
-    display: none;
-  }
-  .home-intro__cycle {
-    height: auto;
-  }
-  /* No typing and no blink: home.js writes the full headline straight out. */
+  /* The whole intro sequence is skipped by home.js under reduced motion — it
+     writes the end state straight out — so these only need to make sure
+     nothing is left mid-transition or looping. */
   .home-intro__caret {
     display: none;
+  }
+  .home-intro__title,
+  .home-intro__type,
+  .home-intro__logo,
+  .home-intro__scroll,
+  .home-intro__body,
+  .home-intro__actions {
+    transition: none;
+  }
+  .home-intro__title {
+    transform: none;
+  }
+  .home-intro__scroll svg {
+    animation: none;
   }
   /* The marquee stops drifting and becomes a plain wrapped row, so every logo
      is still reachable rather than parked off-screen mid-scroll. */
