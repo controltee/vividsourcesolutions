@@ -61,6 +61,10 @@ rows into the existing `site_content`.
 - All colors and fonts come from css/tokens.css. Never hardcode a hex value.
 - Every <img> has explicit width and height attributes.
 - All project images go through scripts/optimize-images.mjs. No raw JPEG/PNG in production.
+- Client logos in the home marquee render in their OWN colours (2026-08-09). The
+  old brightness(0)/invert(1) flattening is gone. A dark-ink logo on a
+  transparent background is therefore low-contrast on the dark ground — fix that
+  with a better export in /admin, never by reintroducing a blanket filter.
 - Service role key never touches this repo.
 - Respect prefers-reduced-motion on every animation.
 
@@ -138,6 +142,52 @@ measures the image and folds the result into the next save.
 Anything reading `clients` uses `select('*')`, never a named column list:
 PostgREST errors on a column it doesn't know, so a named list would break every
 page until 006 is applied in the dashboard.
+
+## Theme, chrome and the opening sequence (added 2026-08-09)
+
+**Dark is the default.** `js/theme-init.js` now stamps `data-theme` on `<html>`
+on EVERY load — `light` only if the visitor chose it, `dark` otherwise — so the
+OS preference no longer decides a first visit. The `@media (prefers-color-scheme:
+light)` block in tokens.css is consequently only reachable with JS disabled; it
+is kept as that fallback, not as a live path. The rail toggle still wins and
+still persists to `ct:theme`.
+
+**Scrollbars are the studio's, not the browser's.** tokens.css paints them in
+`--paper` on no track, plus `color-scheme` so native chrome sits on the right
+ground. `scrollbar-color` INHERITS so `:root` reaches every scroll container;
+`scrollbar-width` does NOT, hence the one `*` rule. The `::-webkit-scrollbar`
+block below it is for Safari < 18.2 only — Chromium ignores those pseudo-elements
+once the standard properties are set.
+
+**Never use `--ink` as a foreground on a `--paper` fill.** `--ink` is the page
+GROUND and flips to the warm off-white on the light theme, so ink-on-paper turns
+pale-on-yellow. Use `--moss` (a brand colour, dark in both themes) for text on a
+yellow fill, and `--accent-ink` for accent text/outlines. The skip link had this
+bug and was fixed at the same time as the intro button.
+
+**The opening sequence** (`css/intro.css`, `js/intro.js`, `js/intro-gate.js`,
+markup at the top of index.html) is the home page's arrival: logo, `CTRL + T`,
+CTRL spelled out (Creativity Transformation Resonance Language), the motto
+Command To Transform, then "Explore my workspace".
+
+- Index only, and once per browser session (`ct:intro` in sessionStorage), so
+  returning home from a project page mid-visit does not replay it.
+- `intro-gate.js` is render-blocking and NOT a module, like theme-init.js: a
+  deferred module would drop the panel onto a page already being read. It only
+  stamps `data-intro="pending"`; intro.css keys everything (display, the scroll
+  lock) off that attribute, so with JS off the panel never shows.
+- The gate arms a 6s failsafe that clears the attribute. `intro.js` cancels it
+  as its first statement. That pair is what stops a broken module stranding a
+  visitor behind a panel with a dead button.
+- `intro.js` deliberately does NOT statically import `js/supabase.js`. A module
+  whose dependency graph fails to resolve never evaluates at all, so an esm.sh
+  outage would take the sequence down with it — no internal try/catch can help.
+  The client is pulled in with a dynamic `import()` instead; only the logo
+  depends on the network, and it is raced against a 600ms budget after which the
+  "Control Tee" wordmark in the markup is the centrepiece.
+- Every stage animates with BOTH keyframe ends stated. An implicit `to` resolves
+  to the element's own computed style, which here is the `opacity: 0` the stages
+  start at — the reveal would fade in and straight back out.
 
 ## Two media modes
 Projects have a `layout` field: 'gallery' | 'deck' | 'reel'.

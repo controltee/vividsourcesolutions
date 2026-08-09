@@ -101,6 +101,52 @@
 
   /* Enable keyword height interpolation (progressive enhancement) */
   interpolate-size: allow-keywords;
+
+  /* Tells the browser which ground its own UI sits on, so native chrome —
+     scrollbars, form controls, the flash behind a page load — is painted dark
+     rather than defaulting to a light widget on a dark page. Dark is the
+     default theme (see js/theme-init.js), so it is the default here too. */
+  color-scheme: dark;
+
+  /* ---- Scrollbars --------------------------------------------------------
+     The default bar is browser chrome: a pale trough that cuts across the
+     studio's ground wherever a region overflows — most visibly the rail, which
+     scrolls as soon as enough category disclosures are open. These paint it in
+     the signature yellow on no trough at all, so an overflowing region reads as
+     part of the page. Standard properties first; the WebKit pseudo-elements
+     below cover Safari and older Chromium, which ignore them. */
+  scrollbar-color: var(--paper) transparent;
+}
+
+/* scrollbar-color INHERITS, so setting it on :root above reaches every scroll
+   container. scrollbar-width does NOT — set only on :root it would thin the
+   page's own bar and leave the rail's at full width. Hence the universal
+   selector: it is the only way to reach a scroll container this file does not
+   know about, and there is no cheaper way to say "every scrollbar". */
+* {
+  scrollbar-width: thin;
+}
+
+/* The thumb is inset by a transparent border rather than sized down, which
+   keeps the hit area at full width while the visible bar stays slim. */
+::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--paper);
+  background-clip: padding-box;
+  border: 3px solid transparent;
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--paper);
+  background-clip: padding-box;
+  border-width: 2px;
 }
 
 /* ---- Light theme -------------------------------------------------------- */
@@ -109,9 +155,11 @@
    --paper / --moss (brand accents) stay; --accent-ink moves to moss for legible
    accent text/outlines on the pale ground.
 
-   Applied when the OS prefers light AND the visitor hasn't forced dark, or when
-   the visitor explicitly chooses light. The theme toggle stamps data-theme on
-   <html>, which wins over the OS preference in both directions. */
+   Since 2026-08-09 theme-init.js stamps data-theme on <html> on every load —
+   'light' only if the visitor chose it, 'dark' otherwise — so the OS media
+   query below is now only reachable when that script did not run at all (JS
+   disabled). It is kept as that fallback, not as the normal path. The toggle
+   still wins in both directions. */
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
     --ink:      #f7f5ee; /* warm off-white ground */
@@ -121,10 +169,12 @@
     --chalk-60: rgba(0, 0, 0, 0.62);
     --chalk-40: rgba(0, 0, 0, 0.42);
     --accent-ink: var(--moss);
+    color-scheme: light;
   }
 }
 
 :root[data-theme="light"] {
+  color-scheme: light;
   --ink:      #f7f5ee;
   --ink-80:   #ece9df;
   --ink-60:   #e0ddd1;

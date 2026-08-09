@@ -4,6 +4,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script src="/js/theme-init.js"></script>
+    <!-- Render-blocking, like theme-init: decides whether the opening sequence
+         is up BEFORE the home page paints, so the panel is never dropped on top
+         of a page the visitor has already started reading. -->
+    <script src="/js/intro-gate.js"></script>
     <title>Control Tee · Nairobi design studio</title>
     <meta
       name="description"
@@ -22,10 +26,51 @@
     <link rel="stylesheet" href="/css/reset.css" />
     <link rel="stylesheet" href="/css/shell.css" />
     <link rel="stylesheet" href="/css/home.css" />
+    <link rel="stylesheet" href="/css/intro.css" />
     <script type="module" src="/js/shell.js"></script>
     <script type="module" src="/js/home.js"></script>
+    <script type="module" src="/js/intro.js"></script>
   </head>
   <body>
+    <!-- Opening sequence. First in the body so the tab order reaches its one
+         control before anything behind it; js/intro.js additionally marks the
+         rest of the page inert while it is up. Hidden by css/intro.css unless
+         js/intro-gate.js stamped data-intro on <html>, so with JS off this is
+         inert markup and the page below is the page. -->
+    <div
+      class="intro"
+      id="intro"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="intro-name"
+      tabindex="-1"
+    >
+      <div class="intro__inner">
+        <!-- Replaced by the uploaded logo once it resolves; the wordmark is the
+             centrepiece when there is none, or when the fetch is slow. -->
+        <div class="intro__stage intro__logo" id="intro-logo">
+          <span class="intro__wordmark">Control Tee</span>
+        </div>
+
+        <p class="intro__stage intro__name" id="intro-name">
+          CTRL <span class="intro__name-plus">+</span> T
+        </p>
+
+        <ul class="intro__stage intro__spell">
+          <li><b>C</b>reativity</li>
+          <li><b>T</b>ransformation</li>
+          <li><b>R</b>esonance</li>
+          <li><b>L</b>anguage</li>
+        </ul>
+
+        <p class="intro__stage intro__motto">Command To Transform</p>
+
+        <button class="intro__stage intro__cta" id="intro-enter" type="button">
+          Explore my workspace
+        </button>
+      </div>
+    </div>
+
     <a class="skip-link" href="#pane">Skip to content</a>
 
     <!-- Mobile only (hidden on desktop by shell.css) -->
