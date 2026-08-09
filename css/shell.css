@@ -21,21 +21,35 @@
   navigation: auto;
 }
 
+/* The outgoing page leaves quickly and the incoming one takes its time — the
+   asymmetry is what stops a cross-fade reading as a dissolve. Both carry a
+   short drift and a soft blur so the change is something you watch happen
+   rather than something you notice afterwards. Transforms here are safe on the
+   root snapshot, which is viewport-sized whatever the page height (see above).*/
 ::view-transition-old(root) {
-  animation: page-fade-out var(--dur-fast) var(--ease-out) both;
+  animation: page-fade-out var(--dur-base) var(--ease-out) both;
 }
 ::view-transition-new(root) {
-  animation: page-fade-in var(--dur-base) var(--ease-out) both;
+  animation: page-fade-in var(--dur-slow) var(--ease-entrance) both;
 }
 
 @keyframes page-fade-in {
   from {
     opacity: 0;
+    transform: translateY(16px);
+    filter: blur(7px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
   }
 }
 @keyframes page-fade-out {
   to {
     opacity: 0;
+    transform: translateY(-8px);
+    filter: blur(5px);
   }
 }
 
@@ -43,12 +57,18 @@
    animation on one element, with none of the snapshot constraints above. */
 @supports not (view-transition-name: none) {
   .pane {
-    animation: pane-enter var(--dur-base) var(--ease-out) both;
+    animation: pane-enter var(--dur-slow) var(--ease-entrance) both;
   }
   @keyframes pane-enter {
     from {
       opacity: 0;
-      transform: translateY(10px);
+      transform: translateY(18px);
+      filter: blur(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+      filter: blur(0);
     }
   }
 }
@@ -158,18 +178,31 @@ body {
    Retuned: 12px over --dur-base read as a twitch — too short a distance to be
    a movement and too quick to be a settle, which is what made it look like a
    stutter rather than an entrance. A longer lift over --dur-slow, on an ease
-   that decelerates hard, arrives instead of snapping. Opacity leads slightly
-   so the card is legible before it finishes moving. */
+   that decelerates hard, arrives instead of snapping.
+
+   Deepened 2026-08-09: a longer lift and a soft defocus that resolves as the
+   card settles. The blur is what gives the reveal depth — a fade plus a slide
+   is flat by construction, because nothing about it says the card was ever
+   anywhere but on the page. Opacity still leads so the card is legible before
+   it has finished moving.
+
+   blur(0) is not free: it keeps a compositing layer and a stacking context on
+   every card for the life of the page. revealOnScroll in js/util.js drops the
+   filter to `none` once the transition finishes, so a forty-card grid does not
+   carry forty layers around afterwards. */
 .reveal {
   opacity: 0;
-  transform: translateY(22px);
+  transform: translateY(30px);
+  filter: blur(6px);
   transition:
-    opacity calc(var(--dur-slow) * 0.7) var(--ease-out),
-    transform var(--dur-slow) var(--ease-out);
+    opacity calc(var(--dur-slow) * 0.66) var(--ease-entrance),
+    transform var(--dur-slow) var(--ease-entrance),
+    filter calc(var(--dur-slow) * 0.8) var(--ease-entrance);
 }
 .reveal.is-visible {
   opacity: 1;
   transform: none;
+  filter: blur(0);
 }
 
 /* Loading skeletons (used on the home grid and the project page). */
@@ -211,6 +244,7 @@ body {
   .reveal {
     opacity: 1;
     transform: none;
+    filter: none;
     transition: none;
   }
   .skeleton::after {
@@ -367,8 +401,11 @@ li + .rail__client {
 .rail__group::details-content {
   block-size: 0;
   overflow: hidden;
-  transition: block-size var(--dur-base) var(--ease-out),
-              content-visibility var(--dur-base) allow-discrete;
+  /* Longer than a hover but well short of an entrance: this answers a click, so
+     it has to feel immediate, while still being slow enough to read as the list
+     unrolling rather than appearing. */
+  transition: block-size calc(var(--dur-base) * 1.5) var(--ease-entrance),
+              content-visibility calc(var(--dur-base) * 1.5) allow-discrete;
 }
 .rail__group[open]::details-content {
   block-size: auto;
@@ -388,9 +425,13 @@ li + .rail__client {
 .rail__foot a:hover {
   color: var(--chalk);
 }
+/* Wraps since the rail narrowed to 164px (2026-08-09): three names on one line
+   fitted the old width and now push LinkedIn off the edge. Wrapping keeps all
+   three readable rather than trading a legible name for a tidy single row. */
 .rail__social {
   display: flex;
-  gap: var(--space-s);
+  flex-wrap: wrap;
+  gap: var(--space-2xs) var(--space-s);
 }
 /* The clock was easy to miss at 40% opacity. Raised to the same contrast as the
    footer links and given a live dot, so it reads as current studio time rather

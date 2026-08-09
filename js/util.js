@@ -74,17 +74,25 @@ export function revealOnScroll(elements) {
   // reveal itself runs longer: the two used to add up to a queue you could
   // watch working down the grid. Overlapping the reveals instead reads as one
   // movement with a leading edge, which is the point of a stagger.
-  const STEP_MS = 45;
+  //
+  // The step went back up (45ms -> 70ms) when the reveal itself was lengthened
+  // and deepened: against a 760ms settle a 45ms gap was small enough that the
+  // grid arrived as one block again, which is the thing the stagger exists to
+  // prevent.
+  const STEP_MS = 70;
   const MAX_STEPS = 8;
   list.forEach((node, i) => {
     node.style.transitionDelay = `${Math.min(i, MAX_STEPS) * STEP_MS}ms`;
-    node.addEventListener(
-      'transitionend',
-      () => {
-        node.style.transitionDelay = '';
-      },
-      { once: true }
-    );
+    // Not `once`: two properties are cleaned up here and they finish at
+    // different times. The delay is cleared so it cannot slow a later
+    // transition on the same element, and the filter is dropped to `none` —
+    // blur(0) still costs a compositing layer and a stacking context, which on
+    // a forty-card grid is forty of each kept for the life of the page.
+    node.addEventListener('transitionend', (event) => {
+      if (event.target !== node) return; // a child's transition is not ours
+      if (event.propertyName === 'transform') node.style.transitionDelay = '';
+      if (event.propertyName === 'filter') node.style.filter = 'none';
+    });
     io.observe(node);
   });
 

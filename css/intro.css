@@ -3,9 +3,12 @@
    js/intro-gate.js stamps before first paint and js/intro.js removes on exit,
    so with JS off none of it applies and the site is the site.
 
-   Motion follows the studio rule: fades and short translations only. Nothing
-   scales, nothing bounces, nothing spins. The reveal reads as considered
-   because it is SLOW and STAGGERED, not because it does anything clever. */
+   Motion vocabulary: fade, a short translation, and a soft defocus that
+   resolves. Nothing scales, nothing bounces, nothing spins. The blur is what
+   was missing when this first shipped — a fade plus a slide is flat by
+   construction, because nothing in it says the element was ever anywhere but
+   flush on the panel. The reveal still reads as considered because it is SLOW
+   and STAGGERED, not because it does anything clever. */
 
 .intro {
   display: none;
@@ -50,7 +53,7 @@
   align-items: center;
   text-align: center;
   gap: var(--space-m);
-  max-width: 44rem;
+  max-width: 36rem;
   width: 100%;
 }
 
@@ -67,7 +70,7 @@
   opacity: 0;
 }
 .intro.is-playing .intro__stage {
-  animation: intro-rise var(--dur-slow) var(--ease-out) both;
+  animation: intro-rise var(--dur-slow) var(--ease-entrance) both;
   animation-delay: var(--intro-delay, 0ms);
 }
 
@@ -77,11 +80,13 @@
 @keyframes intro-rise {
   from {
     opacity: 0;
-    transform: translateY(16px);
+    transform: translateY(26px);
+    filter: blur(10px);
   }
   to {
     opacity: 1;
     transform: none;
+    filter: blur(0);
   }
 }
 
@@ -93,20 +98,26 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: clamp(5rem, 16vh, 9rem);
+  min-height: clamp(4rem, 13vh, 7.2rem);
 }
 .intro.is-playing .intro__logo {
   animation-name: intro-rise-logo;
-  animation-duration: 1100ms;
+  animation-duration: var(--dur-entrance);
 }
+/* Further out of focus and further down than the stages below it, over the
+   longest duration in the system. This is the one element on the site that gets
+   the visitor's whole attention, so it is the one place a really slow reveal
+   costs nothing. */
 @keyframes intro-rise-logo {
   from {
     opacity: 0;
-    transform: translateY(22px);
+    transform: translateY(38px);
+    filter: blur(18px);
   }
   to {
     opacity: 1;
     transform: none;
+    filter: blur(0);
   }
 }
 
@@ -114,8 +125,8 @@
   display: block;
   /* Big, per the brief, but still bounded by the viewport's short side so a
      landscape phone does not lose the rest of the sequence below it. */
-  max-height: clamp(7rem, 26vh, 15rem);
-  max-width: min(28rem, 78vw);
+  max-height: clamp(5.6rem, 21vh, 12rem);
+  max-width: min(22.5rem, 70vw);
   width: auto;
   height: auto;
   object-fit: contain;
@@ -145,7 +156,7 @@
 
 /* ---- Name ---------------------------------------------------------------- */
 .intro__name {
-  --intro-delay: 640ms;
+  --intro-delay: 660ms;
   font-family: var(--font-display);
   font-weight: 800;
   font-size: var(--step-2);
@@ -166,7 +177,12 @@
    carry the accent so the acronym is legible as an acronym without drawing the
    letters out into a separate device. */
 .intro__spell {
-  --intro-delay: 980ms;
+  --intro-delay: 1020ms;
+  /* Each term reveals on its own, left to right, so the acronym is SPELLED OUT
+     rather than produced whole — you watch C, T, R, L land in order under the
+     name they came from. The <ul> is therefore not a stage itself (it carries
+     no .intro__stage and no opacity of its own); it only holds the base delay
+     its children count from. */
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -178,7 +194,18 @@
 }
 .intro__spell li {
   list-style: none;
+  opacity: 0;
 }
+.intro.is-playing .intro__spell li {
+  animation: intro-rise var(--dur-slow) var(--ease-entrance) both;
+  /* --i is set per item below. Inline styles are not an option: the CSP has no
+     'unsafe-inline' in style-src, and there are only ever four terms. */
+  animation-delay: calc(var(--intro-delay) + var(--i) * 150ms);
+}
+.intro__spell li:nth-child(1) { --i: 0; }
+.intro__spell li:nth-child(2) { --i: 1; }
+.intro__spell li:nth-child(3) { --i: 2; }
+.intro__spell li:nth-child(4) { --i: 3; }
 .intro__spell b {
   font-family: var(--font-display);
   font-weight: 800;
@@ -188,7 +215,7 @@
 /* ---- Motto ----------------------------------------------------------------
    A hairline above it separates the acronym from the line it resolves into. */
 .intro__motto {
-  --intro-delay: 1320ms;
+  --intro-delay: 1760ms;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -210,7 +237,7 @@
 
 /* ---- Enter ---------------------------------------------------------------- */
 .intro__cta {
-  --intro-delay: 1640ms;
+  --intro-delay: 2120ms;
   margin-block-start: var(--space-s);
   background: var(--paper);
   /* NOT var(--ink): that token is the page GROUND, and it flips to the warm
@@ -248,10 +275,13 @@
    simply presented composed, all at once. */
 @media (prefers-reduced-motion: reduce) {
   .intro__stage,
+  .intro__spell li,
   .intro.is-playing .intro__stage,
+  .intro.is-playing .intro__spell li,
   .intro.is-playing .intro__logo {
     animation: none;
     opacity: 1;
+    filter: none;
   }
   .intro.is-leaving {
     transition: none;

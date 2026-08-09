@@ -72,6 +72,14 @@ rows into the existing `site_content`.
 The left rail is a persistent shell. It is identical on every page. Only the right
 pane changes. Do not re-render the rail on navigation.
 
+**Every category disclosure renders CLOSED** (2026-08-09). The rail used to open
+each populated category on a first visit and remember the open set for the
+session, so visitors met a wall of expanded lists nobody asked for. A group now
+opens only when someone presses it — including the category of the project being
+viewed, which used to be force-opened underneath you. Nothing persists;
+`ct:rail:open` is gone, and the cookie notice no longer claims to store menu
+state.
+
 ## Client grouping (added 2026-07-24)
 Repeat work for one client reads as ONE body of work, in all three surfaces:
 - **Home grid** — a client with 2+ published projects collapses into a single
@@ -170,8 +178,12 @@ markup at the top of index.html) is the home page's arrival: logo, `CTRL + T`,
 CTRL spelled out (Creativity Transformation Resonance Language), the motto
 Command To Transform, then "Explore my workspace".
 
-- Index only, and once per browser session (`ct:intro` in sessionStorage), so
-  returning home from a project page mid-visit does not replay it.
+- Index only, and it plays EVERY load — reload, or any arrival back at the site
+  (Jesse's call, 2026-08-09). It briefly ran once per session; nothing is
+  remembered about it now and there is no state to clear.
+- The acronym is the one multi-part stage: each term animates on its own
+  `--i`-derived delay, so C/T/R/L land in order. The `<ul>` therefore carries no
+  `.intro__stage` — it only holds the base delay its children count from.
 - `intro-gate.js` is render-blocking and NOT a module, like theme-init.js: a
   deferred module would drop the panel onto a page already being read. It only
   stamps `data-intro="pending"`; intro.css keys everything (display, the scroll
@@ -205,4 +217,23 @@ One template (project.html), three renderers. Never fork the template.
 
 ## Style
 Type and motion are the studio's signature. Restraint reads as confidence.
-Nothing bounces. Nothing spins. Fades and short translations only.
+Nothing bounces. Nothing spins.
+
+**Motion vocabulary (widened 2026-08-09): fade, short translation, and a soft
+blur that resolves.** The old fade-plus-slide read as shallow — a slide alone
+never says the element was anywhere but flush on the page, so entrances
+registered as "something changed" rather than as movement you watched. Entrance
+durations went up with it (`--dur-slow` 560ms→760ms, plus a new `--dur-entrance`
+for the intro logo) on a new `--ease-entrance` with a longer tail. Interaction
+timings (`--dur-fast`/`--dur-base`) are unchanged in character: a hover must
+answer a pointer immediately.
+
+`filter: blur(0)` is not free — it keeps a compositing layer and a stacking
+context for the life of the page. Anything that blurs many elements must drop
+the filter to `none` when it finishes; `revealOnScroll` in js/util.js does this
+on transitionend, which is why its listener is not `{once: true}`.
+
+**The interface scale came down ~20% (2026-08-09).** The reduction is graduated,
+not flat: display type and all spacing took the full fifth, the two prose steps
+took far less, because a literal 20% puts body copy near 11px. `--rail-width`
+205→164px and the grid's min column 200→164px went with it.

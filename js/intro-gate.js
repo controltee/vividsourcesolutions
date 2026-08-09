@@ -7,16 +7,13 @@
 // :root[data-intro="pending"] — display, the scroll lock, everything — so with
 // JS off the overlay never shows and the site behaves exactly as it did before.
 //
-// Index page only. The sequence is an ARRIVAL, so it plays once per browser
-// session: returning home from a project page mid-visit must not replay it.
+// Index page only, and it plays EVERY time the home page is loaded — on a
+// reload, and on every arrival back at the site. It briefly ran once per
+// browser session; that was changed 2026-08-09 on Jesse's call. The sequence is
+// the front door, not a first-visit tutorial, so nothing is remembered about it
+// and there is no state to clear.
 (function () {
   var root = document.documentElement;
-
-  try {
-    if (sessionStorage.getItem('ct:intro') === 'seen') return;
-  } catch (e) {
-    /* storage blocked — play it, which is the right default for a first visit */
-  }
 
   root.dataset.intro = 'pending';
 

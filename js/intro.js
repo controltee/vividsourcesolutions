@@ -16,7 +16,6 @@
 // logo depends on the network.
 import { qs, el } from './util.js';
 
-const SEEN_KEY = 'ct:intro';
 const SITE_KEY = 'ct:site'; // shared with shell.js — same rows, same session cache
 
 // How long the sequence waits for the uploaded logo before starting without it.
@@ -31,14 +30,6 @@ const root = document.documentElement;
 // The gate's failsafe would yank the panel mid-read. Cancel it first, before
 // anything below can throw.
 clearTimeout(window.__ctIntroFallback);
-
-function markSeen() {
-  try {
-    sessionStorage.setItem(SEEN_KEY, 'seen');
-  } catch {
-    /* storage blocked — the sequence replays next load, which is survivable */
-  }
-}
 
 // --- Logo -------------------------------------------------------------------
 // Same site_content row and same session cache shell.js uses, so on any load
@@ -83,7 +74,6 @@ async function resolveLogo() {
 function dismiss(panel) {
   if (panel.dataset.leaving) return; // click + Escape landing together
   panel.dataset.leaving = '1';
-  markSeen();
 
   const finish = () => {
     root.removeAttribute('data-intro');
