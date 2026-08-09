@@ -1,10 +1,9 @@
-﻿// shell.js — renders the persistent rail nav from live data, keeps disclosure
-// state across navigation, and drives the mobile drawer.
+﻿// shell.js — renders the persistent rail nav from live data and drives the
+// mobile drawer. Disclosure state is deliberately NOT kept: see renderNav.
 
 import { qs, qsa, el, slugify } from './util.js';
 import { supabase } from './supabase.js';
 
-const OPEN_KEY = 'ct:rail:open';
 const NAV_KEY = 'ct:nav:v4'; // v4: client labels follow card_title — bump invalidates old caches
 const NAV_TTL = 5 * 60 * 1000; // 5 minutes
 const SITE_KEY = 'ct:site';
@@ -117,26 +116,15 @@ function nestRepeatClients(projects) {
   return items;
 }
 
-// --- Disclosure open-state persistence -------------------------------------
-function readOpenState(groups) {
-  try {
-    const stored = JSON.parse(sessionStorage.getItem(OPEN_KEY));
-    if (Array.isArray(stored)) return new Set(stored);
-  } catch {
-    /* corrupt value — fall through to default */
-  }
-  // First visit: open categories that have work; leave empty ones collapsed.
-  const populated = new Set(groups.filter((g) => g.items.length).map((g) => g.slug));
-  persistOpenState(populated);
-  return populated;
-}
-
-function persistOpenState(set) {
-  const slugs = set ?? new Set(qsa('.rail__group[open]').map((d) => d.dataset.slug));
-  sessionStorage.setItem(OPEN_KEY, JSON.stringify([...slugs]));
-}
-
 // --- Nav render ------------------------------------------------------------
+// Every category renders CLOSED (2026-08-09). The rail used to open each
+// populated category on a first visit and then remember what you had open for
+// the rest of the session, which meant arriving at a wall of expanded lists
+// nobody had asked to see. A disclosure now opens when, and only when, someone
+// presses it — including the category of the project being viewed, which used
+// to be force-opened underneath you.
+//
+// Nothing persists, so `ct:rail:open` in sessionStorage is gone with it.
 function projectItem(project, activeSlug) {
   const active = project.slug === activeSlug;
   return el(
@@ -182,21 +170,9 @@ function clientItem(item, active) {
   );
 }
 
-function groupHasActive(group, active) {
-  return group.items.some((item) =>
-    item.type === 'client'
-      ? item.slug === active.client || item.projects.some((p) => p.slug === active.project)
-      : item.slug === active.project
-  );
-}
-
 function renderNav(groups, active) {
   const nav = qs('#rail-nav');
   if (!nav) return;
-
-  const openSlugs = readOpenState(groups);
-  const activeGroup = groups.find((g) => groupHasActive(g, active));
-  if (activeGroup) openSlugs.add(activeGroup.slug); // auto-open the active project's group
 
   const details = groups.map((group) => {
     const empty = group.items.length === 0;
@@ -217,12 +193,10 @@ function renderNav(groups, active) {
       {
         class: empty ? 'rail__group rail__group--empty' : 'rail__group',
         'data-slug': group.slug,
-        open: openSlugs.has(group.slug),
       },
       summary,
       list
     );
-    groupEl.addEventListener('toggle', () => persistOpenState());
     return groupEl;
   });
 
@@ -326,7 +300,7 @@ function initThemeToggle() {
 
 // --- Cookie notice ----------------------------------------------------------
 // The site sets no advertising/analytics cookies — only functional storage
-// (theme, menu state, a short nav cache). So this is a dismissible NOTICE, not
+// (theme, a short nav cache). So this is a dismissible NOTICE, not
 // a consent gate: there is nothing to withhold pending consent.
 const COOKIE_KEY = 'ct:cookie-notice';
 
@@ -346,7 +320,7 @@ function initCookieNotice() {
     el(
       'p',
       { class: 'cookie-notice__text' },
-      'We only store what makes this site work: your theme choice and menu state. No ad tracking. ',
+      'We only store what makes this site work: your theme choice and a short cache of the project list. No ad tracking. ',
       el('a', { href: '/cookies.html' }, 'Cookie policy')
     ),
     accept

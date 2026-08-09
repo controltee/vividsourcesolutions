@@ -61,12 +61,24 @@ rows into the existing `site_content`.
 - All colors and fonts come from css/tokens.css. Never hardcode a hex value.
 - Every <img> has explicit width and height attributes.
 - All project images go through scripts/optimize-images.mjs. No raw JPEG/PNG in production.
+- Client logos in the home marquee render in their OWN colours (2026-08-09). The
+  old brightness(0)/invert(1) flattening is gone. A dark-ink logo on a
+  transparent background is therefore low-contrast on the dark ground — fix that
+  with a better export in /admin, never by reintroducing a blanket filter.
 - Service role key never touches this repo.
 - Respect prefers-reduced-motion on every animation.
 
 ## Layout model
 The left rail is a persistent shell. It is identical on every page. Only the right
 pane changes. Do not re-render the rail on navigation.
+
+**Every category disclosure renders CLOSED** (2026-08-09). The rail used to open
+each populated category on a first visit and remember the open set for the
+session, so visitors met a wall of expanded lists nobody asked for. A group now
+opens only when someone presses it — including the category of the project being
+viewed, which used to be force-opened underneath you. Nothing persists;
+`ct:rail:open` is gone, and the cookie notice no longer claims to store menu
+state.
 
 ## Client grouping (added 2026-07-24)
 Repeat work for one client reads as ONE body of work, in all three surfaces:
@@ -119,6 +131,17 @@ back to category order, and a project with no position sorts last so newly added
 work lands at the end. Saving a project under a client assigns it the next free
 position; moving it to another client re-positions it; detaching clears it.
 
+**The card image and the page banner are two different files** (sql/009, added
+2026-08-09). One image cannot serve both: a 16:9 banner cropped into a home card
+loses its edges, and a card-shaped crop is far too tall across a page header.
+- `clients.cover_url` + `cover_w`/`cover_h` — the HOME CARD. `cover_url` is the
+  column 006 added and then left dead; 009 only adds its dimensions.
+- `clients.banner_url` + `banner_w`/`banner_h` — the WIDE banner on client.html.
+The card falls back cover_url → banner_url → the first project's cover, so every
+client renders exactly as before until a card image is actually set. The probe
+for whether 009 has run is `'cover_w' in client`; without it the admin hides the
+card field and the two surfaces share banner_url as they always did.
+
 The client editor's card section edits the PARENT card: its banner
 (`clients.banner_url` + the `banner_w`/`banner_h` added by 006) and subtitle
 (`clients.description`).
@@ -139,6 +162,56 @@ Anything reading `clients` uses `select('*')`, never a named column list:
 PostgREST errors on a column it doesn't know, so a named list would break every
 page until 006 is applied in the dashboard.
 
+## Theme, chrome and the opening sequence (added 2026-08-09)
+
+**Dark is the default.** `js/theme-init.js` now stamps `data-theme` on `<html>`
+on EVERY load — `light` only if the visitor chose it, `dark` otherwise — so the
+OS preference no longer decides a first visit. The `@media (prefers-color-scheme:
+light)` block in tokens.css is consequently only reachable with JS disabled; it
+is kept as that fallback, not as a live path. The rail toggle still wins and
+still persists to `ct:theme`.
+
+**Scrollbars are the studio's, not the browser's.** tokens.css paints them in
+`--paper` on no track, plus `color-scheme` so native chrome sits on the right
+ground. `scrollbar-color` INHERITS so `:root` reaches every scroll container;
+`scrollbar-width` does NOT, hence the one `*` rule. The `::-webkit-scrollbar`
+block below it is for Safari < 18.2 only — Chromium ignores those pseudo-elements
+once the standard properties are set.
+
+**Never use `--ink` as a foreground on a `--paper` fill.** `--ink` is the page
+GROUND and flips to the warm off-white on the light theme, so ink-on-paper turns
+pale-on-yellow. Use `--moss` (a brand colour, dark in both themes) for text on a
+yellow fill, and `--accent-ink` for accent text/outlines. The skip link had this
+bug and was fixed at the same time as the intro button.
+
+**The opening sequence** (`css/intro.css`, `js/intro.js`, `js/intro-gate.js`,
+markup at the top of index.html) is the home page's arrival: logo, `CTRL + T`,
+CTRL spelled out (Creativity Transformation Resonance Language), the motto
+Command To Transform, then "Explore my workspace".
+
+- Index only, and it plays EVERY load — reload, or any arrival back at the site
+  (Jesse's call, 2026-08-09). It briefly ran once per session; nothing is
+  remembered about it now and there is no state to clear.
+- The acronym is the one multi-part stage: each term animates on its own
+  `--i`-derived delay, so C/T/R/L land in order. The `<ul>` therefore carries no
+  `.intro__stage` — it only holds the base delay its children count from.
+- `intro-gate.js` is render-blocking and NOT a module, like theme-init.js: a
+  deferred module would drop the panel onto a page already being read. It only
+  stamps `data-intro="pending"`; intro.css keys everything (display, the scroll
+  lock) off that attribute, so with JS off the panel never shows.
+- The gate arms a 6s failsafe that clears the attribute. `intro.js` cancels it
+  as its first statement. That pair is what stops a broken module stranding a
+  visitor behind a panel with a dead button.
+- `intro.js` deliberately does NOT statically import `js/supabase.js`. A module
+  whose dependency graph fails to resolve never evaluates at all, so an esm.sh
+  outage would take the sequence down with it — no internal try/catch can help.
+  The client is pulled in with a dynamic `import()` instead; only the logo
+  depends on the network, and it is raced against a 600ms budget after which the
+  "Control Tee" wordmark in the markup is the centrepiece.
+- Every stage animates with BOTH keyframe ends stated. An implicit `to` resolves
+  to the element's own computed style, which here is the `opacity: 0` the stages
+  start at — the reveal would fade in and straight back out.
+
 ## Two media modes
 Projects have a `layout` field: 'gallery' | 'deck' | 'reel'.
 - gallery = mixed-aspect posters in a column-count grid, click opens lightbox
@@ -149,10 +222,60 @@ Projects have a `layout` field: 'gallery' | 'deck' | 'reel'.
 - reel    = video, poster frame + click to play
 One template (project.html), three renderers. Never fork the template.
 
+## Video (added 2026-08-09)
+Videos are uploaded from the SAME place as gallery images — the per-project
+media manager in /admin — and land in `project_media` with `kind: 'video'`.
+
+- **Uploaded as-is.** Images are re-encoded to WebP and capped at 1920px; there
+  is no in-browser transcode for video worth having, so what is exported is what
+  ships. Hence the 50MB guard (Supabase's default per-file ceiling) and the
+  advice on the field: MP4, H.264 + AAC, so every browser can play it.
+- **Any aspect ratio.** The intrinsic size is read from the file's metadata at
+  upload and stored in `width`/`height`. `sizeVideo` in js/project.js turns that
+  into a CSS `aspect-ratio`, so vertical, square and ultrawide each get their own
+  box and it is held before a byte arrives. Never crop video to a fixed shape.
+- Tall footage is capped at `VIDEO_MAX_VH` (78vh) — expressed as a MAX-WIDTH
+  derived from the ratio, not a max-height, because capping height would leave a
+  full-width box with the picture letterboxed inside it. The cap lives in
+  `--video-max` on the figure so the description can match the video's width.
+- Dimensions may be null (an old row, or a codec the uploading browser could not
+  decode). css/project.css then falls back to 16:9 at full width — never let a
+  video box collapse.
+- `project_media.caption` is the VIDEO DESCRIPTION and is rendered in every mode,
+  deck included. That is the one exception to deck's no-captions rule: a video
+  already interrupts the seam with its own controls.
+- The probe is metadata on the UPLOADED url, not the local file: the CSP's
+  media-src allows this origin and the Supabase host, and neither blob: nor
+  data:. Do not widen it for a preview.
+- In gallery mode the lightbox list is built from IMAGES ONLY and indexed
+  against that filtered list. Indexing against `media` puts every poster after a
+  video one off, which opens the wrong image.
+
 ## Commands
 - npm run img -- <folder>   (inside /scripts) — optimize a batch of images
 - git push origin main      — deploy (Vercel builds from the remote; no CLI here)
 
 ## Style
 Type and motion are the studio's signature. Restraint reads as confidence.
-Nothing bounces. Nothing spins. Fades and short translations only.
+Nothing bounces. Nothing spins.
+
+**Motion vocabulary (widened 2026-08-09): fade, short translation, and a soft
+blur that resolves.** The old fade-plus-slide read as shallow — a slide alone
+never says the element was anywhere but flush on the page, so entrances
+registered as "something changed" rather than as movement you watched. Entrance
+durations went up with it (`--dur-slow` 560ms→760ms, plus a new `--dur-entrance`
+for the intro logo) on a new `--ease-entrance` with a longer tail. Interaction
+timings (`--dur-fast`/`--dur-base`) are unchanged in character: a hover must
+answer a pointer immediately.
+
+`filter: blur(0)` is not free — it keeps a compositing layer and a stacking
+context for the life of the page. Anything that blurs many elements must drop
+the filter to `none` when it finishes; `revealOnScroll` in js/util.js does this
+on transitionend, which is why its listener is not `{once: true}`.
+
+**The interface scale came down ~20% (2026-08-09), then type alone by another
+~6%.** The reduction is graduated, not flat: display type and all spacing took
+the full fifth, the two prose steps took far less, because a literal 20% puts
+body copy near 11px. `--rail-width` 205→164px and the grid's min column
+200→164px went with it. The second pass moved the type steps ONLY — spacing, the
+rail and the grid stayed put.

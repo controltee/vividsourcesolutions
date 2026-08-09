@@ -70,37 +70,105 @@
      carry every paragraph and every caption on the site, and prose that small
      is a real barrier to reading. Everything above them is display type, where
      the smaller sizes are the point. */
-  --step--1: clamp(0.72rem, 0.70rem + 0.08vw, 0.76rem);
-  --step-0:  clamp(0.88rem, 0.85rem + 0.14vw, 0.95rem);
-  --step-1:  clamp(0.95rem, 0.88rem + 0.34vw, 1.15rem);
-  --step-2:  clamp(1.15rem, 1.00rem + 0.70vw, 1.60rem);
-  --step-3:  clamp(1.50rem, 1.25rem + 1.30vw, 2.50rem);
+     Taken down again 2026-08-09 — the interface still read about a fifth too
+     large. The reduction is GRADUATED, not a flat 20%: display type takes the
+     full fifth, because that is what makes a page feel zoomed in, while the two
+     prose steps take far less. A literal 20% would put body copy near 11px and
+     captions near 9px, which is the barrier to reading the note above is about.
+     Spacing takes the full fifth too, and between smaller display type and
+     tighter spacing the page reads as the zoom-out asked for. */
+     Nudged again the same day, by roughly another 6% on type ONLY — spacing,
+     the rail and the grid stayed where the previous pass put them, because the
+     ask was for the text specifically rather than another round on everything.
+     --step--1 barely moves: it is already at the floor described above. */
+  --step--1: clamp(0.69rem, 0.67rem + 0.07vw, 0.72rem);
+  --step-0:  clamp(0.78rem, 0.75rem + 0.12vw, 0.83rem);
+  --step-1:  clamp(0.79rem, 0.73rem + 0.28vw, 0.94rem);
+  --step-2:  clamp(0.92rem, 0.80rem + 0.56vw, 1.26rem);
+  --step-3:  clamp(1.14rem, 0.96rem + 1.00vw, 1.88rem);
 
   /* Space — scaled with the type above, so the rhythm between them holds. */
-  --space-3xs: 0.2rem;
-  --space-2xs: 0.375rem;
-  --space-xs:  0.5rem;
-  --space-s:   0.7rem;
-  --space-m:   1rem;
-  --space-l:   1.75rem;
-  --space-xl:  2.75rem;
+  --space-3xs: 0.16rem;
+  --space-2xs: 0.3rem;
+  --space-xs:  0.4rem;
+  --space-s:   0.56rem;
+  --space-m:   0.8rem;
+  --space-l:   1.4rem;
+  --space-xl:  2.2rem;
 
   /* Layout */
-  --rail-width: 205px;
+  --rail-width: 164px;
   --rail-breakpoint: 900px;
 
-  /* Motion */
+  /* Motion — retuned 2026-08-09. Entrances used to be short enough that they
+     read as a flicker rather than a movement: the eye registered that something
+     had changed without ever seeing it change. Interaction timings are
+     UNCHANGED in character (a hover must answer a pointer immediately); it is
+     the entrances that got the length, and a softer curve to land on. */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  /* A longer tail than --ease-out: it covers most of the distance early and
+     then settles, which is what makes a long entrance read as arriving rather
+     than as merely slow. Entrances only. */
+  --ease-entrance: cubic-bezier(0.16, 1, 0.3, 1);
   --dur-fast: 160ms;
-  --dur-base: 280ms;
+  --dur-base: 300ms;
   /* For entrances only — a scroll reveal or a page arriving. Long enough to
      read as a considered settle rather than a snap, and still short enough
      that nobody waits on it. Never use it for a hover: --dur-fast/base are
      what respond to a pointer. */
-  --dur-slow: 560ms;
+  --dur-slow: 760ms;
+  /* The one step above --dur-slow, for a full-attention arrival: the intro
+     panel's logo, and nothing that happens while someone is reading. */
+  --dur-entrance: 1200ms;
 
   /* Enable keyword height interpolation (progressive enhancement) */
   interpolate-size: allow-keywords;
+
+  /* Tells the browser which ground its own UI sits on, so native chrome —
+     scrollbars, form controls, the flash behind a page load — is painted dark
+     rather than defaulting to a light widget on a dark page. Dark is the
+     default theme (see js/theme-init.js), so it is the default here too. */
+  color-scheme: dark;
+
+  /* ---- Scrollbars --------------------------------------------------------
+     The default bar is browser chrome: a pale trough that cuts across the
+     studio's ground wherever a region overflows — most visibly the rail, which
+     scrolls as soon as enough category disclosures are open. These paint it in
+     the signature yellow on no trough at all, so an overflowing region reads as
+     part of the page. Standard properties first; the WebKit pseudo-elements
+     below cover Safari and older Chromium, which ignore them. */
+  scrollbar-color: var(--paper) transparent;
+}
+
+/* scrollbar-color INHERITS, so setting it on :root above reaches every scroll
+   container. scrollbar-width does NOT — set only on :root it would thin the
+   page's own bar and leave the rail's at full width. Hence the universal
+   selector: it is the only way to reach a scroll container this file does not
+   know about, and there is no cheaper way to say "every scrollbar". */
+* {
+  scrollbar-width: thin;
+}
+
+/* The thumb is inset by a transparent border rather than sized down, which
+   keeps the hit area at full width while the visible bar stays slim. */
+::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--paper);
+  background-clip: padding-box;
+  border: 3px solid transparent;
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--paper);
+  background-clip: padding-box;
+  border-width: 2px;
 }
 
 /* ---- Light theme -------------------------------------------------------- */
@@ -109,9 +177,11 @@
    --paper / --moss (brand accents) stay; --accent-ink moves to moss for legible
    accent text/outlines on the pale ground.
 
-   Applied when the OS prefers light AND the visitor hasn't forced dark, or when
-   the visitor explicitly chooses light. The theme toggle stamps data-theme on
-   <html>, which wins over the OS preference in both directions. */
+   Since 2026-08-09 theme-init.js stamps data-theme on <html> on every load —
+   'light' only if the visitor chose it, 'dark' otherwise — so the OS media
+   query below is now only reachable when that script did not run at all (JS
+   disabled). It is kept as that fallback, not as the normal path. The toggle
+   still wins in both directions. */
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
     --ink:      #f7f5ee; /* warm off-white ground */
@@ -121,10 +191,12 @@
     --chalk-60: rgba(0, 0, 0, 0.62);
     --chalk-40: rgba(0, 0, 0, 0.42);
     --accent-ink: var(--moss);
+    color-scheme: light;
   }
 }
 
 :root[data-theme="light"] {
+  color-scheme: light;
   --ink:      #f7f5ee;
   --ink-80:   #ece9df;
   --ink-60:   #e0ddd1;

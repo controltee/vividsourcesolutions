@@ -1,0 +1,289 @@
+/* intro.css — the opening sequence on the home page.
+   Index only. Everything here is keyed off :root[data-intro="pending"], which
+   js/intro-gate.js stamps before first paint and js/intro.js removes on exit,
+   so with JS off none of it applies and the site is the site.
+
+   Motion vocabulary: fade, a short translation, and a soft defocus that
+   resolves. Nothing scales, nothing bounces, nothing spins. The blur is what
+   was missing when this first shipped — a fade plus a slide is flat by
+   construction, because nothing in it says the element was ever anywhere but
+   flush on the panel. The reveal still reads as considered because it is SLOW
+   and STAGGERED, not because it does anything clever. */
+
+.intro {
+  display: none;
+}
+
+:root[data-intro='pending'] .intro {
+  display: grid;
+  place-items: center;
+  position: fixed;
+  inset: 0;
+  z-index: 200; /* above the mobile drawer scrim (10) and the lightbox (50) */
+  background: var(--ink);
+  padding: var(--space-l) var(--space-m);
+  /* The panel itself scrolls if a short viewport cannot hold the sequence, so
+     the button is always reachable. */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* The page behind must not scroll under the panel. Pure CSS, so it cannot get
+   out of step with the overlay the way a JS-toggled body class can. */
+:root[data-intro='pending'] body {
+  overflow: hidden;
+}
+
+/* The panel takes focus on open (it is the dialog container, and everything
+   behind it is inert). It is not a control, so it gets no ring — the button
+   inside it, which is one Tab away, keeps its own. */
+:root[data-intro='pending'] .intro:focus {
+  outline: none;
+}
+
+/* Leaving: the whole panel fades out, then intro.js drops the attribute. */
+.intro.is-leaving {
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+
+.intro__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-m);
+  max-width: 36rem;
+  width: 100%;
+}
+
+/* ---- Staged reveal --------------------------------------------------------
+   Every stage runs the same fade + short lift; only the delay differs, which is
+   what makes it read as one movement with a leading edge rather than five
+   separate animations. `both` holds the from-state, so nothing is visible
+   before its turn.
+
+   The stages only run once .is-playing is set — intro.js sets it after the
+   logo has resolved, so the sequence never starts against an empty slot and
+   then pops. Before that the panel is simply the studio's ground. */
+.intro__stage {
+  opacity: 0;
+}
+.intro.is-playing .intro__stage {
+  animation: intro-rise var(--dur-slow) var(--ease-entrance) both;
+  animation-delay: var(--intro-delay, 0ms);
+}
+
+/* Both ends are stated explicitly. An implicit `to` resolves to the element's
+   own computed style, which here is the opacity: 0 above — the animation would
+   fade the stage in and straight back out to nothing. */
+@keyframes intro-rise {
+  from {
+    opacity: 0;
+    transform: translateY(26px);
+    filter: blur(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+
+/* ---- Logo -----------------------------------------------------------------
+   The centrepiece, and the one stage with its own timing: a longer fade over a
+   slightly longer lift, so it arrives rather than appears. */
+.intro__logo {
+  --intro-delay: 80ms;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: clamp(4rem, 13vh, 7.2rem);
+}
+.intro.is-playing .intro__logo {
+  animation-name: intro-rise-logo;
+  animation-duration: var(--dur-entrance);
+}
+/* Further out of focus and further down than the stages below it, over the
+   longest duration in the system. This is the one element on the site that gets
+   the visitor's whole attention, so it is the one place a really slow reveal
+   costs nothing. */
+@keyframes intro-rise-logo {
+  from {
+    opacity: 0;
+    transform: translateY(38px);
+    filter: blur(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+
+.intro__logo img {
+  display: block;
+  /* Big, per the brief, but still bounded by the viewport's short side so a
+     landscape phone does not lose the rest of the sequence below it. */
+  max-height: clamp(5.6rem, 21vh, 12rem);
+  max-width: min(22.5rem, 70vw);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+/* Same treatment .brand-logo gets in shell.css, and for the same reason: the
+   current mark is monochrome white, which would disappear on the light ground.
+   A visitor who chose light and then opens a new session meets this panel on
+   that ground, so it is a real state, not a hypothetical. Only the data-theme
+   rule is needed here — with JS off the panel never shows at all, so the OS
+   media query shell.css also carries has nothing to cover. */
+:root[data-theme='light'] .intro__logo img {
+  filter: invert(1);
+}
+
+/* Shown when there is no logo_url in site_content, or it did not resolve in
+   time. The studio name in the display face is a legitimate centrepiece, not a
+   placeholder, so a slow fetch costs nothing visible. */
+.intro__wordmark {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: calc(var(--step-3) * 1.5);
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--chalk);
+}
+
+/* ---- Name ---------------------------------------------------------------- */
+.intro__name {
+  --intro-delay: 660ms;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--step-2);
+  letter-spacing: 0.16em;
+  /* letter-spacing leaves a trailing gap after the last glyph, which is inside
+     the box and therefore shifts the visible text off-centre. A negative end
+     margin absorbs exactly that gap. */
+  margin-inline-end: -0.16em;
+  text-transform: uppercase;
+  color: var(--chalk);
+}
+.intro__name-plus {
+  color: var(--accent-ink);
+}
+
+/* ---- CTRL, spelled out ----------------------------------------------------
+   Four terms in a row on a wide screen, stacked on a narrow one. The initials
+   carry the accent so the acronym is legible as an acronym without drawing the
+   letters out into a separate device. */
+.intro__spell {
+  --intro-delay: 1020ms;
+  /* Each term reveals on its own, left to right, so the acronym is SPELLED OUT
+     rather than produced whole — you watch C, T, R, L land in order under the
+     name they came from. The <ul> is therefore not a stage itself (it carries
+     no .intro__stage and no opacity of its own); it only holds the base delay
+     its children count from. */
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2xs) var(--space-m);
+  font-size: var(--step--1);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--chalk-60);
+}
+.intro__spell li {
+  list-style: none;
+  opacity: 0;
+}
+.intro.is-playing .intro__spell li {
+  animation: intro-rise var(--dur-slow) var(--ease-entrance) both;
+  /* --i is set per item below. Inline styles are not an option: the CSP has no
+     'unsafe-inline' in style-src, and there are only ever four terms. */
+  animation-delay: calc(var(--intro-delay) + var(--i) * 150ms);
+}
+.intro__spell li:nth-child(1) { --i: 0; }
+.intro__spell li:nth-child(2) { --i: 1; }
+.intro__spell li:nth-child(3) { --i: 2; }
+.intro__spell li:nth-child(4) { --i: 3; }
+.intro__spell b {
+  font-family: var(--font-display);
+  font-weight: 800;
+  color: var(--accent-ink);
+}
+
+/* ---- Motto ----------------------------------------------------------------
+   A hairline above it separates the acronym from the line it resolves into. */
+.intro__motto {
+  --intro-delay: 1760ms;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-s);
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--step-1);
+  letter-spacing: 0.01em;
+  /* Full-strength, unlike the acronym above it: this is the line the acronym
+     resolves into, and the one worth remembering off the panel. */
+  color: var(--chalk);
+}
+.intro__motto::before {
+  content: '';
+  width: 3rem;
+  height: 1px;
+  background: var(--ink-60);
+}
+
+/* ---- Enter ---------------------------------------------------------------- */
+.intro__cta {
+  --intro-delay: 2120ms;
+  margin-block-start: var(--space-s);
+  background: var(--paper);
+  /* NOT var(--ink): that token is the page GROUND, and it flips to the warm
+     off-white on the light theme — which would put pale text on the yellow
+     fill. --moss is a brand colour rather than a ground, so it stays dark in
+     both themes and keeps this legible. */
+  color: var(--moss);
+  border: 1px solid var(--paper);
+  padding: var(--space-s) var(--space-l);
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--step-0);
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+/* Hover inverts to an outline rather than shifting the fill's tone, so no
+   second yellow has to exist in tokens.css. --accent-ink is the token for
+   exactly this — accent used as text or an outline — and it already resolves
+   to the yellow on the dark ground and the moss on the pale one. */
+.intro__cta:hover {
+  background: transparent;
+  color: var(--accent-ink);
+  border-color: var(--accent-ink);
+}
+.intro__cta:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 3px;
+}
+
+/* ---- Reduced motion -------------------------------------------------------
+   The sequence is the animation, so there is nothing to slow down — it is
+   simply presented composed, all at once. */
+@media (prefers-reduced-motion: reduce) {
+  .intro__stage,
+  .intro__spell li,
+  .intro.is-playing .intro__stage,
+  .intro.is-playing .intro__spell li,
+  .intro.is-playing .intro__logo {
+    animation: none;
+    opacity: 1;
+    filter: none;
+  }
+  .intro.is-leaving {
+    transition: none;
+  }
+}
