@@ -132,6 +132,67 @@ async function uploadImage(file, pathPrefix, label) {
   return { url: data.publicUrl, width, height, bytes: blob.size };
 }
 
+// --- Video ------------------------------------------------------------------
+// Videos are uploaded AS THEY ARE. There is no in-browser transcode worth
+// having, so the file that lands in storage is the file that was picked — which
+// makes what gets exported before upload the thing that matters. Hence the size
+// guard and the hints on the field.
+const MAX_VIDEO_BYTES = 50 * 1024 * 1024; // Supabase's default per-file ceiling
+const WARN_VIDEO_BYTES = 12 * 1024 * 1024;
+
+const isVideoFile = (file) => (file.type || '').startsWith('video/');
+
+/** Intrinsic pixel size of a video, read from its metadata. Resolves to nulls
+ * rather than rejecting: a codec this browser cannot decode should cost the
+ * exact aspect ratio, not the upload. The public page falls back to 16:9 when
+ * the dimensions are unknown.
+ *
+ * Probes the UPLOADED url, not the local file: the CSP's media-src allows this
+ * origin and the Supabase host, and neither blob: nor data:. Probing before
+ * upload would mean widening that policy for a preview, which is not a trade
+ * worth making. */
+function probeVideo(url) {
+  return new Promise((resolve) => {
+    const video = document.createElement('video');
+    let settled = false;
+    const done = (result) => {
+      if (settled) return;
+      settled = true;
+      video.removeAttribute('src');
+      video.load(); // stops the fetch if it is still running
+      resolve(result);
+    };
+    video.preload = 'metadata';
+    video.muted = true;
+    video.addEventListener(
+      'loadedmetadata',
+      () => done({ width: video.videoWidth || null, height: video.videoHeight || null }),
+      { once: true }
+    );
+    video.addEventListener('error', () => done({ width: null, height: null }), { once: true });
+    setTimeout(() => done({ width: null, height: null }), 10000);
+    video.src = url;
+  });
+}
+
+async function uploadVideo(file, pathPrefix, label) {
+  if (file.size > MAX_VIDEO_BYTES) {
+    throw new Error(
+      `${file.name} is ${(file.size / 1024 / 1024).toFixed(0)}MB. The limit is ${MAX_VIDEO_BYTES / 1024 / 1024}MB — export it smaller (1080p, H.264, around 4–8 Mbps) and try again.`
+    );
+  }
+  const ext = (file.name.match(/\.([a-z0-9]+)$/i)?.[1] || 'mp4').toLowerCase();
+  const path = `${pathPrefix}/${label}-${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
+    contentType: file.type || 'video/mp4',
+    upsert: false,
+  });
+  if (error) throw error;
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+  const { width, height } = await probeVideo(data.publicUrl);
+  return { url: data.publicUrl, width, height, bytes: file.size };
+}
+
 function fieldSizeWarning(bytes) {
   return bytes > WARN_BYTES
     ? el(
@@ -1122,16 +1183,19 @@ async function renderGalleryManager(container, project) {
   grid.addEventListener('drop', (e) => e.preventDefault());
 
   function assetCard(asset) {
+    const isVideo = asset.kind === 'video';
     const altInput = el('input', {
       class: 'admin-input',
-      placeholder: 'Alt text (required)',
-      'aria-label': 'Alt text (required)',
+      placeholder: isVideo ? 'Accessible label (required)' : 'Alt text (required)',
+      'aria-label': isVideo ? 'Accessible label (required)' : 'Alt text (required)',
       value: asset.alt || '',
     });
+    // For a video this IS the description, and unlike an image caption it is
+    // rendered in every mode including deck — see renderDeck in js/project.js.
     const captionInput = el('input', {
       class: 'admin-input',
-      placeholder: 'Caption (optional)',
-      'aria-label': 'Caption (optional)',
+      placeholder: isVideo ? 'Description (shown under the video)' : 'Caption (optional)',
+      'aria-label': isVideo ? 'Video description' : 'Caption (optional)',
       value: asset.caption || '',
     });
     const saveBtn = el('button', { class: 'admin-btn admin-btn--icon', type: 'button' }, 'Save');
@@ -1175,7 +1239,7 @@ async function renderGalleryManager(container, project) {
     });
 
     deleteBtn.addEventListener('click', async () => {
-      if (!confirm('Remove this image from the gallery?')) return;
+      if (!confirm(isVideo ? 'Remove this video from the gallery?' : 'Remove this image from the gallery?')) return;
       try {
         await deleteAsset(asset);
       } catch (err) {
@@ -1213,7 +1277,25 @@ async function renderGalleryManager(container, project) {
       'figure',
       { class: 'admin-asset', draggable: 'false', 'data-asset-id': asset.id },
       dragHandle,
-      el('img', { src: asset.media_url, alt: '', width: asset.width || false, height: asset.height || false }),
+      isVideo
+        ? el('video', {
+            src: asset.media_url,
+            controls: true,
+            playsinline: true,
+            preload: 'metadata',
+            width: asset.width || false,
+            height: asset.height || false,
+          })
+        : el('img', { src: asset.media_url, alt: '', width: asset.width || false, height: asset.height || false }),
+      isVideo
+        ? el(
+            'p',
+            { class: 'admin-field__hint' },
+            asset.width
+              ? `Video · ${asset.width}×${asset.height}`
+              : 'Video · size unknown, the page will show it 16:9'
+          )
+        : null,
       altInput,
       captionInput,
       errorEl,
@@ -1262,7 +1344,7 @@ async function renderGalleryManager(container, project) {
   grid.append(...assets.map(assetCard));
   refreshControls();
 
-  const fileInput = el('input', { type: 'file', accept: 'image/*', multiple: true });
+  const fileInput = el('input', { type: 'file', accept: 'image/*,video/*', multiple: true });
   const uploadStatus = el('p', { class: 'admin-field__hint', 'aria-live': 'polite' });
   fileInput.addEventListener('change', async () => {
     const files = [...fileInput.files];
@@ -1275,8 +1357,15 @@ async function renderGalleryManager(container, project) {
 
     try {
       for (const [i, file] of files.entries()) {
-        uploadStatus.textContent = `Uploading ${i + 1} of ${files.length}…`;
-        const uploaded = await uploadImage(file, project.slug, `gallery-${nextSort}`);
+        const video = isVideoFile(file);
+        uploadStatus.textContent = video
+          ? `Uploading ${i + 1} of ${files.length} — video, ${(file.size / 1024 / 1024).toFixed(1)}MB, this can take a while…`
+          : `Uploading ${i + 1} of ${files.length}…`;
+        // Images are re-encoded to WebP and capped at 1920px; a video is sent
+        // as-is, since there is no transcode to do in a browser worth having.
+        const uploaded = video
+          ? await uploadVideo(file, project.slug, `video-${nextSort}`)
+          : await uploadImage(file, project.slug, `gallery-${nextSort}`);
         // .select() so the new row comes back with its id and can be turned
         // straight into a card. Without it the only way to learn the id was to
         // refetch the whole gallery, which is what forced the full redraw.
@@ -1287,7 +1376,7 @@ async function renderGalleryManager(container, project) {
             media_url: uploaded.url,
             width: uploaded.width,
             height: uploaded.height,
-            kind: 'image',
+            kind: video ? 'video' : 'image',
             alt: '',
             sort_order: nextSort,
           })
@@ -1298,8 +1387,15 @@ async function renderGalleryManager(container, project) {
         byId.set(String(row.id), row);
         grid.append(assetCard(row));
         refreshControls();
-        if (uploaded.bytes > WARN_BYTES) {
-          oversize.push(`${file.name}: ${(uploaded.bytes / 1024).toFixed(0)}KB`);
+        // Two different thresholds: an image over 500KB failed to compress
+        // well, while a video is simply big by nature and only worth flagging
+        // when it is big enough to hurt the page.
+        if (video ? uploaded.bytes > WARN_VIDEO_BYTES : uploaded.bytes > WARN_BYTES) {
+          oversize.push(
+            video
+              ? `${file.name}: ${(uploaded.bytes / 1024 / 1024).toFixed(1)}MB`
+              : `${file.name}: ${(uploaded.bytes / 1024).toFixed(0)}KB`
+          );
         }
         nextSort += 1;
       }
@@ -1308,7 +1404,7 @@ async function renderGalleryManager(container, project) {
       uploadStatus.replaceChildren('Done. Add alt text below before publishing.');
       if (oversize.length) {
         uploadStatus.append(
-          el('span', { class: 'admin-error' }, ` Over the 500KB target after compression: ${oversize.join(', ')}.`)
+          el('span', { class: 'admin-error' }, ` Heavier than the target: ${oversize.join(', ')}.`)
         );
       }
       try {
@@ -1327,7 +1423,17 @@ async function renderGalleryManager(container, project) {
 
   container.replaceChildren(
     grid,
-    el('div', { class: 'admin-dropzone' }, el('label', {}, 'Add images: ', fileInput), uploadStatus)
+    el(
+      'div',
+      { class: 'admin-dropzone' },
+      el('label', {}, 'Add images or video: ', fileInput),
+      el(
+        'p',
+        { class: 'admin-field__hint' },
+        `Images are re-encoded to WebP and capped at ${MAX_UPLOAD_DIMENSION}px. Video is uploaded exactly as picked — any aspect ratio works and the page adapts to it, so crop it however the work wants. Export MP4 (H.264 + AAC) so every browser can play it, and keep it under ${MAX_VIDEO_BYTES / 1024 / 1024}MB.`
+      ),
+      uploadStatus
+    )
   );
 }
 
@@ -1341,6 +1447,87 @@ async function renderGalleryManager(container, project) {
 // Clients are still CREATED from the project form ("+ Add new client…") — there
 // is no add form here on purpose, since a client with no work attached to it
 // renders nowhere and is only a stray row.
+
+/** One image picker: file input, client-side compression, preview, clear, and
+ * the measure-an-old-upload fallback. The client form has TWO of these since
+ * sql/009 (the card image and the page banner) and they behave identically, so
+ * the behaviour lives here once rather than being written out twice and drifting.
+ *
+ * `urlKey`/`wKey`/`hKey` name the columns this picker writes, which is the only
+ * thing that differs between the two. */
+function bannerPicker({ url, width, urlKey, wKey, hKey, clearedNote }) {
+  const input = el('input', { type: 'file', accept: 'image/*' });
+  const preview = el('div', {}, url ? el('img', { src: url, alt: '', class: 'admin-cover-preview' }) : null);
+  const warning = el('div');
+  let pending = null;
+  let cleared = false;
+
+  // An image uploaded by the OLD codebase has no stored dimensions, so nothing
+  // can reserve its space or build a srcset. Measure it once here and fold the
+  // result into the next save, rather than writing to the row behind Jesse's
+  // back the moment he opens the tab.
+  let measured = null;
+  if (url && !width) {
+    const probe = new Image();
+    probe.onload = () => {
+      measured = { w: probe.naturalWidth, h: probe.naturalHeight };
+    };
+    probe.src = url;
+  }
+
+  input.addEventListener('change', async () => {
+    const file = input.files[0];
+    if (!file) return;
+    cleared = false;
+    warning.replaceChildren(el('p', { class: 'admin-field__hint' }, 'Compressing…'));
+    pending = await compressImage(file);
+    warning.replaceChildren(
+      fieldSizeWarning(pending.blob.size),
+      el('p', { class: 'admin-field__hint' }, `Will be saved at ${pending.width}×${pending.height}.`)
+    );
+    // data: URL, not URL.createObjectURL — the CSP's img-src allows data: but
+    // not blob:, and we keep the CSP strict rather than widen it for a preview.
+    preview.replaceChildren(el('img', { src: await blobToDataUrl(pending.blob), alt: '', class: 'admin-cover-preview' }));
+  });
+
+  // Clearing is a real setting, not a no-op: it puts the fallback back.
+  const clearBtn = el('button', { class: 'admin-btn', type: 'button' }, 'Clear');
+  clearBtn.addEventListener('click', () => {
+    cleared = true;
+    pending = null;
+    input.value = '';
+    warning.replaceChildren();
+    preview.replaceChildren(el('p', { class: 'admin-field__hint' }, clearedNote));
+  });
+
+  return {
+    control: [input, warning, preview],
+    clearBtn: url ? clearBtn : null,
+    /** Folds this picker's result into the row about to be saved. Uploads only
+     * when there is something new, so opening and saving a client without
+     * touching the images re-uploads nothing. */
+    async applyTo(payload, pathPrefix, label) {
+      if (pending) {
+        const uploaded = await uploadImage(
+          new File([pending.blob], `${label}.webp`, { type: 'image/webp' }),
+          pathPrefix,
+          label
+        );
+        payload[urlKey] = uploaded.url;
+        payload[wKey] = uploaded.width;
+        payload[hKey] = uploaded.height;
+      } else if (cleared) {
+        payload[urlKey] = null;
+        payload[wKey] = null;
+        payload[hKey] = null;
+      } else if (measured) {
+        payload[wKey] = measured.w;
+        payload[hKey] = measured.h;
+      }
+    },
+  };
+}
+
 function clientForm(client, projectCount, onSaved) {
   const name = el('input', { class: 'admin-input', required: true, value: client.name || '' });
   const summary = el('input', { class: 'admin-input', maxlength: 140, value: client.description || '' });
@@ -1353,53 +1540,28 @@ function clientForm(client, projectCount, onSaved) {
   const hasCardTitle = 'card_title' in client;
   const cardTitle = el('input', { class: 'admin-input', value: client.card_title || '' });
 
-  const coverInput = el('input', { type: 'file', accept: 'image/*' });
-  const coverPreview = el(
-    'div',
-    {},
-    client.banner_url ? el('img', { src: client.banner_url, alt: '', class: 'admin-cover-preview' }) : null
-  );
-  let pendingCover = null;
-  let clearCover = false;
-  const coverWarning = el('div');
+  // The CARD image and the PAGE banner are two different shapes and, since
+  // sql/009, two different columns. cover_w is the probe for whether that
+  // migration has run — PostgREST omits a column it does not have, so its
+  // absence means the card field cannot be saved yet and is not offered.
+  const hasCardCover = 'cover_w' in client;
 
-  // A banner uploaded by the OLD codebase has no stored dimensions, so the card
-  // can't reserve its space or build a srcset. Measure it once here and fold the
-  // result into the next save, rather than writing to the row behind Jesse's
-  // back the moment he opens the tab.
-  let measured = null;
-  if (client.banner_url && !client.banner_w) {
-    const probe = new Image();
-    probe.onload = () => {
-      measured = { banner_w: probe.naturalWidth, banner_h: probe.naturalHeight };
-    };
-    probe.src = client.banner_url;
-  }
-
-  coverInput.addEventListener('change', async () => {
-    const file = coverInput.files[0];
-    if (!file) return;
-    clearCover = false;
-    coverWarning.replaceChildren(el('p', { class: 'admin-field__hint' }, 'Compressing…'));
-    pendingCover = await compressImage(file);
-    coverWarning.replaceChildren(fieldSizeWarning(pendingCover.blob.size));
-    // data: URL, not URL.createObjectURL — the CSP's img-src allows data: but
-    // not blob:, and we keep the CSP strict rather than widen it for a preview.
-    const previewSrc = await blobToDataUrl(pendingCover.blob);
-    coverPreview.replaceChildren(el('img', { src: previewSrc, alt: '', class: 'admin-cover-preview' }));
+  const cardPicker = bannerPicker({
+    url: client.cover_url,
+    width: client.cover_w,
+    urlKey: 'cover_url',
+    wKey: 'cover_w',
+    hKey: 'cover_h',
+    clearedNote: 'Cleared on save. The card falls back to the page banner below, then to the first project’s banner.',
   });
 
-  // Clearing is a real setting, not a no-op: with no client banner the card
-  // falls back to the first project's cover, which is the old behaviour.
-  const clearBtn = el('button', { class: 'admin-btn', type: 'button' }, 'Clear banner');
-  clearBtn.addEventListener('click', () => {
-    clearCover = true;
-    pendingCover = null;
-    coverInput.value = '';
-    coverWarning.replaceChildren();
-    coverPreview.replaceChildren(
-      el('p', { class: 'admin-field__hint' }, 'Cleared on save. The card will use the first project’s banner.')
-    );
+  const pagePicker = bannerPicker({
+    url: client.banner_url,
+    width: client.banner_w,
+    urlKey: 'banner_url',
+    wKey: 'banner_w',
+    hKey: 'banner_h',
+    clearedNote: 'Cleared on save. The client’s page will have no header banner.',
   });
 
   const errorEl = el('p', { class: 'admin-error', 'aria-live': 'polite' });
@@ -1431,15 +1593,26 @@ function clientForm(client, projectCount, onSaved) {
       summary,
       'Left empty, the card lists the client’s project titles instead.'
     ),
+    hasCardCover
+      ? field(
+          'Card image (home page)',
+          [...cardPicker.control, cardPicker.clearBtn].filter(Boolean),
+          'The image for this client’s card on the home grid — roughly portrait, since that is the shape the card crops to. Left empty it falls back to the page banner below, and then to the first project’s banner, which is what every client did before this field existed.'
+        )
+      : field(
+          'Card image (home page)',
+          el('input', { class: 'admin-input', value: 'Uses the page banner below', disabled: true }),
+          'Needs sql/009_client_card_cover.sql run in the Supabase dashboard. Until then the card and the client page share the one banner.'
+        ),
     field(
-      'Card banner',
-      [coverInput, coverWarning, coverPreview],
-      `The image for this client’s card on the home page${
-        projectCount ? ` and the header of their page (${projectCount} project${projectCount === 1 ? '' : 's'})` : ''
-      }. Falls back to the first project’s banner when empty. This is the same banner the older control-tee.vercel.app site reads, so changing it changes that site too.`
+      'Page banner (wide)',
+      [...pagePicker.control, pagePicker.clearBtn].filter(Boolean),
+      `The wide banner across the top of this client’s own page${
+        projectCount ? ` (${projectCount} project${projectCount === 1 ? '' : 's'})` : ''
+      }. Upload it at the shape it is shown in — full page width, roughly 16:9. This is the banner the older control-tee.vercel.app site reads, so changing it changes that site too.`
     ),
     errorEl,
-    el('div', { class: 'admin-form__actions' }, submitBtn, client.banner_url ? clearBtn : null, cancelBtn)
+    el('div', { class: 'admin-form__actions' }, submitBtn, cancelBtn)
   );
 
   form.addEventListener('submit', async (event) => {
@@ -1456,30 +1629,19 @@ function clientForm(client, projectCount, onSaved) {
       // uploaded again. See sql/006 for why cover_url/summary went unused.
       const payload = { name: nameValue, description: summary.value.trim() || null };
       if (hasCardTitle) payload.card_title = cardTitle.value.trim() || null;
-      if (pendingCover) {
-        const uploaded = await uploadImage(
-          new File([pendingCover.blob], 'cover.webp', { type: 'image/webp' }),
-          `clients/${slugify(nameValue) || client.id}`,
-          'cover'
-        );
-        payload.banner_url = uploaded.url;
-        payload.banner_w = uploaded.width;
-        payload.banner_h = uploaded.height;
-      } else if (clearCover) {
-        payload.banner_url = null;
-        payload.banner_w = null;
-        payload.banner_h = null;
-      } else if (measured) {
-        Object.assign(payload, measured); // backfill dimensions for an old banner
-      }
+      const prefix = `clients/${slugify(nameValue) || client.id}`;
+      if (hasCardCover) await cardPicker.applyTo(payload, prefix, 'card');
+      await pagePicker.applyTo(payload, prefix, 'banner');
       await withSaveState(supabase.from('clients').update(payload).eq('id', client.id).throwOnError());
       onSaved?.();
     } catch (err) {
-      // banner_w/banner_h arrive with sql/006. Until that runs, PostgREST
-      // rejects the whole update rather than ignoring the unknown column, so
-      // say which migration is missing instead of leaking the raw error.
+      // banner_w/banner_h arrive with sql/006 and cover_w/cover_h with sql/009.
+      // Until those run, PostgREST rejects the whole update rather than
+      // ignoring the unknown column, so name the likely migration instead of
+      // leaking the raw error. (The card field is already hidden when 009 is
+      // missing, so in practice this now points at 006.)
       errorEl.textContent = /column|schema cache/i.test(err.message)
-        ? `${err.message}. This needs sql/006_client_cover.sql run in the Supabase dashboard first.`
+        ? `${err.message}. This needs sql/006_client_cover.sql (and sql/009_client_card_cover.sql for the card image) run in the Supabase dashboard first.`
         : err.message;
       setSaveState('error', errorEl.textContent);
     } finally {

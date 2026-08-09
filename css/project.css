@@ -168,9 +168,11 @@
 /* Seamless vertical flow: slides butt directly against each other with no gap,
    so a multi-panel case study reads as one continuous column. Width is fixed to
    the media column; height stays natural (height: auto) so nothing is cropped —
-   panels of different heights stack cleanly. Captions are deliberately not
-   rendered in this mode (see renderDeck) because any text between slides breaks
-   the seam; alt text still carries the accessible description. */
+   panels of different heights stack cleanly. An image slide's caption is
+   deliberately not rendered in this mode (see renderDeck) because text between
+   slides breaks the seam; alt text still carries the accessible description. A
+   VIDEO does get its description, since its own controls already interrupt the
+   seam and the description is the point of having it. */
 .deck__item {
   width: 100%;
   margin: 0;
@@ -182,12 +184,59 @@
   height: auto;
 }
 
-/* ---- Mode: reel -------------------------------------------------------------- */
+/* ---- Video ------------------------------------------------------------------
+   Shared by gallery, deck and reel. The SHAPE comes from the footage: project.js
+   sets aspect-ratio inline from the intrinsic size stored at upload, so a
+   vertical, square or ultrawide file each get their own box and the space is
+   held before the video loads. 16/9 here is only the fallback for a row whose
+   dimensions were never captured — it is deliberately last in the cascade, so
+   the inline value always wins.
+
+   height: auto is what lets aspect-ratio decide the height at all; a fixed
+   height would override it and letterbox everything back to one shape. */
+.media-video,
+.reel {
+  width: 100%;
+  margin: 0;
+}
+.media-video video,
 .reel video {
-  display: block;
+  display: block; /* also kills the inline baseline gap */
   width: 100%;
   height: auto;
-  background: var(--ink-80);
+  aspect-ratio: 16 / 9;
+  /* --video-max is the height cap turned into a width by project.js (sizeVideo);
+     unset — dimensions unknown — this falls back to the full column. Centred,
+     because a narrowed video hard against the left of the column would read as
+     a mistake rather than as its own shape. */
+  max-width: var(--video-max, 100%);
+  margin-inline: auto;
+  background: var(--ink-80); /* the box is visible before the first frame */
+}
+/* In a gallery the videos sit in a masonry column alongside the posters. */
+.gallery .media-video {
+  break-inside: avoid;
+  margin-bottom: var(--space-m);
+}
+/* In a deck the slides butt together with no gap, so a video's description has
+   to supply its own breathing room rather than inheriting the seam. */
+.deck .media-video {
+  margin-block-end: 0;
+}
+
+/* Held to the video's own width so the description sits under the video rather
+   than under the column, which is a different thing once a tall video has been
+   narrowed. */
+.media-video__caption {
+  max-width: var(--video-max, 100%);
+  margin-inline: auto;
+  margin-block-start: var(--space-xs);
+  font-size: var(--step--1);
+  line-height: 1.5;
+  color: var(--chalk-60);
+}
+.deck .media-video__caption {
+  padding-block: var(--space-s) var(--space-m);
 }
 
 @media (prefers-reduced-motion: reduce) {

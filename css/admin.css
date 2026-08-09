@@ -430,6 +430,15 @@ a {
   object-fit: cover;
   background: var(--ink-80);
 }
+/* `contain`, not `cover`, and taller: this is the only place the real shape of
+   an uploaded video is visible before it is published, and cropping it to a
+   thumbnail would hide exactly the thing worth checking. */
+.admin-asset video {
+  width: 100%;
+  height: 180px;
+  object-fit: contain;
+  background: var(--ink);
+}
 
 /* Logos are marks, not photographs: `contain` so nothing is cropped, on the
    brand black because most of them are white on transparency and would vanish

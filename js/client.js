@@ -104,8 +104,11 @@ async function load() {
   const heading = client.card_title?.trim() || client.name;
   document.title = `${client.name} · Control Tee`;
 
-  // The same banner the home card uses, when one is set. Decorative: the h1
-  // right below it already names the client, so alt would only repeat it.
+  // The WIDE banner, which is this page's own image — `banner_url` is no longer
+  // shared with the home card, which has its own `cover_url` since sql/009. The
+  // two shapes are different enough (a page-width header against a card) that
+  // one file cropped for both served neither. Decorative: the h1 right below it
+  // already names the client, so alt would only repeat it.
   let banner = null;
   if (client.banner_url) {
     banner = pictureFor(client.banner_url, client.banner_w, client.banner_h, {

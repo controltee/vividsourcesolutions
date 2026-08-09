@@ -131,6 +131,17 @@ back to category order, and a project with no position sorts last so newly added
 work lands at the end. Saving a project under a client assigns it the next free
 position; moving it to another client re-positions it; detaching clears it.
 
+**The card image and the page banner are two different files** (sql/009, added
+2026-08-09). One image cannot serve both: a 16:9 banner cropped into a home card
+loses its edges, and a card-shaped crop is far too tall across a page header.
+- `clients.cover_url` + `cover_w`/`cover_h` — the HOME CARD. `cover_url` is the
+  column 006 added and then left dead; 009 only adds its dimensions.
+- `clients.banner_url` + `banner_w`/`banner_h` — the WIDE banner on client.html.
+The card falls back cover_url → banner_url → the first project's cover, so every
+client renders exactly as before until a card image is actually set. The probe
+for whether 009 has run is `'cover_w' in client`; without it the admin hides the
+card field and the two surfaces share banner_url as they always did.
+
 The client editor's card section edits the PARENT card: its banner
 (`clients.banner_url` + the `banner_w`/`banner_h` added by 006) and subtitle
 (`clients.description`).
@@ -211,6 +222,35 @@ Projects have a `layout` field: 'gallery' | 'deck' | 'reel'.
 - reel    = video, poster frame + click to play
 One template (project.html), three renderers. Never fork the template.
 
+## Video (added 2026-08-09)
+Videos are uploaded from the SAME place as gallery images — the per-project
+media manager in /admin — and land in `project_media` with `kind: 'video'`.
+
+- **Uploaded as-is.** Images are re-encoded to WebP and capped at 1920px; there
+  is no in-browser transcode for video worth having, so what is exported is what
+  ships. Hence the 50MB guard (Supabase's default per-file ceiling) and the
+  advice on the field: MP4, H.264 + AAC, so every browser can play it.
+- **Any aspect ratio.** The intrinsic size is read from the file's metadata at
+  upload and stored in `width`/`height`. `sizeVideo` in js/project.js turns that
+  into a CSS `aspect-ratio`, so vertical, square and ultrawide each get their own
+  box and it is held before a byte arrives. Never crop video to a fixed shape.
+- Tall footage is capped at `VIDEO_MAX_VH` (78vh) — expressed as a MAX-WIDTH
+  derived from the ratio, not a max-height, because capping height would leave a
+  full-width box with the picture letterboxed inside it. The cap lives in
+  `--video-max` on the figure so the description can match the video's width.
+- Dimensions may be null (an old row, or a codec the uploading browser could not
+  decode). css/project.css then falls back to 16:9 at full width — never let a
+  video box collapse.
+- `project_media.caption` is the VIDEO DESCRIPTION and is rendered in every mode,
+  deck included. That is the one exception to deck's no-captions rule: a video
+  already interrupts the seam with its own controls.
+- The probe is metadata on the UPLOADED url, not the local file: the CSP's
+  media-src allows this origin and the Supabase host, and neither blob: nor
+  data:. Do not widen it for a preview.
+- In gallery mode the lightbox list is built from IMAGES ONLY and indexed
+  against that filtered list. Indexing against `media` puts every poster after a
+  video one off, which opens the wrong image.
+
 ## Commands
 - npm run img -- <folder>   (inside /scripts) — optimize a batch of images
 - git push origin main      — deploy (Vercel builds from the remote; no CLI here)
@@ -233,7 +273,9 @@ context for the life of the page. Anything that blurs many elements must drop
 the filter to `none` when it finishes; `revealOnScroll` in js/util.js does this
 on transitionend, which is why its listener is not `{once: true}`.
 
-**The interface scale came down ~20% (2026-08-09).** The reduction is graduated,
-not flat: display type and all spacing took the full fifth, the two prose steps
-took far less, because a literal 20% puts body copy near 11px. `--rail-width`
-205→164px and the grid's min column 200→164px went with it.
+**The interface scale came down ~20% (2026-08-09), then type alone by another
+~6%.** The reduction is graduated, not flat: display type and all spacing took
+the full fifth, the two prose steps took far less, because a literal 20% puts
+body copy near 11px. `--rail-width` 205→164px and the grid's min column
+200→164px went with it. The second pass moved the type steps ONLY — spacing, the
+rail and the grid stayed put.

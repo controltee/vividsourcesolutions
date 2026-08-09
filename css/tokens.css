@@ -77,11 +77,15 @@
      captions near 9px, which is the barrier to reading the note above is about.
      Spacing takes the full fifth too, and between smaller display type and
      tighter spacing the page reads as the zoom-out asked for. */
-  --step--1: clamp(0.70rem, 0.68rem + 0.07vw, 0.73rem);
-  --step-0:  clamp(0.82rem, 0.79rem + 0.13vw, 0.88rem);
-  --step-1:  clamp(0.84rem, 0.78rem + 0.30vw, 1.00rem);
-  --step-2:  clamp(0.98rem, 0.85rem + 0.60vw, 1.34rem);
-  --step-3:  clamp(1.22rem, 1.02rem + 1.06vw, 2.00rem);
+     Nudged again the same day, by roughly another 6% on type ONLY — spacing,
+     the rail and the grid stayed where the previous pass put them, because the
+     ask was for the text specifically rather than another round on everything.
+     --step--1 barely moves: it is already at the floor described above. */
+  --step--1: clamp(0.69rem, 0.67rem + 0.07vw, 0.72rem);
+  --step-0:  clamp(0.78rem, 0.75rem + 0.12vw, 0.83rem);
+  --step-1:  clamp(0.79rem, 0.73rem + 0.28vw, 0.94rem);
+  --step-2:  clamp(0.92rem, 0.80rem + 0.56vw, 1.26rem);
+  --step-3:  clamp(1.14rem, 0.96rem + 1.00vw, 1.88rem);
 
   /* Space — scaled with the type above, so the rhythm between them holds. */
   --space-3xs: 0.16rem;

@@ -218,17 +218,27 @@ async function renderIntro() {
 // --- Render ----------------------------------------------------------------
 // One card standing in for every project a repeat client has.
 //
-// The banner is the client's OWN one when set in the admin's Clients tab.
-// `banner_url` is a live column that predates this rebuild, so a client the old
-// codebase already gave a banner to keeps it. Otherwise it falls back to the
-// first project's banner that actually has one, so the card is never an empty
-// tile just because the top project is missing artwork.
+// The image is the client's OWN card image when set in the admin's Clients tab.
 //
-// banner_w/banner_h may be null on a banner uploaded by the old admin; pictureFor
-// then returns a plain <img> with no srcset rather than risking a distorted
-// crop. Opening that client in the admin and saving fills the dimensions in.
+// THREE sources, in order, because the card and the client PAGE no longer share
+// one file (sql/009):
+//   1. cover_url — the card's own image, cropped for this shape
+//   2. banner_url — the wide banner at the top of the client's page. It is a
+//      live column predating this rebuild, so a client the old codebase gave a
+//      banner to still shows something here rather than nothing, and this stays
+//      the behaviour for every client until a card image is actually set.
+//   3. the first project's banner that has one, so the card is never an empty
+//      tile just because the top project is missing artwork.
+//
+// Dimensions may be null — on a banner uploaded by the old admin, or before
+// sql/009 has run. pictureFor then returns a plain <img> with no srcset rather
+// than risking a distorted crop. Opening that client in the admin and saving
+// fills them in.
 function clientCardMedia(group) {
   const own = group.client;
+  if (own?.cover_url) {
+    return { cover_url: own.cover_url, banner_w: own.cover_w, banner_h: own.cover_h };
+  }
   if (own?.banner_url) {
     return { cover_url: own.banner_url, banner_w: own.banner_w, banner_h: own.banner_h };
   }
