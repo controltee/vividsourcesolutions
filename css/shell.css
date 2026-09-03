@@ -180,11 +180,9 @@ body {
    stutter rather than an entrance. A longer lift over --dur-slow, on an ease
    that decelerates hard, arrives instead of snapping.
 
-   Deepened 2026-08-09: a longer lift and a soft defocus that resolves as the
-   card settles. The blur is what gives the reveal depth — a fade plus a slide
-   is flat by construction, because nothing about it says the card was ever
-   anywhere but on the page. Opacity still leads so the card is legible before
-   it has finished moving.
+  The lift and defocus are deliberately restrained so cards settle smoothly
+  without making the banner feel like it is arriving from a different page.
+  Opacity still leads so the card is legible before it has finished moving.
 
    blur(0) is not free: it keeps a compositing layer and a stacking context on
    every card for the life of the page. revealOnScroll in js/util.js drops the
@@ -192,8 +190,8 @@ body {
    carry forty layers around afterwards. */
 .reveal {
   opacity: 0;
-  transform: translateY(30px);
-  filter: blur(6px);
+  transform: translateY(18px);
+  filter: blur(4px);
   transition:
     opacity calc(var(--dur-slow) * 0.66) var(--ease-entrance),
     transform var(--dur-slow) var(--ease-entrance),

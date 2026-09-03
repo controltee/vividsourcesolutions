@@ -3,6 +3,12 @@
 export const qs = (sel, root = document) => root.querySelector(sel);
 export const qsa = (sel, root = document) => [...root.querySelectorAll(sel)];
 
+export function projectHref(slug) {
+  const encodedSlug = encodeURIComponent(slug);
+  const local = ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
+  return local ? `/project.html?p=${encodedSlug}` : `/${encodedSlug}`;
+}
+
 /**
  * Build a DOM element.
  *   el('a', { href: '/x', class: 'y' }, 'text', childNode)

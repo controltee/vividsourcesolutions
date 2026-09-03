@@ -3,7 +3,7 @@
 // boots the homepage on import, so client.js cannot borrow from it without
 // running the homepage renderer as a side effect. One card, one definition.
 
-import { el } from './util.js';
+import { el, projectHref } from './util.js';
 import { pictureFor } from './image.js';
 
 export const CARD_SIZES = '(max-width: 700px) 90vw, (max-width: 1100px) 45vw, 30vw';
@@ -19,7 +19,7 @@ export function projectCard(project, { eager = false, priority = false } = {}) {
 
   return el(
     'a',
-    { class: 'project-card reveal', href: `/project.html?p=${encodeURIComponent(project.slug)}` },
+    { class: 'project-card reveal', href: projectHref(project.slug) },
     picture,
     el(
       'div',

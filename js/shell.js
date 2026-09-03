@@ -1,7 +1,7 @@
 ﻿// shell.js — renders the persistent rail nav from live data and drives the
 // mobile drawer. Disclosure state is deliberately NOT kept: see renderNav.
 
-import { qs, qsa, el, slugify } from './util.js';
+import { qs, qsa, el, slugify, projectHref } from './util.js';
 import { supabase } from './supabase.js';
 
 const NAV_KEY = 'ct:nav:v4'; // v4: client labels follow card_title — bump invalidates old caches
@@ -133,7 +133,7 @@ function projectItem(project, activeSlug) {
     el(
       'a',
       {
-        href: `/project.html?p=${encodeURIComponent(project.slug)}`,
+        href: projectHref(project.slug),
         class: active ? 'is-active' : false,
         'aria-current': active ? 'page' : false,
       },
@@ -240,9 +240,7 @@ async function loadSiteSettings() {
 }
 
 function applySiteSettings(settings) {
-  // Note: #contact-link points at /contact.html (the inquiry form) — it is
-  // deliberately NOT rewritten to a mailto:, since the form is the better
-  // route. contact_email is surfaced on the contact page instead.
+  // The contact page surfaces contact_email as a direct mail link.
   const socialSettingKey = { instagram: 'social_instagram_url', behance: 'social_behance_url', linkedin: 'social_linkedin_url' };
   for (const link of qsa('.rail__social a[data-social]')) {
     const url = settings[socialSettingKey[link.dataset.social]];
