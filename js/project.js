@@ -240,7 +240,9 @@ function renderReel(media, project) {
 
 // --- Boot --------------------------------------------------------------------
 async function loadProject() {
-  const slug = new URLSearchParams(location.search).get('p');
+  const querySlug = new URLSearchParams(location.search).get('p');
+  const pathSlug = location.pathname.split('/').filter(Boolean).pop();
+  const slug = querySlug || (pathSlug && pathSlug !== 'project.html' ? decodeURIComponent(pathSlug) : null);
   if (!slug) {
     notFound('Project not found', 'That link is missing a project. Head back to the work to pick one.');
     return;
