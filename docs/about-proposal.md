@@ -19,7 +19,7 @@ All copy below is free of em dashes and of hyphens used as punctuation, per your
 Your own tagline, and it does two jobs at once where the current one does none.
 "Creativity" is a category, not a claim. Every studio on earth could put it up.
 "Free To Transform" says what the work is for and quietly explains the name, which
-means the CTRL+T story lands before anyone has to read a paragraph about it.
+means the CTRL+T story lands before anyone has to read a paragraph about   it.
 
 **Field:** `about_headline`
 
