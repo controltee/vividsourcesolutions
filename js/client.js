@@ -10,6 +10,7 @@
 
 import { qs, qsa, el, revealOnScroll, slugify, routeSlugs } from './util.js';
 import { supabase } from './supabase.js';
+import { backToWorkLink, restoreWorkPosition } from './work-navigation.js';
 import { pictureFor } from './image.js';
 import { projectCard, cardSkeletons } from './project-card.js';
 
@@ -23,7 +24,7 @@ function notFound(heading, message) {
     el(
       'div',
       { class: 'client-head' },
-      el('a', { class: 'client-head__back', href: '/' }, '← Back to work'),
+      backToWorkLink({ class: 'client-head__back' }),
       el('h1', { class: 'client-head__title' }, heading),
       el('p', { class: 'client-head__count' }, message)
     )
@@ -124,7 +125,7 @@ async function load() {
   const head = el(
     'header',
     { class: 'client-head' },
-    el('a', { class: 'client-head__back', href: '/' }, '← Back to work'),
+    backToWorkLink({ class: 'client-head__back' }),
     banner,
     el('p', { class: 'client-head__eyebrow' }, 'Client'),
     el('h1', { class: 'client-head__title' }, heading),
@@ -148,6 +149,7 @@ async function load() {
 
   pane.replaceChildren(head, grid);
   revealOnScroll(qsa('.project-card', pane));
+  restoreWorkPosition();
 }
 
 skeleton();

@@ -189,9 +189,12 @@ markup at the top of index.html) is the home page's arrival: logo, `CTRL + T`,
 CTRL spelled out (Creativity Transformation Resonance Language), the motto
 Command To Transform, then "Explore my workspace".
 
-- Index only, and it plays EVERY load — reload, or any arrival back at the site
-  (Jesse's call, 2026-08-09). It briefly ran once per session; nothing is
-  remembered about it now and there is no state to clear.
+- Index only, once per browser (updated at Jesse's request, 2026-10-29).
+  `ct:intro:seen` in local storage suppresses it on refresh and return visits.
+  Clearing site storage allows it to play again. With storage blocked it may replay.
+- Back to work uses the previous same-tab internal history entry when available,
+  preserving its scroll position after dynamic content loads. Direct project
+  visits keep a homepage fallback. See `js/work-navigation.js`.
 - The acronym is the one multi-part stage: each term animates on its own
   `--i`-derived delay, so C/T/R/L land in order. The `<ul>` therefore carries no
   `.intro__stage` — it only holds the base delay its children count from.
