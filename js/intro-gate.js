@@ -7,13 +7,16 @@
 // :root[data-intro="pending"] — display, the scroll lock, everything — so with
 // JS off the overlay never shows and the site behaves exactly as it did before.
 //
-// Index page only, and it plays EVERY time the home page is loaded — on a
-// reload, and on every arrival back at the site. It briefly ran once per
-// browser session; that was changed 2026-08-09 on Jesse's call. The sequence is
-// the front door, not a first-visit tutorial, so nothing is remembered about it
-// and there is no state to clear.
+// Index page only. Remember the first visit in this browser so returning to
+// work or refreshing does not replay the arrival sequence.
 (function () {
   var root = document.documentElement;
+  try {
+    if (localStorage.getItem('ct:intro:seen') === '1') return;
+    localStorage.setItem('ct:intro:seen', '1');
+  } catch {
+    // With storage blocked, the intro still has its normal exit and failsafe.
+  }
 
   root.dataset.intro = 'pending';
 

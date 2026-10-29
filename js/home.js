@@ -3,6 +3,7 @@
 
 import { qs, qsa, el, revealOnScroll, slugify, clientHref } from './util.js';
 import { supabase } from './supabase.js';
+import { restoreWorkPosition } from './work-navigation.js';
 import { pictureFor } from './image.js';
 import { CARD_SIZES, projectCard, cardSkeletons } from './project-card.js';
 
@@ -311,10 +312,12 @@ function render(projects) {
   if (grid) grid.replaceChildren(...cardSkeletons());
   // Fire the synopsis alongside the projects rather than before them: the work
   // is the point of the page and must not wait on the copy.
-  renderIntro().catch((err) => console.error('[home] synopsis failed:', err));
-  renderMarquee().catch((err) => console.error('[home] logo marquee failed:', err));
+  const introReady = renderIntro().catch((err) => console.error('[home] synopsis failed:', err));
+  const marqueeReady = renderMarquee().catch((err) => console.error('[home] logo marquee failed:', err));
   try {
     render(await loadProjects());
+    await Promise.all([introReady, marqueeReady]);
+    restoreWorkPosition();
   } catch (err) {
     console.error('[home] could not load projects:', err);
     if (grid) {

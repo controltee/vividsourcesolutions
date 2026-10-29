@@ -3,6 +3,7 @@
 
 import { qs, qsa, el, slugify, projectHref, clientHref, routeSlugs } from './util.js';
 import { supabase } from './supabase.js';
+import './work-navigation.js';
 
 const NAV_KEY = 'ct:nav:v4'; // v4: client labels follow card_title — bump invalidates old caches
 const NAV_TTL = 5 * 60 * 1000; // 5 minutes
@@ -318,7 +319,7 @@ function initCookieNotice() {
     el(
       'p',
       { class: 'cookie-notice__text' },
-      'We only store what makes this site work: your theme choice and a short cache of the project list. No ad tracking. ',
+      'We only store what makes this site work: your theme choice, whether you have seen the opening sequence, your place in the work, and a short cache of the project list. No ad tracking. ',
       el('a', { href: '/cookies' }, 'Cookie policy')
     ),
     accept
