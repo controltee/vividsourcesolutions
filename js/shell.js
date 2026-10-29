@@ -1,7 +1,7 @@
 ﻿// shell.js — renders the persistent rail nav from live data and drives the
 // mobile drawer. Disclosure state is deliberately NOT kept: see renderNav.
 
-import { qs, qsa, el, slugify, projectHref } from './util.js';
+import { qs, qsa, el, slugify, projectHref, clientHref, routeSlugs } from './util.js';
 import { supabase } from './supabase.js';
 
 const NAV_KEY = 'ct:nav:v4'; // v4: client labels follow card_title — bump invalidates old caches
@@ -156,7 +156,7 @@ function clientItem(item, active) {
       'a',
       {
         class: isActive ? 'rail__client-label is-active' : 'rail__client-label',
-        href: `/client.html?c=${encodeURIComponent(item.slug)}`,
+        href: clientHref(item.slug),
         'aria-current': isActive ? 'page' : false,
       },
       item.name,
@@ -319,7 +319,7 @@ function initCookieNotice() {
       'p',
       { class: 'cookie-notice__text' },
       'We only store what makes this site work: your theme choice and a short cache of the project list. No ad tracking. ',
-      el('a', { href: '/cookies.html' }, 'Cookie policy')
+      el('a', { href: '/cookies' }, 'Cookie policy')
     ),
     accept
   );
@@ -420,10 +420,8 @@ async function init() {
   initThemeToggle();
   initClock();
   initCookieNotice();
-  // `?p` on project.html, `?c` on client.html. Both are read here so the rail
-  // can highlight a client label as the current page too.
-  const params = new URLSearchParams(location.search);
-  const active = { project: params.get('p'), client: params.get('c') };
+  // Resolve both clean URLs and legacy query links for the current nav item.
+  const active = routeSlugs();
   try {
     const groups = await loadNav();
     if (!groups.length) {

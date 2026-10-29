@@ -1575,7 +1575,7 @@ function clientForm(client, projectCount, onSaved) {
     field(
       'Name',
       name,
-      `The organisation's real name. Printed under "Client" on every project page and used in the Client dropdown. The client page URL is built from it, so renaming changes /client.html?c=${slugify(client.name) || '…'} and any old link stops working.`
+      `The organisation's real name. Printed under "Client" on every project page and used in the Client dropdown. The client page URL is built from it, so renaming changes /clients/${slugify(client.name) || '…'} and any old link stops working.`
     ),
     hasCardTitle
       ? field(

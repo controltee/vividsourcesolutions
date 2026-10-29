@@ -1,7 +1,7 @@
 ﻿// project.js — one template, three renderers (gallery | deck | reel), switched
 // on project.layout. Never fork this into per-layout HTML files.
 
-import { qs, qsa, el, revealOnScroll } from './util.js';
+import { qs, qsa, el, revealOnScroll, routeSlugs } from './util.js';
 import { supabase } from './supabase.js';
 import { pictureFor } from './image.js';
 import { openLightbox } from './lightbox.js';
@@ -240,9 +240,7 @@ function renderReel(media, project) {
 
 // --- Boot --------------------------------------------------------------------
 async function loadProject() {
-  const querySlug = new URLSearchParams(location.search).get('p');
-  const pathSlug = location.pathname.split('/').filter(Boolean).pop();
-  const slug = querySlug || (pathSlug && pathSlug !== 'project.html' ? decodeURIComponent(pathSlug) : null);
+  const slug = routeSlugs().project;
   if (!slug) {
     notFound('Project not found', 'That link is missing a project. Head back to the work to pick one.');
     return;

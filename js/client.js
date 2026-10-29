@@ -1,13 +1,14 @@
 // client.js — one client's body of work. Reached from the grouped card on the
 // home grid and from the client label in the rail.
 //
-// Routing: `client.html?c=<slug>`, where the slug is slugify(client.name). The
-// live `clients` table has no slug column and CLAUDE.md keeps migrations
+// Routing: `/clients/<slug>`, where the slug is slugify(client.name).
+// Legacy `client.html?c=<slug>` links also work. The live `clients` table has
+// no slug column and CLAUDE.md keeps migrations
 // additive and manual, so the slug is derived rather than stored: this page
 // pulls the (small) client list and matches on the slugified name. A raw client
 // id also resolves, which keeps any hand-written link working.
 
-import { qs, qsa, el, revealOnScroll, slugify } from './util.js';
+import { qs, qsa, el, revealOnScroll, slugify, routeSlugs } from './util.js';
 import { supabase } from './supabase.js';
 import { pictureFor } from './image.js';
 import { projectCard, cardSkeletons } from './project-card.js';
@@ -50,7 +51,7 @@ async function resolveClient(key) {
 }
 
 async function load() {
-  const key = new URLSearchParams(location.search).get('c');
+  const key = routeSlugs().client;
   if (!key) {
     notFound('Client not found', 'That link is missing a client. Head back to the work to pick one.');
     return;
