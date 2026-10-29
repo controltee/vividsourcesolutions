@@ -24,11 +24,17 @@ sql/                schema, RLS, seed
 
 ## Local development
 
-No build. Serve the repo root with any static server, e.g.:
+No build. From the repo root, start the included static server with clean-route support:
 
 ```
-npx serve .        # or: python -m http.server
+python3 scripts/serve.py
 ```
+
+Page URLs are `/about`, `/contact`, `/privacy`, `/terms`, and `/cookies`.
+Projects use `/<project-slug>`; client collections use `/clients/<client-slug>`.
+The server also accepts the older `.html` and query-string links. It supports
+`--port` and `--bind`; Vercel applies the production routing in `vercel.json`.
+Local serving does not emulate Vercel's security headers or redirects.
 
 ## Image pipeline
 

@@ -9,6 +9,25 @@ export function projectHref(slug) {
   return local ? `/project.html?p=${encodedSlug}` : `/${encodedSlug}`;
 }
 
+export function clientHref(slug) {
+  const encodedSlug = encodeURIComponent(slug);
+  const local = ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
+  return local ? `/client.html?c=${encodedSlug}` : `/clients/${encodedSlug}`;
+}
+
+// Keep legacy query links working alongside clean production URLs.
+export function routeSlugs(url = window.location) {
+  const params = new URLSearchParams(url.search);
+  const segments = url.pathname.split('/').filter(Boolean);
+  const clientPath = segments.length === 2 && segments[0] === 'clients';
+  const reserved = ['index', 'project', 'client', 'about', 'contact', 'privacy', 'terms', 'cookies', 'admin'];
+  const page = segments[0]?.replace(/\.html$/, '');
+  return {
+    project: params.get('p') || (segments.length === 1 && !reserved.includes(page) ? decodeURIComponent(segments[0]) : null),
+    client: params.get('c') || (clientPath ? decodeURIComponent(segments[1]) : null),
+  };
+}
+
 /**
  * Build a DOM element.
  *   el('a', { href: '/x', class: 'y' }, 'text', childNode)
@@ -32,7 +51,7 @@ export function el(tag, attrs = {}, ...children) {
 /**
  * URL-safe slug from arbitrary text. Shared by the admin (project/category
  * slugs) and the public pages (client routing). Clients have no slug column in
- * the live DB, so `client.html?c=` routes on slugify(client.name) and resolves
+ * the live DB, so `/clients/<slug>` routes on slugify(client.name) and resolves
  * it back by matching — no migration, and the URL still reads as a name.
  */
 export function slugify(text) {

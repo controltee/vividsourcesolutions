@@ -1,7 +1,10 @@
 {
   "cleanUrls": true,
   "trailingSlash": false,
-  "rewrites": [{ "source": "/:slug", "destination": "/project?p=:slug" }],
+  "rewrites": [
+    { "source": "/clients/:slug", "destination": "/client?c=:slug" },
+    { "source": "/:slug", "destination": "/project?p=:slug" }
+  ],
   "headers": [
     {
       "source": "/(.*)",

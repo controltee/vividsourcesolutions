@@ -1,7 +1,7 @@
 ﻿// home.js — the project grid. Fetches published projects, orders them by
 // category then project sort order, and renders banner cards.
 
-import { qs, qsa, el, revealOnScroll, slugify } from './util.js';
+import { qs, qsa, el, revealOnScroll, slugify, clientHref } from './util.js';
 import { supabase } from './supabase.js';
 import { pictureFor } from './image.js';
 import { CARD_SIZES, projectCard, cardSkeletons } from './project-card.js';
@@ -260,7 +260,7 @@ function clientCard(group, { eager, priority }) {
     'a',
     {
       class: 'project-card project-card--client reveal',
-      href: `/client.html?c=${encodeURIComponent(group.slug)}`,
+      href: clientHref(group.slug),
     },
     el(
       'div',
